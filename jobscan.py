@@ -1,0 +1,606 @@
+#!/usr/bin/env python3
+"""
+jobscan.py - poll company ATS boards, filter to India + junior backend/AI,
+score against a fixed profile, email a digest.
+
+No API keys required for the job boards. All endpoints are public.
+Email requires SMTP_USER / SMTP_PASS env vars (Gmail app password).
+
+Usage:
+    python jobscan.py                 # normal run, sends email
+    python jobscan.py --dry-run       # print digest, send nothing
+    python jobscan.py --reset         # wipe seen.json, treat everything as new
+"""
+
+import argparse
+import csv
+import html
+import json
+import os
+import re
+import smtplib
+import sys
+import time
+from datetime import datetime, timedelta, timezone
+from email.mime.text import MIMEText
+from pathlib import Path
+
+import requests
+
+ROOT = Path(__file__).parent
+COMPANIES_CSV = ROOT / "companies.csv"
+SEEN_JSON = ROOT / "seen.json"
+PIPELINE_CSV = ROOT / "pipeline.csv"
+ERRORS_LOG = ROOT / "fetch_errors.log"
+
+IST = timezone(timedelta(hours=5, minutes=30))
+TIMEOUT = 25
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; jobscan/1.0)"}
+
+# --------------------------------------------------------------------------
+# PROFILE - edit this when your stack changes
+# --------------------------------------------------------------------------
+
+CORE_SKILLS = {
+    "java": 3, "spring boot": 3, "spring": 2, "spring security": 2,
+    "spring data": 2, "hibernate": 2, "jpa": 2, "rest api": 2,
+    "restful": 2, "microservice": 3, "postgresql": 3, "postgres": 3,
+    "redis": 2, "kafka": 3, "rabbitmq": 2, "docker": 2, "kubernetes": 2,
+    "aws": 2, "github actions": 1, "ci/cd": 1, "junit": 1, "mockito": 1,
+    "sql": 1, "linux": 1, "maven": 1, "gradle": 1,
+}
+
+SECONDARY_SKILLS = {
+    "typescript": 2, "node.js": 2, "nodejs": 2, "nestjs": 2, "nest.js": 2,
+    "express": 1, "react": 2, "python": 3, "fastapi": 3, "django": 2,
+    "javascript": 1, "websocket": 1, "grpc": 1, "terraform": 1,
+}
+
+AI_SKILLS = {
+    "rag": 3, "retrieval-augmented": 3, "retrieval augmented": 3,
+    "pgvector": 3, "vector database": 2, "vector search": 2,
+    "embedding": 2, "reranking": 3, "rerank": 2, "langchain": 2,
+    "langgraph": 3, "llm": 2, "large language model": 2,
+    "tool calling": 3, "agentic": 2, "semantic search": 2,
+    "prompt engineering": 1, "openai": 1, "hybrid retrieval": 3,
+}
+
+ALL_SKILLS = {**CORE_SKILLS, **SECONDARY_SKILLS, **AI_SKILLS}
+MAX_SKILL_POINTS = 34  # tuned so a strong match lands near 100
+
+# --------------------------------------------------------------------------
+# FILTERS
+# --------------------------------------------------------------------------
+
+INDIA_CITIES = [
+    "bengaluru", "bangalore", "hyderabad", "pune", "chennai", "gurugram",
+    "gurgaon", "noida", "delhi", "ncr", "mumbai", "kolkata", "ahmedabad",
+    "kochi", "cochin", "trivandrum", "thiruvananthapuram", "coimbatore",
+    "indore", "jaipur", "chandigarh", "vadodara", "nagpur", "mysuru",
+    "mysore", "bhubaneswar", "vishakhapatnam", "vizag",
+]
+
+NON_INDIA_HINTS = [
+    "united states", "usa", "canada", "united kingdom", "london",
+    "germany", "berlin", "france", "paris", "netherlands", "amsterdam",
+    "singapore", "australia", "sydney", "japan", "tokyo", "dublin",
+    "poland", "warsaw", "spain", "madrid", "brazil", "mexico",
+    "israel", "tel aviv", "dubai", "uae", "philippines", "manila",
+    "vietnam", "indonesia", "china", "shanghai", "korea", "seoul",
+]
+
+TITLE_KEEP = [
+    "backend", "back-end", "back end", "software engineer",
+    "software developer", "platform engineer", "full stack", "fullstack",
+    "full-stack", "ai engineer", "ml engineer", "machine learning engineer",
+    "applied ai", "api engineer", "sde", "member of technical staff",
+    "application engineer", "server engineer", "infrastructure engineer",
+]
+
+TITLE_DROP = [
+    "staff", "principal", "lead", "manager", "director", "architect",
+    "head of", "vp ", "vice president", "intern", "internship",
+    "president", "chief", "fellow", "distinguished", "senior staff",
+]
+
+COMPANY_DROP = [
+    "accenture", "tcs", "tata consultancy", "infosys", "wipro",
+    "cognizant", "capgemini", "hcl", "tech mahindra", "ltimindtree",
+    "mindtree", "mphasis", "birlasoft", "hexaware", "zensar",
+    "randstad", "adecco", "manpower", "michael page", "robert half",
+    "staffing", "recruitment", "consultancy services", "talent solutions",
+]
+
+# Years-of-experience patterns. If minimum > MAX_YOE, drop.
+MAX_YOE = 5
+YOE_PATTERNS = [
+    re.compile(r"(\d+)\s*\+?\s*(?:to|-|–)\s*\d+\s*\+?\s*years?", re.I),
+    re.compile(r"(?:minimum|min\.?|at least)\s*(?:of\s*)?(\d+)\s*\+?\s*years?", re.I),
+    re.compile(r"(\d+)\s*\+\s*years?", re.I),
+]
+
+# --------------------------------------------------------------------------
+# HELPERS
+# --------------------------------------------------------------------------
+
+
+def log_error(company, msg):
+    line = f"{datetime.now(IST).isoformat()}\t{company}\t{msg}\n"
+    with open(ERRORS_LOG, "a", encoding="utf-8") as f:
+        f.write(line)
+    print(f"  ! {company}: {msg}", file=sys.stderr)
+
+
+def strip_html(text):
+    if not text:
+        return ""
+    text = html.unescape(text)
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.I)
+    text = re.sub(r"</p>", "\n", text, flags=re.I)
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def get_json(url, retries=2):
+    last = None
+    for attempt in range(retries + 1):
+        try:
+            r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            last = e
+            if attempt < retries:
+                time.sleep(2 * (attempt + 1))
+    raise last
+
+
+# --------------------------------------------------------------------------
+# ATS ADAPTERS - each returns a list of normalised job dicts
+# --------------------------------------------------------------------------
+
+
+def fetch_greenhouse(token, tenant=None):
+    url = f"https://boards-api.greenhouse.io/v1/boards/{token}/jobs?content=true"
+    data = get_json(url)
+    out = []
+    for j in data.get("jobs", []):
+        out.append({
+            "title": j.get("title", ""),
+            "location": (j.get("location") or {}).get("name", ""),
+            "url": j.get("absolute_url", ""),
+            "description": strip_html(j.get("content", "")),
+            "posted": (j.get("first_published") or j.get("updated_at") or "")[:10],
+        })
+    return out
+
+
+def fetch_lever(token, tenant=None):
+    url = f"https://api.lever.co/v0/postings/{token}?mode=json"
+    data = get_json(url)
+    out = []
+    for j in data:
+        cat = j.get("categories") or {}
+        ts = j.get("createdAt")
+        posted = ""
+        if ts:
+            posted = datetime.fromtimestamp(ts / 1000, tz=timezone.utc).strftime("%Y-%m-%d")
+        out.append({
+            "title": j.get("text", ""),
+            "location": cat.get("location", "") or "",
+            "url": j.get("hostedUrl", ""),
+            "description": strip_html(j.get("descriptionPlain") or j.get("description", "")),
+            "posted": posted,
+        })
+    return out
+
+
+def fetch_ashby(token, tenant=None):
+    url = (f"https://api.ashbyhq.com/posting-api/job-board/{token}"
+           f"?includeCompensation=true")
+    data = get_json(url)
+    out = []
+    for j in data.get("jobs", []):
+        out.append({
+            "title": j.get("title", ""),
+            "location": j.get("location", "") or "",
+            "url": j.get("jobUrl", ""),
+            "description": strip_html(j.get("descriptionHtml") or j.get("descriptionPlain", "")),
+            "posted": (j.get("publishedAt") or "")[:10],
+        })
+    return out
+
+
+def fetch_smartrecruiters(token, tenant=None):
+    out = []
+    offset = 0
+    while True:
+        url = (f"https://api.smartrecruiters.com/v1/companies/{token}"
+               f"/postings?limit=100&offset={offset}")
+        data = get_json(url)
+        items = data.get("content", [])
+        if not items:
+            break
+        for j in items:
+            loc = j.get("location") or {}
+            loc_str = ", ".join(
+                x for x in [loc.get("city"), loc.get("region"), loc.get("country")] if x
+            )
+            out.append({
+                "title": j.get("name", ""),
+                "location": loc_str,
+                "url": j.get("ref", "").replace(
+                    "api.smartrecruiters.com/v1/companies",
+                    "jobs.smartrecruiters.com"
+                ) or f"https://jobs.smartrecruiters.com/{token}/{j.get('id')}",
+                "description": "",  # detail call needed; title/location suffice for triage
+                "posted": (j.get("releasedDate") or "")[:10],
+            })
+        offset += 100
+        if offset >= data.get("totalFound", 0):
+            break
+    return out
+
+
+def fetch_workable(token, tenant=None):
+    url = f"https://apply.workable.com/api/v1/widget/accounts/{token}?details=true"
+    data = get_json(url)
+    out = []
+    for j in data.get("jobs", []):
+        loc = ", ".join(x for x in [j.get("city"), j.get("state"), j.get("country")] if x)
+        out.append({
+            "title": j.get("title", ""),
+            "location": loc,
+            "url": j.get("url") or j.get("application_url", ""),
+            "description": strip_html(j.get("description", "") + " " + j.get("requirements", "")),
+            "posted": (j.get("published_on") or "")[:10],
+        })
+    return out
+
+
+def fetch_oracle(token, tenant=None):
+    """token = siteNumber (usually CX_1). tenant = full host, e.g.
+    eeho.fa.us2.oraclecloud.com"""
+    if not tenant:
+        raise ValueError("oracle rows need a Tenant value")
+    site = token or "CX_1"
+    url = (f"https://{tenant}/hcmRestApi/resources/latest/"
+           f"recruitingCEJobRequisitions?onlyData=true&expand=requisitionList"
+           f"&finder=findReqs;siteNumber={site},limit=200,location=India")
+    data = get_json(url)
+    out = []
+    for block in data.get("items", []):
+        for j in block.get("requisitionList", []):
+            rid = j.get("Id", "")
+            out.append({
+                "title": j.get("Title", ""),
+                "location": j.get("PrimaryLocation", "") or "",
+                "url": f"https://{tenant}/hcmUI/CandidateExperience/en/sites/{site}/job/{rid}",
+                "description": strip_html(j.get("ShortDescriptionStr", "")),
+                "posted": (j.get("PostedDate") or "")[:10],
+            })
+    return out
+
+
+ADAPTERS = {
+    "greenhouse": fetch_greenhouse,
+    "lever": fetch_lever,
+    "ashby": fetch_ashby,
+    "smartrecruiters": fetch_smartrecruiters,
+    "workable": fetch_workable,
+    "oracle": fetch_oracle,
+}
+
+# --------------------------------------------------------------------------
+# FILTER + SCORE
+# --------------------------------------------------------------------------
+
+
+def _word(term, text):
+    """Word-boundary match. Stops 'Indianapolis' matching 'India'."""
+    return re.search(r"\b" + re.escape(term) + r"\b", text) is not None
+
+
+def _has_india_city(loc):
+    return any(_word(city, loc) for city in INDIA_CITIES)
+
+
+def is_india(location):
+    loc = (location or "").lower()
+    if not loc:
+        return False
+    if _word("india", loc) or _word("bharat", loc):
+        return True
+    if _has_india_city(loc):
+        return True
+    if _word("in", loc) and not any(h in loc for h in NON_INDIA_HINTS):
+        return True
+    if "remote" in loc and ("apac" in loc or "asia" in loc):
+        return True
+    return False
+
+
+def is_non_india_only(location):
+    loc = (location or "").lower()
+    if _has_india_city(loc) or _word("india", loc):
+        return False
+    return any(hint in loc for hint in NON_INDIA_HINTS)
+
+
+def title_ok(title):
+    t = (title or "").lower()
+    if any(bad in t for bad in TITLE_DROP):
+        return False
+    return any(good in t for good in TITLE_KEEP)
+
+
+def company_ok(company):
+    c = (company or "").lower()
+    return not any(bad in c for bad in COMPANY_DROP)
+
+
+def min_yoe(description):
+    """Lowest 'minimum years' figure found. None if nothing parseable."""
+    if not description:
+        return None
+    found = []
+    for pat in YOE_PATTERNS:
+        for m in pat.finditer(description[:6000]):
+            try:
+                found.append(int(m.group(1)))
+            except (ValueError, IndexError):
+                pass
+    return min(found) if found else None
+
+
+def score(job):
+    """0-100 fit score plus reason and gap strings."""
+    blob = f"{job['title']} {job['description']}".lower()
+
+    hits = []
+    points = 0
+    for skill, weight in ALL_SKILLS.items():
+        if skill in blob:
+            points += weight
+            hits.append((weight, skill))
+    skill_score = min(points / MAX_SKILL_POINTS, 1.0) * 50
+
+    yoe = job.get("min_yoe")
+    if yoe is None:
+        yoe_score = 20            # unstated, assume open
+    elif yoe <= 2:
+        yoe_score = 30
+    elif yoe <= 4:
+        yoe_score = 24
+    elif yoe == 5:
+        yoe_score = 12
+    else:
+        yoe_score = 0
+
+    t = job["title"].lower()
+    if any(k in t for k in ["backend", "back-end", "back end"]):
+        role_score = 20
+    elif any(k in t for k in ["ai engineer", "ml engineer", "applied ai", "machine learning"]):
+        role_score = 20
+    elif any(k in t for k in ["full stack", "fullstack", "full-stack", "platform"]):
+        role_score = 16
+    elif any(k in t for k in ["software engineer", "software developer", "sde"]):
+        role_score = 14
+    else:
+        role_score = 8
+
+    total = round(skill_score + yoe_score + role_score)
+
+    # collapse aliases so the reason line does not read "postgresql, postgres"
+    aliases = {
+        "postgres": "postgresql", "nodejs": "node.js", "nest.js": "nestjs",
+        "retrieval augmented": "rag", "retrieval-augmented": "rag",
+        "rerank": "reranking", "large language model": "llm",
+        "back-end": "backend", "back end": "backend",
+    }
+    hits.sort(reverse=True)
+    top, seen_alias = [], set()
+    for _, s in hits:
+        canon = aliases.get(s, s)
+        if canon in seen_alias:
+            continue
+        seen_alias.add(canon)
+        top.append(canon)
+        if len(top) == 3:
+            break
+    reason = "Overlap: " + ", ".join(top) if top else "No direct stack overlap detected"
+
+    if yoe is not None and yoe > 4:
+        gap = f"Asks {yoe}+ years"
+    elif not top:
+        gap = "Stack not recognised from description"
+    else:
+        missing = [s for s in ["kubernetes", "kafka", "aws", "go", "scala", "rust"]
+                   if s in blob and s not in ALL_SKILLS]
+        gap = f"Watch: {', '.join(missing)}" if missing else "No blocking gap detected"
+
+    return min(total, 100), reason, gap
+
+
+# --------------------------------------------------------------------------
+# PIPELINE
+# --------------------------------------------------------------------------
+
+
+def load_companies():
+    if not COMPANIES_CSV.exists():
+        print(f"Missing {COMPANIES_CSV}. See companies.csv template.", file=sys.stderr)
+        sys.exit(1)
+    rows = []
+    with open(COMPANIES_CSV, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            if row.get("Company", "").strip().startswith("#"):
+                continue
+            if not row.get("Token", "").strip():
+                continue
+            rows.append({k: (v or "").strip() for k, v in row.items()})
+    return rows
+
+
+def load_seen():
+    if SEEN_JSON.exists():
+        return set(json.loads(SEEN_JSON.read_text()))
+    return set()
+
+
+def save_seen(seen):
+    SEEN_JSON.write_text(json.dumps(sorted(seen), indent=0))
+
+
+def append_pipeline(rows):
+    new_file = not PIPELINE_CSV.exists()
+    cols = ["DateSeen", "Company", "Title", "Location", "MinYOE", "URL",
+            "Posted", "FitScore", "FitReason", "GapNote", "Status",
+            "AppliedDate", "FollowUpDate"]
+    with open(PIPELINE_CSV, "a", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=cols)
+        if new_file:
+            w.writeheader()
+        for r in rows:
+            w.writerow({c: r.get(c, "") for c in cols})
+
+
+def run(dry_run=False, reset=False):
+    companies = load_companies()
+    seen = set() if reset else load_seen()
+    today = datetime.now(IST).strftime("%Y-%m-%d")
+
+    raw = []
+    errors = 0
+    print(f"Polling {len(companies)} boards...")
+    for c in companies:
+        ats = c.get("ATS", "").lower()
+        fn = ADAPTERS.get(ats)
+        if not fn:
+            log_error(c.get("Company", "?"), f"unknown ATS '{ats}'")
+            errors += 1
+            continue
+        try:
+            jobs = fn(c["Token"], c.get("Tenant"))
+            for j in jobs:
+                j["company"] = c.get("Company") or c["Token"]
+            raw.extend(jobs)
+            print(f"  {c.get('Company', c['Token'])}: {len(jobs)} roles")
+        except Exception as e:
+            log_error(c.get("Company", "?"), f"{type(e).__name__}: {e}")
+            errors += 1
+        time.sleep(0.4)
+
+    kept = []
+    for j in raw:
+        if not j.get("url") or j["url"] in seen:
+            continue
+        if not company_ok(j["company"]):
+            continue
+        if not title_ok(j["title"]):
+            continue
+        if is_non_india_only(j["location"]):
+            continue
+        if not is_india(j["location"]):
+            continue
+        j["min_yoe"] = min_yoe(j["description"])
+        if j["min_yoe"] is not None and j["min_yoe"] > MAX_YOE:
+            continue
+        s, reason, gap = score(j)
+        j.update(FitScore=s, FitReason=reason, GapNote=gap)
+        kept.append(j)
+        seen.add(j["url"])
+
+    kept.sort(key=lambda x: (-x["FitScore"], x.get("posted", "")), reverse=False)
+    kept.sort(key=lambda x: -x["FitScore"])
+
+    rows = [{
+        "DateSeen": today, "Company": j["company"], "Title": j["title"],
+        "Location": j["location"], "MinYOE": j.get("min_yoe", ""),
+        "URL": j["url"], "Posted": j.get("posted", ""),
+        "FitScore": j["FitScore"], "FitReason": j["FitReason"],
+        "GapNote": j["GapNote"], "Status": "New",
+        "AppliedDate": "", "FollowUpDate": "",
+    } for j in kept]
+
+    digest = build_digest(kept, len(raw), errors, today)
+    print(f"\n{len(kept)} new roles after filtering ({len(raw)} raw).")
+
+    if dry_run:
+        print("\n--- DRY RUN ---\n")
+        print(digest)
+        return
+
+    append_pipeline(rows)
+    save_seen(seen)
+    send_email(f"Job Pipeline - {today}", digest)
+
+
+def build_digest(jobs, raw_count, errors, today):
+    strong = [j for j in jobs if j["FitScore"] >= 70]
+    mid = [j for j in jobs if 40 <= j["FitScore"] < 70]
+    weak = [j for j in jobs if j["FitScore"] < 40]
+
+    lines = [f"JOB PIPELINE - {today}", "=" * 52, ""]
+
+    lines.append(f"SECTION A - STRONG FIT ({len(strong)})")
+    lines.append("-" * 52)
+    if strong:
+        for j in strong:
+            lines += [
+                f"[{j['FitScore']}] {j['title']}",
+                f"      {j['company']} | {j['location']}"
+                + (f" | posted {j['posted']}" if j.get("posted") else ""),
+                f"      {j['FitReason']}",
+                f"      {j['GapNote']}",
+                f"      {j['url']}",
+                "",
+            ]
+    else:
+        lines += ["  (none today)", ""]
+
+    lines.append(f"SECTION B - WORTH A LOOK ({len(mid)})")
+    lines.append("-" * 52)
+    for j in mid:
+        lines.append(f"[{j['FitScore']}] {j['title']} - {j['company']}, "
+                     f"{j['location']}\n      {j['url']}")
+    if not mid:
+        lines.append("  (none)")
+    lines.append("")
+
+    lines += [
+        f"SECTION C - LOW FIT: {len(weak)} roles filtered out",
+        "",
+        "=" * 52,
+        f"Raw roles polled: {raw_count}",
+        f"New after filters: {len(jobs)}",
+        f"Fetch errors: {errors} (see fetch_errors.log)",
+    ]
+    return "\n".join(lines)
+
+
+def send_email(subject, body):
+    user = os.environ.get("SMTP_USER")
+    pw = os.environ.get("SMTP_PASS")
+    to = os.environ.get("SMTP_TO", user)
+    if not user or not pw:
+        print("SMTP_USER/SMTP_PASS not set; printing digest instead.\n")
+        print(body)
+        return
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["Subject"] = subject
+    msg["From"] = user
+    msg["To"] = to
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+        s.login(user, pw)
+        s.send_message(msg)
+    print(f"Digest emailed to {to}")
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--reset", action="store_true")
+    a = ap.parse_args()
+    run(dry_run=a.dry_run, reset=a.reset)

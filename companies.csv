@@ -1,0 +1,65 @@
+Company,ATS,Token,Tenant
+# 45 boards, tokens taken from live job URLs (Sep 2026).
+# Tokens are CASE-SENSITIVE on Lever and Ashby. Do not "fix" the capitalisation.
+# Delete any row you would not accept an offer from. Deleting is the point.
+#
+# --- Greenhouse ---
+GitLab,greenhouse,gitlab,
+Postman,greenhouse,postman,
+Harness,greenhouse,harnessinc,
+Atomicwork,greenhouse,atomicwork,
+project44,greenhouse,project44,
+Coupang,greenhouse,coupang,
+Roku,greenhouse,roku,
+Apollo.io,greenhouse,apolloio,
+Zeta Global,greenhouse,zetaglobal,
+Tide,greenhouse,tide,
+Arcesium,greenhouse,arcesiumllc,
+Waymo,greenhouse,waymo,
+6sense,greenhouse,6sense,
+Sigmoid,greenhouse,sigmoid,
+C3 AI,greenhouse,c3iot,
+EarnIn,greenhouse,earnin,
+Conga,greenhouse,conga,
+Nirmata,greenhouse,nirmata,
+Mesh,greenhouse,mesh,
+Emergent Labs,greenhouse,emergentlabsinc,
+#
+# --- Lever ---
+Onehouse,lever,Onehouse,
+Level AI,lever,levelai,
+Acceldata,lever,acceldata,
+Hevo Data,lever,hevodata,
+Zimperium,lever,zimperium,
+JumpCloud,lever,jumpcloud,
+Merkle Science,lever,merklescience,
+Drivetrain,lever,drivetrain,
+Tala,lever,tala,
+Binance,lever,binance,
+Warner Music Group,lever,wmg,
+#
+# --- Ashby ---
+Kong,ashby,kong,
+Nanonets,ashby,nanonets,
+Cartesia,ashby,cartesia,
+d-Matrix,ashby,d-Matrix,
+Skylo Technologies,ashby,skylo,
+Bidgely,ashby,bidgely-inc,
+LG Ad Solutions,ashby,lgads,
+Flagright,ashby,flagright.com,
+AiPrise,ashby,aiprise,
+Bespoke Labs,ashby,bespokelabs,
+Broccoli AI,ashby,broccoli,
+Supa,ashby,supa,
+Parspec,ashby,parspec,
+Meraki Labs,ashby,Meraki-Labs,
+Neural Concept,ashby,neuralconcept,
+Pear VC portfolio,ashby,pear-vc,
+#
+# --- Oracle ---
+Oracle,oracle,CX_1,eeho.fa.us2.oraclecloud.com
+#
+# --- Logistics / supply chain: worth adding, tokens NOT yet verified ---
+# Shipsy, Locus.sh, FarEye, Delhivery, Zetwerk, Flexport, Maersk Technology,
+# Blue Yonder, Manhattan Associates, o9 Solutions.
+# Ask me to resolve these, or search: site:job-boards.greenhouse.io "company name"
