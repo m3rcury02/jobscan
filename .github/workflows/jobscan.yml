@@ -1,0 +1,38 @@
+name: jobscan
+
+on:
+  schedule:
+    # 07:30 IST = 02:00 UTC, Monday to Friday
+    - cron: "0 2 * * 1-5"
+  workflow_dispatch:        # lets you trigger a run by hand from the Actions tab
+
+permissions:
+  contents: write           # needed to commit seen.json and pipeline.csv back
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: pip install requests
+
+      - name: Run scan
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_TO: ${{ secrets.SMTP_TO }}
+        run: python jobscan.py
+
+      - name: Commit state
+        run: |
+          git config user.name  "jobscan"
+          git config user.email "jobscan@users.noreply.github.com"
+          git add seen.json pipeline.csv fetch_errors.log || true
+          git diff --staged --quiet || git commit -m "scan $(date -u +%Y-%m-%d)"
+          git push
