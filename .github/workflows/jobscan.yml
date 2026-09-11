@@ -2,8 +2,8 @@ name: jobscan
 
 on:
   schedule:
-    # 07:30 IST = 02:00 UTC, Monday to Friday
-    - cron: "0 2 * * 1-5"
+    # 07:30 IST = 02:00 UTC, every day
+    - cron: "0 2 * * *"
   workflow_dispatch:        # lets you trigger a run by hand from the Actions tab
 
 permissions:
@@ -12,6 +12,7 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
 
