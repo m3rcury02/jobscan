@@ -335,3 +335,85 @@ ZS Associates India,ashby,zs-associates,
 #
 # ===== ORACLE =====
 Oracle,oracle,CX_1,eeho.fa.us2.oraclecloud.com
+#
+# ===== CUSTOM CAREERS PAGES (no ATS) =====
+# Token = the full careers page URL. Tenant stays blank.
+# These pages carry no posting date, so they are dated by first sighting:
+# a role is reported the first scan it appears in, then never again.
+# They also carry no job description, so they land in digest Section D.
+MoveInSync,custom,https://moveinsync.com/join-us,,verified
+# Add more by pasting the careers URL. If a page renders jobs via JavaScript
+# the plain GET returns nothing - that row will simply find zero roles.
+Ultrahuman,custom,https://ultrahuman-talent.freshteam.com/jobs,,freshteam
+# Freshteam (Freshworks' free ATS) is common among Indian startups and its
+# pages are server-rendered, so the custom adapter handles them. Patterns:
+#   https://{company}-talent.freshteam.com/jobs
+#   https://{company}.freshteam.com/jobs
+#
+# ===== SMALL COMPANIES: FRESHTEAM =====
+# Server-rendered, handled by the custom adapter. No posting dates.
+Locus.sh,custom,https://locus.freshteam.com/jobs,,logistics/TMS
+Digitap.ai,custom,https://digitap.freshteam.com/jobs,,fintech
+Scapia,custom,https://scapia.freshteam.com/jobs,,fintech
+Haptik,custom,https://haptik.freshteam.com/jobs,,conversational AI
+Cyware,custom,https://cyware.freshteam.com/jobs,,cybersecurity
+TravClan,custom,https://travclan.freshteam.com/jobs,,travel tech
+Credit Saison India,custom,https://creditsaisonin-talent.freshteam.com/jobs,,fintech
+Paxcom,custom,https://paxcom.freshteam.com/jobs,,ecommerce tech
+HappyLocate,custom,https://happylocate.freshteam.com/jobs,,relocation/logistics
+VIDA,custom,https://vida.freshteam.com/jobs,,mobility
+NxtWave,custom,https://nxtwave.freshteam.com/jobs,,edtech
+Codvo,custom,https://codvo-team.freshteam.com/jobs,,services
+ECS ME,custom,https://ecsme.freshteam.com/jobs,,services
+Acceleration Robotics,custom,https://accelerationrobotics.freshteam.com/jobs,,robotics
+#
+# ===== SMALL COMPANIES: KEKA =====
+# These DO publish "N days ago", which the adapter converts to a real date,
+# so the 2-day window applies to them normally.
+Bebetta,custom,https://bebetta.keka.com/careers/,,consumer
+GoKwik,custom,https://gokwik.keka.com/careers/,,ecommerce/payments
+Valeo Health,custom,https://valeohealth.keka.com/careers/,,health tech
+India Health Link,custom,https://ihl.keka.com/careers/,,health tech
+PopClub,custom,https://popclub.keka.com/careers/,,consumer
+#
+# Find more small companies with these searches:
+#   site:freshteam.com jobs backend engineer Bangalore
+#   site:keka.com careers software engineer India
+#   site:zohorecruit.com jobs India developer
+# Skip anything whose board is a staffing or recruitment firm posting client
+# roles: getinz, hirefly, remotestar, moolya, people10 and similar.
+#
+# ===== RECRUITMENT CONSULTANCIES (client not named) =====
+# ATS type "agency" routes these to digest Section E, separate from employers.
+# They are not scored, because a generic JD cannot be matched against a stack.
+Getinz,agency,https://getinz-people.freshteam.com/jobs,,
+Hirefly,agency,https://hirefly.freshteam.com/jobs,,
+RemoteStar,agency,https://remotestar-team.freshteam.com/jobs,,
+Gloroots,agency,https://gloroots.freshteam.com/jobs,,
+NextWave Consulting,agency,https://nxwave.freshteam.com/jobs,,
+People10,agency,https://people10.freshteam.com/jobs,,
+#
+# ===== WORKDAY =====
+# Token = site name. Tenant = host prefix INCLUDING the wd number.
+# Read both off the careers URL:
+#   https://cisco.wd5.myworkdayjobs.com/en-US/Cisco_Careers/...
+#                ^tenant = cisco.wd5        ^token = Cisco_Careers
+Cisco,workday,Cisco_Careers,cisco.wd5,
+Intel,workday,External,intel.wd1,
+NVIDIA,workday,NVIDIAExternalCareerSite,nvidia.wd5,
+Salesforce,workday,External_Career_Site,salesforce.wd12,
+Thomson Reuters,workday,External_Career_Site,thomsonreuters.wd5,
+F5,workday,f5jobs,ffive.wd5,
+PTC,workday,PTC,ptc.wd1,
+Agilent,workday,Agilent_Careers,agilent.wd5,
+AVEVA,workday,AVEVA_careers,aveva.wd3,
+Silicon Labs,workday,SiliconLabsCareers,silabs.wd1,
+Kyndryl,workday,KyndrylProfessionalCareers,kyndryl.wd5,
+Lloyds Technology Centre,workday,Lloyds_Technology_Centre,lbg.wd3,
+Carelon Global Solutions,workday,carelonglobal_in,elevancehealth.wd1,
+Assurant,workday,Assurant_Careers,assurant.wd1,
+R1 RCM,workday,R1RCM,r1rcm.wd1,
+Astreya,workday,life-at-astreya-opportunities,astreya.wd5,
+# More: open any company's careers page, read tenant and site off the URL.
+# Adobe, Intuit, Visa, Mastercard, Walmart Global Tech, Target India,
+# JPMorgan and Goldman all run Workday with large India engineering centres.
