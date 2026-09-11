@@ -4,10 +4,25 @@ on:
   schedule:
     # 07:30 IST = 02:00 UTC, every day
     - cron: "0 2 * * *"
-  workflow_dispatch:        # lets you trigger a run by hand from the Actions tab
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "What to run"
+        type: choice
+        required: true
+        default: scan
+        options:
+          - scan
+          - diagnose
+          - dry-run
+      max_age:
+        description: "Only roles posted within N days (scan/dry-run only)"
+        type: string
+        required: false
+        default: "2"
 
 permissions:
-  contents: write           # needed to commit seen.json and pipeline.csv back
+  contents: write
 
 jobs:
   scan:
@@ -23,17 +38,26 @@ jobs:
       - name: Install deps
         run: pip install requests
 
-      - name: Run scan
+      - name: Run
         env:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_TO: ${{ secrets.SMTP_TO }}
-        run: python jobscan.py
+          MODE: ${{ github.event.inputs.mode || 'scan' }}
+          MAX_AGE: ${{ github.event.inputs.max_age || '2' }}
+        run: |
+          case "$MODE" in
+            diagnose) python jobscan.py --diagnose ;;
+            dry-run)  python jobscan.py --dry-run --max-age "$MAX_AGE" ;;
+            *)        python jobscan.py --max-age "$MAX_AGE" ;;
+          esac
 
       - name: Commit state
         run: |
           git config user.name  "jobscan"
           git config user.email "jobscan@users.noreply.github.com"
-          git add seen.json pipeline.csv fetch_errors.log || true
-          git diff --staged --quiet || git commit -m "scan $(date -u +%Y-%m-%d)"
+          git add seen.json pipeline.csv fetch_errors.log dead_rows.txt || true
+          git diff --staged --quiet || git commit -m "$MODE $(date -u +%Y-%m-%d)"
           git push
+        env:
+          MODE: ${{ github.event.inputs.mode || 'scan' }}
