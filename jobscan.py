@@ -36,7 +36,15 @@ ERRORS_LOG = ROOT / "fetch_errors.log"
 
 IST = timezone(timedelta(hours=5, minutes=30))
 TIMEOUT = 25
-HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; jobscan/1.0)"}
+HEADERS = {
+    "User-Agent": ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                   "AppleWebKit/537.36 (KHTML, like Gecko) "
+                   "Chrome/140.0.0.0 Safari/537.36"),
+    "Accept": "application/json, text/plain, */*",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+}
 
 # Only report roles posted within this many days. Override with --max-age.
 MAX_AGE_DAYS = 2
@@ -108,6 +116,9 @@ TITLE_DROP = [
     "head of", "vp ", "vice president", "intern", "internship",
     "president", "chief", "fellow", "distinguished", "senior staff",
 ]
+
+# Campus hiring drives: "IIT Jammu 2026 || TravClan || SDE-1" and similar.
+CAMPUS_DRIVE = re.compile(r"\d{4}\s*\|\||\|\|\s*\d{4}|campus\s+(drive|hiring)", re.I)
 
 COMPANY_DROP = [
     "accenture", "tcs", "tata consultancy", "infosys", "wipro",
@@ -345,6 +356,17 @@ def fetch_custom(token, tenant=None):
         low = ln.lower()
         if not any(k in low for k in TITLE_KEEP):
             continue
+        # reject prose: requirement bullets and sentences are not job titles
+        if ln.rstrip().endswith((".", ":", ";", "?")):
+            continue
+        if len(ln.split()) > 12:
+            continue
+        if re.match(r"^[\d\u2022\-*]", ln.strip()):
+            continue
+        if re.search(r"\b(experience|years?|responsib|ability|familiar|"
+                     r"proficien|knowledge|understand|must have|should have|"
+                     r"you will|we are looking)\b", low):
+            continue
         if ln in seen_titles:
             continue
         seen_titles.add(ln)
@@ -488,6 +510,8 @@ def is_non_india_only(location):
 
 def title_ok(title):
     t = (title or "").lower()
+    if CAMPUS_DRIVE.search(title or ""):
+        return False
     if any(bad in t for bad in TITLE_DROP):
         return False
     return any(good in t for good in TITLE_KEEP)
@@ -678,7 +702,7 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
         else:
             j["age"] = age
 
-        j["min_yoe"] = min_yoe(j["description"])
+        j["min_yoe"] = min_yoe(f"{j['title']} {j['description']}")
         if j["min_yoe"] is not None and j["min_yoe"] > MAX_YOE:
             continue
         s, reason, gap = score(j)
@@ -814,11 +838,66 @@ def send_email(subject, body):
     print(f"Digest emailed to {to}")
 
 
+def diagnose():
+    """Poll every board and report WHY each failure happened. Distinguishes
+    403 (blocked by IP or fingerprint) from 404 (dead slug) from timeouts."""
+    from collections import Counter
+    companies = load_companies()
+    print(f"Diagnosing {len(companies)} boards...\n")
+    buckets, dead = Counter(), []
+
+    def probe(c):
+        fn = ADAPTERS.get(c.get("ATS", "").lower())
+        if not fn:
+            return c, "unknown-ats", 0
+        try:
+            jobs = fn(c["Token"], c.get("Tenant"))
+            return c, "ok", len(jobs)
+        except Exception as e:
+            msg = str(e)
+            for code in ("403", "404", "429", "500", "503"):
+                if code in msg:
+                    return c, f"http-{code}", 0
+            if "Timeout" in type(e).__name__ or "timeout" in msg.lower():
+                return c, "timeout", 0
+            return c, type(e).__name__, 0
+
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        for c, status, n in pool.map(probe, companies):
+            buckets[status] += 1
+            if status != "ok":
+                dead.append((status, c.get("ATS"), c.get("Company"), c.get("Token")))
+
+    print("RESULT BY STATUS")
+    for k, v in buckets.most_common():
+        print(f"  {k:14} {v}")
+
+    by_ats = Counter(f"{a}:{st}" for st, a, _, _ in dead)
+    print("\nFAILURES BY ATS")
+    for k, v in by_ats.most_common(12):
+        print(f"  {k:26} {v}")
+
+    print("\nInterpretation:")
+    print("  many http-403  -> blocked by IP or fingerprint, not your config")
+    print("  many http-404  -> stale slugs, delete or fix those rows")
+    print("  many timeout   -> raise TIMEOUT or lower WORKERS")
+
+    with open(ROOT / "dead_rows.txt", "w", encoding="utf-8") as f:
+        for st, a, name, tok in sorted(dead):
+            f.write(f"{st}\t{a}\t{name}\t{tok}\n")
+    print(f"\n{len(dead)} failing rows written to dead_rows.txt")
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--reset", action="store_true")
     ap.add_argument("--max-age", type=int, default=MAX_AGE_DAYS,
                     help="only report roles posted within N days (default 2)")
+    ap.add_argument("--diagnose", action="store_true",
+                    help="report why each board failed, then exit")
     a = ap.parse_args()
-    run(dry_run=a.dry_run, reset=a.reset, max_age=a.max_age)
+    if a.diagnose:
+        diagnose()
+    else:
+        run(dry_run=a.dry_run, reset=a.reset, max_age=a.max_age)
