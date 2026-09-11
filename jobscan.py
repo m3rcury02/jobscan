@@ -22,6 +22,7 @@ import smtplib
 import sys
 import time
 from datetime import datetime, timedelta, timezone
+from concurrent.futures import ThreadPoolExecutor
 from email.mime.text import MIMEText
 from pathlib import Path
 
@@ -36,6 +37,11 @@ ERRORS_LOG = ROOT / "fetch_errors.log"
 IST = timezone(timedelta(hours=5, minutes=30))
 TIMEOUT = 25
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; jobscan/1.0)"}
+
+# Only report roles posted within this many days. Override with --max-age.
+MAX_AGE_DAYS = 2
+# Boards fetched in parallel. 12 is polite; raise only if runs feel slow.
+WORKERS = 12
 
 # --------------------------------------------------------------------------
 # PROFILE - edit this when your stack changes
@@ -140,6 +146,18 @@ def strip_html(text):
     text = re.sub(r"<[^>]+>", " ", text)
     text = re.sub(r"[ \t]+", " ", text)
     return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def age_days(posted):
+    """Days since posting. None when the board gave no usable date."""
+    if not posted:
+        return None
+    try:
+        d = datetime.strptime(posted[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        return None
+    delta = (datetime.now(timezone.utc) - d).days
+    return max(delta, 0)
 
 
 def get_json(url, retries=2):
@@ -466,33 +484,37 @@ def append_pipeline(rows):
             w.writerow({c: r.get(c, "") for c in cols})
 
 
-def run(dry_run=False, reset=False):
+def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
     companies = load_companies()
     seen = set() if reset else load_seen()
     today = datetime.now(IST).strftime("%Y-%m-%d")
 
     raw = []
     errors = 0
-    print(f"Polling {len(companies)} boards...")
-    for c in companies:
+    print(f"Polling {len(companies)} boards with {WORKERS} workers...")
+
+    def poll(c):
         ats = c.get("ATS", "").lower()
         fn = ADAPTERS.get(ats)
         if not fn:
-            log_error(c.get("Company", "?"), f"unknown ATS '{ats}'")
-            errors += 1
-            continue
+            return c, None, f"unknown ATS '{ats}'"
         try:
             jobs = fn(c["Token"], c.get("Tenant"))
             for j in jobs:
                 j["company"] = c.get("Company") or c["Token"]
-            raw.extend(jobs)
-            print(f"  {c.get('Company', c['Token'])}: {len(jobs)} roles")
+            return c, jobs, None
         except Exception as e:
-            log_error(c.get("Company", "?"), f"{type(e).__name__}: {e}")
-            errors += 1
-        time.sleep(0.4)
+            return c, None, f"{type(e).__name__}: {e}"
 
-    kept = []
+    with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        for c, jobs, err in pool.map(poll, companies):
+            if err:
+                log_error(c.get("Company", "?"), err)
+                errors += 1
+            else:
+                raw.extend(jobs)
+
+    kept, too_old, undated = [], 0, 0
     for j in raw:
         if not j.get("url") or j["url"] in seen:
             continue
@@ -504,6 +526,18 @@ def run(dry_run=False, reset=False):
             continue
         if not is_india(j["location"]):
             continue
+
+        age = age_days(j.get("posted"))
+        if age is None:
+            undated += 1
+            j["age"] = None
+        elif age > max_age:
+            too_old += 1
+            seen.add(j["url"])   # never re-evaluate a stale posting
+            continue
+        else:
+            j["age"] = age
+
         j["min_yoe"] = min_yoe(j["description"])
         if j["min_yoe"] is not None and j["min_yoe"] > MAX_YOE:
             continue
@@ -512,7 +546,6 @@ def run(dry_run=False, reset=False):
         kept.append(j)
         seen.add(j["url"])
 
-    kept.sort(key=lambda x: (-x["FitScore"], x.get("posted", "")), reverse=False)
     kept.sort(key=lambda x: -x["FitScore"])
 
     rows = [{
@@ -524,8 +557,9 @@ def run(dry_run=False, reset=False):
         "AppliedDate": "", "FollowUpDate": "",
     } for j in kept]
 
-    digest = build_digest(kept, len(raw), errors, today)
-    print(f"\n{len(kept)} new roles after filtering ({len(raw)} raw).")
+    digest = build_digest(kept, len(raw), errors, today, max_age, too_old, undated)
+    print(f"\n{len(kept)} new roles ({len(raw)} raw, {too_old} older than "
+          f"{max_age}d, {undated} undated).")
 
     if dry_run:
         print("\n--- DRY RUN ---\n")
@@ -537,12 +571,24 @@ def run(dry_run=False, reset=False):
     send_email(f"Job Pipeline - {today}", digest)
 
 
-def build_digest(jobs, raw_count, errors, today):
+def _age_label(j):
+    a = j.get("age")
+    if a is None:
+        return "date unknown"
+    if a == 0:
+        return "posted today"
+    if a == 1:
+        return "posted yesterday"
+    return f"posted {a}d ago"
+
+
+def build_digest(jobs, raw_count, errors, today, max_age, too_old, undated):
     strong = [j for j in jobs if j["FitScore"] >= 70]
     mid = [j for j in jobs if 40 <= j["FitScore"] < 70]
     weak = [j for j in jobs if j["FitScore"] < 40]
 
-    lines = [f"JOB PIPELINE - {today}", "=" * 52, ""]
+    lines = [f"JOB PIPELINE - {today}",
+             f"Roles posted in the last {max_age} day(s)", "=" * 52, ""]
 
     lines.append(f"SECTION A - STRONG FIT ({len(strong)})")
     lines.append("-" * 52)
@@ -550,8 +596,7 @@ def build_digest(jobs, raw_count, errors, today):
         for j in strong:
             lines += [
                 f"[{j['FitScore']}] {j['title']}",
-                f"      {j['company']} | {j['location']}"
-                + (f" | posted {j['posted']}" if j.get("posted") else ""),
+                f"      {j['company']} | {j['location']} | {_age_label(j)}",
                 f"      {j['FitReason']}",
                 f"      {j['GapNote']}",
                 f"      {j['url']}",
@@ -564,7 +609,7 @@ def build_digest(jobs, raw_count, errors, today):
     lines.append("-" * 52)
     for j in mid:
         lines.append(f"[{j['FitScore']}] {j['title']} - {j['company']}, "
-                     f"{j['location']}\n      {j['url']}")
+                     f"{j['location']} ({_age_label(j)})\n      {j['url']}")
     if not mid:
         lines.append("  (none)")
     lines.append("")
@@ -575,6 +620,8 @@ def build_digest(jobs, raw_count, errors, today):
         "=" * 52,
         f"Raw roles polled: {raw_count}",
         f"New after filters: {len(jobs)}",
+        f"Skipped as older than {max_age} days: {too_old}",
+        f"No posting date from board: {undated} (kept, shown as 'date unknown')",
         f"Fetch errors: {errors} (see fetch_errors.log)",
     ]
     return "\n".join(lines)
@@ -602,5 +649,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--reset", action="store_true")
+    ap.add_argument("--max-age", type=int, default=MAX_AGE_DAYS,
+                    help="only report roles posted within N days (default 2)")
     a = ap.parse_args()
-    run(dry_run=a.dry_run, reset=a.reset)
+    run(dry_run=a.dry_run, reset=a.reset, max_age=a.max_age)
