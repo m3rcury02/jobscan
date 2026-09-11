@@ -142,7 +142,7 @@ def strip_html(text):
         return ""
     text = html.unescape(text)
     text = re.sub(r"<br\s*/?>", "\n", text, flags=re.I)
-    text = re.sub(r"</p>", "\n", text, flags=re.I)
+    text = re.sub(r"</(p|h[1-6]|div|li|tr|td|section|article)>", "\n", text, flags=re.I)
     text = re.sub(r"<[^>]+>", " ", text)
     text = re.sub(r"[ \t]+", " ", text)
     return re.sub(r"\n{3,}", "\n\n", text).strip()
@@ -301,6 +301,143 @@ def fetch_oracle(token, tenant=None):
     return out
 
 
+RELATIVE_DATE = re.compile(
+    r"(\d+)\s*\+?\s*(day|days|hour|hours|week|weeks|month|months)\s*ago", re.I)
+
+
+def _relative_posted(chunk):
+    """Turn 'Posted 5 days ago' into a YYYY-MM-DD string. Keka, Workday and
+    several Indian careers pages publish recency this way, not as a date."""
+    if not chunk:
+        return ""
+    low = chunk.lower()
+    if "today" in low or "just posted" in low:
+        return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if "yesterday" in low:
+        return (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
+    m = RELATIVE_DATE.search(chunk)
+    if not m:
+        return ""
+    n, unit = int(m.group(1)), m.group(2).lower()
+    days = {"hour": 0, "hours": 0, "day": 1, "days": 1,
+            "week": 7, "weeks": 7, "month": 30, "months": 30}[unit]
+    when = datetime.now(timezone.utc) - timedelta(days=n * days)
+    return when.strftime("%Y-%m-%d")
+
+
+def fetch_custom(token, tenant=None):
+    """Companies with no ATS. Token = the full careers page URL.
+
+    Plain GET, then keyword-match title-shaped lines in the page text. Crude by
+    design: no per-site selectors to maintain. Boards give no posting date, so
+    these are dated by FIRST SIGHTING instead - see run().
+    """
+    url = token if token.startswith("http") else f"https://{token}"
+    r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+    r.raise_for_status()
+    text = strip_html(r.text)
+
+    out, seen_titles = [], set()
+    lines = [ln.strip() for ln in text.split("\n")]
+    for i, ln in enumerate(lines):
+        if not (4 < len(ln) < 90):
+            continue
+        low = ln.lower()
+        if not any(k in low for k in TITLE_KEEP):
+            continue
+        if ln in seen_titles:
+            continue
+        seen_titles.add(ln)
+
+        # location: same line, or within the next two lines
+        loc = ""
+        for cand in [ln] + lines[i + 1:i + 3]:
+            cl = cand.lower()
+            if _has_india_city(cl) or _word("india", cl):
+                for city in INDIA_CITIES:
+                    m = re.search(r"\b" + re.escape(city) + r"\b", cand, re.I)
+                    if m:
+                        loc = cand[m.start():m.start() + 40].strip(" -|,")
+                        break
+                loc = loc or "India"
+                break
+        if not loc:
+            loc = "India"
+
+        # some pages publish "N days ago" near the title - use it if present
+        posted = _relative_posted(" ".join(lines[i:i + 4]))
+
+        # strip the date phrase and any trailing location out of the title
+        title = RELATIVE_DATE.sub(" ", ln)
+        for city in INDIA_CITIES:
+            m = re.search(r"\b" + re.escape(city) + r"\b", title, re.I)
+            if m:
+                title = title[:m.start()]
+                break
+        title = re.sub(r"\s{2,}", " ", title).strip(" -|,\u2022\t")
+        if not title:
+            continue
+
+        slug = re.sub(r"[^a-z0-9]+", "-", title.lower()).strip("-")[:60]
+        out.append({
+            "title": title,
+            "location": loc,
+            "url": f"{url}#{slug}",
+            "description": "",
+            "posted": posted,      # empty means first-seen dating applies
+        })
+    return out
+
+
+def fetch_workday(token, tenant=None):
+    """Workday. Token = site name (e.g. Cisco_Careers).
+    Tenant = host prefix including the wd number (e.g. cisco.wd5).
+
+    Workday's job list is a POST endpoint, not a GET, which is why it needs its
+    own adapter. Dates come back relative ("Posted 3 Days Ago").
+    """
+    if not tenant:
+        raise ValueError("workday rows need a Tenant like 'cisco.wd5'")
+    host = f"https://{tenant}.myworkdayjobs.com"
+    api = f"{host}/wday/cxs/{tenant.split('.')[0]}/{token}/jobs"
+    hdrs = {**HEADERS, "Content-Type": "application/json",
+            "Accept": "application/json"}
+
+    out, offset = [], 0
+    while offset < 200:
+        body = {"appliedFacets": {}, "limit": 20, "offset": offset,
+                "searchText": "India"}
+        r = requests.post(api, json=body, headers=hdrs, timeout=TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+        posts = data.get("jobPostings", [])
+        if not posts:
+            break
+        for j in posts:
+            path = j.get("externalPath", "")
+            out.append({
+                "title": j.get("title", ""),
+                "location": j.get("locationsText", "") or "",
+                "url": f"{host}/en-US/{token}{path}",
+                "description": " ".join(j.get("bulletFields") or []),
+                "posted": _relative_posted(j.get("postedOn", "")),
+            })
+        offset += 20
+        if offset >= data.get("total", 0):
+            break
+    return out
+
+
+def fetch_agency(token, tenant=None):
+    """Recruitment consultancies and staffing firms. Same scrape as custom, but
+    flagged: the hiring company is not named, so these cannot be scored or
+    researched and must never be treated as employer postings."""
+    jobs = fetch_custom(token, tenant)
+    for j in jobs:
+        j["agency"] = True
+    return jobs
+
+
 ADAPTERS = {
     "greenhouse": fetch_greenhouse,
     "lever": fetch_lever,
@@ -308,6 +445,9 @@ ADAPTERS = {
     "smartrecruiters": fetch_smartrecruiters,
     "workable": fetch_workable,
     "oracle": fetch_oracle,
+    "custom": fetch_custom,
+    "agency": fetch_agency,
+    "workday": fetch_workday,
 }
 
 # --------------------------------------------------------------------------
@@ -574,7 +714,7 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
 def _age_label(j):
     a = j.get("age")
     if a is None:
-        return "date unknown"
+        return "new since last scan"
     if a == 0:
         return "posted today"
     if a == 1:
@@ -583,9 +723,13 @@ def _age_label(j):
 
 
 def build_digest(jobs, raw_count, errors, today, max_age, too_old, undated):
-    strong = [j for j in jobs if j["FitScore"] >= 70]
-    mid = [j for j in jobs if 40 <= j["FitScore"] < 70]
-    weak = [j for j in jobs if j["FitScore"] < 40]
+    agency = [j for j in jobs if j.get("agency")]
+    direct = [j for j in jobs if not j.get("agency")]
+    described = [j for j in direct if j.get("description")]
+    titleonly = [j for j in direct if not j.get("description")]
+    strong = [j for j in described if j["FitScore"] >= 70]
+    mid = [j for j in described if 40 <= j["FitScore"] < 70]
+    weak = [j for j in described if j["FitScore"] < 40]
 
     lines = [f"JOB PIPELINE - {today}",
              f"Roles posted in the last {max_age} day(s)", "=" * 52, ""]
@@ -614,14 +758,39 @@ def build_digest(jobs, raw_count, errors, today, max_age, too_old, undated):
         lines.append("  (none)")
     lines.append("")
 
+    lines.append(f"SECTION C - LOW FIT: {len(weak)} roles filtered out")
+    lines.append("")
+
+    lines.append(f"SECTION D - TITLE MATCH ONLY ({len(titleonly)})")
+    lines.append("-" * 52)
+    lines.append("  Careers pages with no job description text. Not scored on")
+    lines.append("  content - open the page to judge.")
+    for j in titleonly:
+        lines.append(f"  {j['title']} - {j['company']}, {j['location']}"
+                     f"\n      {j['url']}")
+    if not titleonly:
+        lines.append("  (none)")
+
+    lines.append("")
+    lines.append(f"SECTION E - AGENCY / CONSULTANCY ({len(agency)})")
+    lines.append("-" * 52)
+    lines.append("  Client company NOT named. Before applying, search the JD")
+    lines.append("  text to identify the employer, then check whether they")
+    lines.append("  have a direct board above. Applying through an agency to")
+    lines.append("  a company you later apply to directly can disqualify you.")
+    for j in agency:
+        lines.append(f"  {j['title']} - via {j['company']}, {j['location']}"
+                     f"\n      {j['url']}")
+    if not agency:
+        lines.append("  (none)")
+
     lines += [
-        f"SECTION C - LOW FIT: {len(weak)} roles filtered out",
         "",
         "=" * 52,
         f"Raw roles polled: {raw_count}",
         f"New after filters: {len(jobs)}",
         f"Skipped as older than {max_age} days: {too_old}",
-        f"No posting date from board: {undated} (kept, shown as 'date unknown')",
+        f"No posting date from board: {undated} (kept, dated by first sighting)",
         f"Fetch errors: {errors} (see fetch_errors.log)",
     ]
     return "\n".join(lines)
