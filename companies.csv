@@ -373,11 +373,11 @@ Acceleration Robotics,custom,https://accelerationrobotics.freshteam.com/jobs,,ro
 # ===== SMALL COMPANIES: KEKA =====
 # These DO publish "N days ago", which the adapter converts to a real date,
 # so the 2-day window applies to them normally.
-Bebetta,custom,https://bebetta.keka.com/careers/,,consumer
-GoKwik,custom,https://gokwik.keka.com/careers/,,ecommerce/payments
-Valeo Health,custom,https://valeohealth.keka.com/careers/,,health tech
-India Health Link,custom,https://ihl.keka.com/careers/,,health tech
-PopClub,custom,https://popclub.keka.com/careers/,,consumer
+Bebetta,keka,bebetta,,"was custom scraper, returned 0 - keka API adapter"
+GoKwik,keka,gokwik,,"was custom scraper, returned 0 - keka API adapter"
+# no published jobs, keka embed widget absent -> Valeo Health,keka,valeohealth,,"was custom scraper, returned 0 - keka API adapter"
+# no published jobs, keka embed widget absent -> India Health Link,keka,ihl,,"was custom scraper, returned 0 - keka API adapter"
+# no published jobs, keka embed widget absent -> PopClub,keka,popclub,,"was custom scraper, returned 0 - keka API adapter"
 #
 # Find more small companies with these searches:
 #   site:freshteam.com jobs backend engineer Bangalore
@@ -557,3 +557,11 @@ Toptal,lever,toptal,,"verified: 1 India roles, 0 matching filters"
 Turing,greenhouse,turing,,"verified: 2 India roles, 0 matching filters"
 Vercel,greenhouse,vercel,,"verified: 4 India roles, 0 matching filters"
 Yugabyte,greenhouse,yugabyte,,"verified: 6 India roles, 1 matching filters"
+# --- 6 keka boards added 2026-09-14: tenant probed live. ---
+Jupiter,keka,jupiter,,"verified: 12 India roles, 2 matching filters"
+LambdaTest,keka,lambdatest,,"verified: 8 India roles, 1 matching filters"
+Signzy,keka,signzy,,"verified: 24 India roles, 1 matching filters"
+Teachmint,keka,teachmint,,"verified: 24 India roles, 4 matching filters"
+Unicommerce,keka,unicommerce,,"verified: 2 India roles, 0 matching filters"
+Zluri,keka,zluri,,"verified: 3 India roles, 2 matching filters"
+

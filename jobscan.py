@@ -421,6 +421,67 @@ def fetch_custom(token, tenant=None):
     return out
 
 
+KEKA_ID = re.compile(r"identifier:\s*['\"]([0-9a-f-]{36})['\"]")
+KEKA_PORTAL = re.compile(r"portalName:\s*['\"]([^'\"]+)['\"]")
+KEKA_INNER = re.compile(r"fetch\(['\"]([^'\"]+careerportal[^'\"]+)['\"]")
+
+
+def fetch_keka(token, tenant=None):
+    """Keka ATS. Token = subdomain (e.g. 'gokwik') or the full careers URL.
+
+    The careers page is an empty JS shell, which is why the generic custom
+    scraper found nothing on these boards. The real data is JSON:
+
+      /careers/                                   -> shell, fetches...
+      /careers/api/embedjobs/<hash>.html          -> carries window.khConfig
+      /careers/api/embedjobs/<portal>/active/<id> -> the job list
+
+    Two GETs to learn the tenant id, one to read the jobs.
+    """
+    sub = token.strip()
+    if sub.startswith("http"):
+        sub = re.sub(r"^https?://([^.]+)\.keka\.com.*$", r"\1", sub.rstrip("/"))
+    base = f"https://{sub}.keka.com"
+
+    shell = requests.get(f"{base}/careers/", headers=HEADERS, timeout=TIMEOUT)
+    shell.raise_for_status()
+    m = KEKA_INNER.search(shell.text)
+    page = shell.text
+    if m:
+        inner = m.group(1)
+        inner = base + inner if inner.startswith("/") else inner
+        r = requests.get(inner, headers=HEADERS, timeout=TIMEOUT)
+        r.raise_for_status()
+        page = r.text
+
+    mid = KEKA_ID.search(page)
+    if not mid:
+        raise ValueError(f"keka: no tenant identifier on {base}/careers/")
+    ident = mid.group(1)
+    mp = KEKA_PORTAL.search(page)
+    portal = mp.group(1) if mp else "default"
+
+    data = get_json(f"{base}/careers/api/embedjobs/{portal}/active/{ident}")
+    out = []
+    for j in data:
+        locs = []
+        for l in j.get("jobLocations") or []:
+            city = (l.get("city") or l.get("name") or "").strip()
+            country = (l.get("countryName") or "").strip()
+            locs.append(", ".join(x for x in (city, country) if x))
+        # experience reads like "2 - 4 Years"; append it so min_yoe can see it
+        exp = (j.get("experience") or "").strip()
+        desc = strip_html(j.get("description") or "")
+        out.append({
+            "title": (j.get("title") or "").strip(),
+            "location": "; ".join(dict.fromkeys(locs)),
+            "url": f"{base}/careers/jobdetails/{j.get('jobNumber') or j.get('id')}",
+            "description": (f"Experience: {exp}\n{desc}" if exp else desc),
+            "posted": (j.get("publishedOn") or "")[:10],
+        })
+    return out
+
+
 def fetch_workday(token, tenant=None):
     """Workday. Token = site name (e.g. Cisco_Careers).
     Tenant = host prefix including the wd number (e.g. cisco.wd5).
@@ -471,6 +532,7 @@ def fetch_agency(token, tenant=None):
 
 
 ADAPTERS = {
+    "keka": fetch_keka,
     "greenhouse": fetch_greenhouse,
     "lever": fetch_lever,
     "ashby": fetch_ashby,
