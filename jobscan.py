@@ -42,7 +42,7 @@ HEADERS = {
                    "Chrome/140.0.0.0 Safari/537.36"),
     "Accept": "application/json, text/plain, */*",
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br",
+    "Accept-Encoding": "gzip, deflate",   # no br: needs a package we do not install
     "Connection": "keep-alive",
 }
 
@@ -860,6 +860,8 @@ def diagnose():
                     return c, f"http-{code}", 0
             if "Timeout" in type(e).__name__ or "timeout" in msg.lower():
                 return c, "timeout", 0
+            if "JSONDecode" in type(e).__name__:
+                return c, "bad-json", 0
             return c, type(e).__name__, 0
 
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
@@ -881,11 +883,44 @@ def diagnose():
     print("  many http-403  -> blocked by IP or fingerprint, not your config")
     print("  many http-404  -> stale slugs, delete or fix those rows")
     print("  many timeout   -> raise TIMEOUT or lower WORKERS")
+    print("  many bad-json   -> endpoint returned non-JSON; check headers")
+    print("\n  Run with --prune to comment out every http-404 row.")
 
     with open(ROOT / "dead_rows.txt", "w", encoding="utf-8") as f:
         for st, a, name, tok in sorted(dead):
             f.write(f"{st}\t{a}\t{name}\t{tok}\n")
     print(f"\n{len(dead)} failing rows written to dead_rows.txt")
+
+
+def prune():
+    """Comment out every row that returned 404 in the last diagnose run."""
+    path = ROOT / "dead_rows.txt"
+    if not path.exists():
+        print("No dead_rows.txt. Run --diagnose first.")
+        return
+    dead = set()
+    for line in path.read_text(encoding="utf-8").splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 4 and parts[0] == "http-404":
+            dead.add((parts[1].strip(), parts[3].strip()))
+    if not dead:
+        print("No http-404 rows to prune.")
+        return
+
+    out, removed = [], 0
+    for line in COMPANIES_CSV.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("#") or not stripped or line.startswith("Company,"):
+            out.append(line)
+            continue
+        cols = [c.strip() for c in line.split(",")]
+        if len(cols) >= 3 and (cols[1], cols[2]) in dead:
+            out.append("# DEAD-404 " + line)
+            removed += 1
+        else:
+            out.append(line)
+    COMPANIES_CSV.write_text("\n".join(out) + "\n", encoding="utf-8")
+    print(f"Commented out {removed} dead rows in companies.csv")
 
 
 if __name__ == "__main__":
@@ -896,8 +931,12 @@ if __name__ == "__main__":
                     help="only report roles posted within N days (default 2)")
     ap.add_argument("--diagnose", action="store_true",
                     help="report why each board failed, then exit")
+    ap.add_argument("--prune", action="store_true",
+                    help="comment out http-404 rows found by the last --diagnose")
     a = ap.parse_args()
-    if a.diagnose:
+    if a.prune:
+        prune()
+    elif a.diagnose:
         diagnose()
     else:
         run(dry_run=a.dry_run, reset=a.reset, max_age=a.max_age)
