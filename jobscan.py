@@ -48,8 +48,12 @@ HEADERS = {
 
 # Only report roles posted within this many days. Override with --max-age.
 MAX_AGE_DAYS = 2
-# Boards fetched in parallel. 12 is polite; raise only if runs feel slow.
-WORKERS = 12
+# Boards fetched in parallel. Ashby 429s above ~8, and a throttled board comes
+# back as a JSONDecodeError, so keep this conservative.
+WORKERS = 8
+# --backlog window. Beyond ~90 days a posting is usually a req the board never
+# closed rather than a live opening.
+BACKLOG_MAX_AGE = 90
 
 # --------------------------------------------------------------------------
 # PROFILE - edit this when your stack changes
@@ -109,6 +113,12 @@ TITLE_KEEP = [
     "full-stack", "ai engineer", "ml engineer", "machine learning engineer",
     "applied ai", "api engineer", "sde", "member of technical staff",
     "application engineer", "server engineer", "infrastructure engineer",
+    # widened for recall: these were rejecting ~280 live India roles a run
+    "developer", "data engineer", "devops", "site reliability", "sre",
+    "cloud engineer", "solutions engineer", "integration engineer",
+    "systems engineer", "engineer ii", "engineer i", "engineer 2",
+    "engineer 3", "engineer iii", "associate engineer", "graduate engineer",
+    "programmer", "sdet", "software eng", "engineer -", "engineer,",
 ]
 
 TITLE_DROP = [
@@ -512,7 +522,7 @@ def title_ok(title):
     t = (title or "").lower()
     if CAMPUS_DRIVE.search(title or ""):
         return False
-    if any(bad in t for bad in TITLE_DROP):
+    if any(_word(bad.strip(), t) for bad in TITLE_DROP):
         return False
     return any(good in t for good in TITLE_KEEP)
 
@@ -695,9 +705,10 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
         if age is None:
             undated += 1
             j["age"] = None
-        elif age > max_age:
+        elif max_age > 0 and age > max_age:
+            # NOT added to seen: an old posting is still an open posting, and
+            # marking it read here is what silently hid 500+ live roles.
             too_old += 1
-            seen.add(j["url"])   # never re-evaluate a stale posting
             continue
         else:
             j["age"] = age
@@ -864,10 +875,14 @@ def diagnose():
                 return c, "bad-json", 0
             return c, type(e).__name__, 0
 
+    empty = []
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
         for c, status, n in pool.map(probe, companies):
+            if status == "ok" and n == 0:
+                status = "ok-but-empty"      # 200 with no jobs = broken parser
+                empty.append((c.get("ATS"), c.get("Company"), c.get("Token")))
             buckets[status] += 1
-            if status != "ok":
+            if status not in ("ok", "ok-but-empty"):
                 dead.append((status, c.get("ATS"), c.get("Company"), c.get("Token")))
 
     print("RESULT BY STATUS")
@@ -884,6 +899,12 @@ def diagnose():
     print("  many http-404  -> stale slugs, delete or fix those rows")
     print("  many timeout   -> raise TIMEOUT or lower WORKERS")
     print("  many bad-json   -> endpoint returned non-JSON; check headers")
+    if empty:
+        print(f"\nOK BUT ZERO JOBS ({len(empty)}) - endpoint answered, parser "
+              f"found nothing. These look healthy but contribute nothing:")
+        for a, name, tok in sorted(empty):
+            print(f"  {a:14} {name[:28]:30} {tok[:44]}")
+
     print("\n  Run with --prune to comment out every http-404 row.")
 
     with open(ROOT / "dead_rows.txt", "w", encoding="utf-8") as f:
@@ -923,12 +944,40 @@ def prune():
     print(f"Commented out {removed} dead rows in companies.csv")
 
 
+def repair_seen():
+    """Rebuild seen.json from pipeline.csv.
+
+    seen.json is meant to record "already emailed to you". A bug in run() also
+    wrote every role that was merely older than --max-age into it, so hundreds
+    of open roles were marked read without ever being reported. pipeline.csv is
+    the real record of what was sent, so rebuild from that.
+    """
+    if not PIPELINE_CSV.exists():
+        print("No pipeline.csv; nothing to repair.")
+        return
+    with open(PIPELINE_CSV, newline="", encoding="utf-8") as f:
+        reported = {r["URL"] for r in csv.DictReader(f) if r.get("URL")}
+    before = len(load_seen())
+    save_seen(reported)
+    print(f"seen.json rebuilt from pipeline.csv: {before} -> {len(reported)} "
+          f"({before - len(reported)} never-reported URLs released).")
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--reset", action="store_true")
     ap.add_argument("--max-age", type=int, default=MAX_AGE_DAYS,
-                    help="only report roles posted within N days (default 2)")
+                    help="only report roles posted within N days "
+                         "(default 2; 0 = no age limit)")
+    ap.add_argument("--backlog", action="store_true",
+                    help="clear the backlog: report every open role you have "
+                         "not been sent yet, up to 90 days old. Postings older "
+                         "than that are mostly reqs the board never closed; "
+                         "use --max-age 0 if you want those too.")
+    ap.add_argument("--repair-seen", action="store_true",
+                    help="rebuild seen.json from pipeline.csv, dropping URLs "
+                         "that were marked read but never actually reported")
     ap.add_argument("--diagnose", action="store_true",
                     help="report why each board failed, then exit")
     ap.add_argument("--prune", action="store_true",
@@ -938,5 +987,8 @@ if __name__ == "__main__":
         prune()
     elif a.diagnose:
         diagnose()
+    elif a.repair_seen:
+        repair_seen()
     else:
-        run(dry_run=a.dry_run, reset=a.reset, max_age=a.max_age)
+        run(dry_run=a.dry_run, reset=a.reset,
+            max_age=BACKLOG_MAX_AGE if a.backlog else a.max_age)

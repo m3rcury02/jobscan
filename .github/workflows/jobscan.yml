@@ -13,6 +13,7 @@ on:
         default: scan
         options:
           - scan
+          - backlog
           - diagnose
           - prune
           - dry-run
@@ -48,6 +49,7 @@ jobs:
           MAX_AGE: ${{ github.event.inputs.max_age || '2' }}
         run: |
           case "$MODE" in
+            backlog)  python jobscan.py --repair-seen && python jobscan.py --backlog ;;
             diagnose) python jobscan.py --diagnose ;;
             prune)    python jobscan.py --prune ;;
             dry-run)  python jobscan.py --dry-run --max-age "$MAX_AGE" ;;
