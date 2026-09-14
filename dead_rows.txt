@@ -1,3 +1,4 @@
+ConnectionError	lever	Medikabazaar	medikabazaar
 http-404	ashby	Acko	acko
 http-404	ashby	Agnikul Cosmos	agnikul
 http-404	ashby	Airmeet	airmeet
@@ -14,7 +15,6 @@ http-404	ashby	Blinkit	blinkit
 http-404	ashby	Capillary Technologies	capillary
 http-404	ashby	Cars24	cars24
 http-404	ashby	Classmate (ITC)	itc-classmate
-http-404	ashby	CloudSEK	cloudsek
 http-404	ashby	Crayon Data	crayondata
 http-404	ashby	Credgenics	credgenics
 http-404	ashby	Cuemath	cuemath
@@ -26,7 +26,6 @@ http-404	ashby	EXL Service	exlservice
 http-404	ashby	Eruditus	eruditus
 http-404	ashby	Evalueserve	evalueserve
 http-404	ashby	Facilio	facilio
-http-404	ashby	Fi Money	epifi
 http-404	ashby	Finarkein Analytics	finarkein
 http-404	ashby	FirstCry	firstcry
 http-404	ashby	Fisdom	fisdom
@@ -58,7 +57,6 @@ http-404	ashby	Moj (ShareChat)	moj
 http-404	ashby	Nira Finance	nira-finance
 http-404	ashby	Nucleus Software	nucleussoftware
 http-404	ashby	OYO Rooms	oyorooms
-http-404	ashby	Observe.AI	observeai
 http-404	ashby	OkCredit	okcredit
 http-404	ashby	Ola	olacabs
 http-404	ashby	OneCode	onecode
@@ -67,7 +65,6 @@ http-404	ashby	Pepper Content	peppercontent
 http-404	ashby	Pepperfry	pepperfry
 http-404	ashby	Physics Wallah	physicswallah
 http-404	ashby	Pixxel	pixxel
-http-404	ashby	Pocket FM	pocketfm
 http-404	ashby	Pratilipi	pratilipi
 http-404	ashby	Quantiphi	quantiphi
 http-404	ashby	Recykal	recykal
@@ -98,7 +95,6 @@ http-404	ashby	Waycool	waycool
 http-404	ashby	Yellow.ai	yellowai
 http-404	ashby	Yulu	yulu
 http-404	ashby	ZS Associates India	zs-associates
-http-404	ashby	Zeta Suite	zeta
 http-404	ashby	Zomato	zomato
 http-404	ashby	boAt (Imagine Marketing)	imaginemarketingltd
 http-404	greenhouse	Absolutdata	absolutdata
@@ -112,7 +108,6 @@ http-404	greenhouse	Cashfree	cashfree
 http-404	greenhouse	Chargebee	chargebee
 http-404	greenhouse	Classplus	classplus
 http-404	greenhouse	Clevertap	clevertap
-http-404	greenhouse	Cred Avenue	credavenue
 http-404	greenhouse	Darwinbox	darwinbox
 http-404	greenhouse	DataWeave	dataweave
 http-404	greenhouse	Dunzo	dunzo
@@ -120,7 +115,6 @@ http-404	greenhouse	Eka Plus	ekaplus
 http-404	greenhouse	ElasticRun	elasticrun
 http-404	greenhouse	Exotel	exotel
 http-404	greenhouse	Ezetap	ezetap
-http-404	greenhouse	Fampay	fampay
 http-404	greenhouse	Flutura	flutura
 http-404	greenhouse	Fractal Analytics	fractal
 http-404	greenhouse	Freo	freo
@@ -200,7 +194,6 @@ http-404	lever	Euler Motors	eulermotors
 http-404	lever	Exotel	exotel
 http-404	lever	Fashinza	fashinza
 http-404	lever	Fibe (EarlySalary)	earlysalary
-http-404	lever	Groww	growwapp
 http-404	lever	Haptik	haptik
 http-404	lever	Housing.com	housing
 http-404	lever	IIFL Finance	iifl
@@ -211,7 +204,6 @@ http-404	lever	KreditBee	kreditbee
 http-404	lever	Licious	licious
 http-404	lever	Log9 Materials	log9materials
 http-404	lever	MakeMyTrip	makemytrip
-http-404	lever	Medikabazaar	medikabazaar
 http-404	lever	Moglix	moglix
 http-404	lever	MoneyTap	moneytap
 http-404	lever	Mswipe	mswipe
@@ -220,7 +212,6 @@ http-404	lever	Niswey	niswey
 http-404	lever	NoBroker	nobroker
 http-404	lever	Ofbusiness	ofbusiness
 http-404	lever	Ola Electric	olaelectric
-http-404	lever	Paytm Money	paytmmoney
 http-404	lever	PharmEasy	pharmeasy
 http-404	lever	PhillipCapital India	phillipcapital
 http-404	lever	Pristyn Care	pristyncare
@@ -236,7 +227,6 @@ http-404	lever	Tata 1mg	tata1mg
 http-404	lever	Urban Company	urbanclap
 http-404	lever	Vymo	vymo
 http-404	lever	Yash Technologies	yash-technologies
-http-404	lever	Zenoti	zenoti
 http-404	lever	Zepto	zepto
 http-404	lever	ZestMoney	zestmoney
 http-404	lever	Zetwerk	zetwerk

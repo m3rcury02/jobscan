@@ -105,7 +105,35 @@ NON_INDIA_HINTS = [
     "poland", "warsaw", "spain", "madrid", "brazil", "mexico",
     "israel", "tel aviv", "dubai", "uae", "philippines", "manila",
     "vietnam", "indonesia", "china", "shanghai", "korea", "seoul",
+    # region labels, so a scoped "Remote" is caught before is_india() sees it
+    "emea", "europe", "latam", "north america", "south america", "americas",
+    "united kingdom", "us", "uk", "eu", "canada", "mexico",
+    # countries and regions that turned up attached to "Remote" in real postings
+    "sweden", "ireland", "chile", "argentina", "colombia", "peru", "portugal",
+    "italy", "norway", "denmark", "finland", "switzerland", "austria",
+    "belgium", "czechia", "czech republic", "romania", "bulgaria", "greece",
+    "turkey", "egypt", "nigeria", "kenya", "south africa", "new zealand",
+    "thailand", "malaysia", "taiwan", "hong kong", "pakistan", "bangladesh",
+    "sri lanka", "nepal", "amer", "anz", "emea", "apj", "nam",
+    # US/Canada metros, for "Remote, San Francisco, CA" style labels
+    "san francisco", "san jose", "sunnyvale", "palo alto", "mountain view",
+    "santa clara", "san diego", "los angeles", "seattle", "portland",
+    "denver", "austin", "boston", "chicago", "atlanta", "phoenix", "dallas",
+    "houston", "miami", "toronto", "vancouver", "montreal",
 ]
+
+# Patterns that word-boundary hints cannot catch: "U.S. Remote", "Remote, WA",
+# and US state names that never appear as a bare country word.
+NON_INDIA_RE = re.compile(
+    r"\bu\.\s?s\.?\s?a?\b"
+    r"|\b(alabama|alaska|arizona|arkansas|california|colorado|connecticut"
+    r"|delaware|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas"
+    r"|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota"
+    r"|mississippi|missouri|montana|nebraska|nevada|hampshire|jersey"
+    r"|new york|carolina|dakota|ohio|oklahoma|oregon|pennsylvania|rhode island"
+    r"|tennessee|texas|utah|vermont|virginia|washington|wisconsin|wyoming"
+    r"|washington,? d\.?c\.?)\b",
+    re.I)
 
 TITLE_KEEP = [
     "backend", "back-end", "back end", "software engineer",
@@ -568,7 +596,13 @@ def is_india(location):
         return True
     if _word("in", loc) and not any(h in loc for h in NON_INDIA_HINTS):
         return True
-    if "remote" in loc and ("apac" in loc or "asia" in loc):
+    if "remote" in loc:
+        # A bare "Remote" names no country, so treat it as India-eligible.
+        # run() calls is_non_india_only() first, which rejects "Remote - US",
+        # "Remote (Europe)" and kin before this is reached. What survives is
+        # genuinely unscoped: globally-open, or open and simply not labelled.
+        # Some of those will still turn out to be US-only once you read the
+        # posting - that is the cost of not missing the ones that are not.
         return True
     return False
 
@@ -577,7 +611,11 @@ def is_non_india_only(location):
     loc = (location or "").lower()
     if _has_india_city(loc) or _word("india", loc):
         return False
-    return any(hint in loc for hint in NON_INDIA_HINTS)
+    # word-boundary, not substring: "us" has to be the token US, or "Austin"
+    # and "Belarus" would read as United States.
+    if NON_INDIA_RE.search(loc):
+        return True
+    return any(_word(hint, loc) for hint in NON_INDIA_HINTS)
 
 
 def title_ok(title):
