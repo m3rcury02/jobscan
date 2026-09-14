@@ -14,6 +14,7 @@ on:
         options:
           - scan
           - diagnose
+          - prune
           - dry-run
       max_age:
         description: "Only roles posted within N days (scan/dry-run only)"
@@ -48,6 +49,7 @@ jobs:
         run: |
           case "$MODE" in
             diagnose) python jobscan.py --diagnose ;;
+            prune)    python jobscan.py --prune ;;
             dry-run)  python jobscan.py --dry-run --max-age "$MAX_AGE" ;;
             *)        python jobscan.py --max-age "$MAX_AGE" ;;
           esac
@@ -56,7 +58,7 @@ jobs:
         run: |
           git config user.name  "jobscan"
           git config user.email "jobscan@users.noreply.github.com"
-          git add seen.json pipeline.csv fetch_errors.log dead_rows.txt || true
+          git add seen.json pipeline.csv fetch_errors.log dead_rows.txt companies.csv || true
           git diff --staged --quiet || git commit -m "$MODE $(date -u +%Y-%m-%d)"
           git push
         env:
