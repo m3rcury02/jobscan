@@ -1,21 +1,3 @@
-JSONDecodeError	ashby	AiPrise	aiprise
-JSONDecodeError	ashby	Bespoke Labs	bespokelabs
-JSONDecodeError	ashby	Bidgely	bidgely-inc
-JSONDecodeError	ashby	Bounce	bounce
-JSONDecodeError	ashby	Broccoli AI	broccoli
-JSONDecodeError	ashby	Cartesia	cartesia
-JSONDecodeError	ashby	Flagright	flagright.com
-JSONDecodeError	ashby	Kong	kong
-JSONDecodeError	ashby	LG Ad Solutions	lgads
-JSONDecodeError	ashby	Meraki Labs	Meraki-Labs
-JSONDecodeError	ashby	Nanonets	nanonets
-JSONDecodeError	ashby	Neural Concept	neuralconcept
-JSONDecodeError	ashby	Parspec	parspec
-JSONDecodeError	ashby	Pear VC portfolio	pear-vc
-JSONDecodeError	ashby	Sarvam AI	sarvam
-JSONDecodeError	ashby	Skylo	skylo
-JSONDecodeError	ashby	Supa	supa
-JSONDecodeError	ashby	d-Matrix	d-Matrix
 http-404	ashby	Acko	acko
 http-404	ashby	Agnikul Cosmos	agnikul
 http-404	ashby	Airmeet	airmeet
@@ -163,6 +145,7 @@ http-404	greenhouse	Mad Street Den	madstreetden
 http-404	greenhouse	Mamaearth	mamaearth
 http-404	greenhouse	Mintifi	mintifi
 http-404	greenhouse	MoEngage	moengage
+http-404	greenhouse	Moxo	moxo
 http-404	greenhouse	Mu Sigma	mu-sigma
 http-404	greenhouse	Navi Technologies	navi
 http-404	greenhouse	Netcore Cloud	netcorecloud
@@ -260,4 +243,3 @@ http-404	lever	Zetwerk	zetwerk
 http-404	lever	Zilingo India	zilingo
 http-404	lever	ixigo	ixigo
 http-404	lever	sumHR	sumhr
-timeout	greenhouse	Moxo	moxo
