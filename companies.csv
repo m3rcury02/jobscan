@@ -1,5 +1,8 @@
 Company,ATS,Token,Tenant,Note
-# 323 boards. Merged from a public 255-company India list + live search harvest.
+# 485 live boards. NOTE: rows added before 2026-09 were slugified from company
+# names and never verified - ~230 of them 404 and are dead weight. Every row
+# added from 2026-09-14 on was probed against the live API first. Do the same
+# for anything you add: a guessed slug is worse than a missing row.
 # Tokens are CASE-SENSITIVE on Lever and Ashby. Do not change capitalisation.
 # Expect some 404s: slugs go stale. Check fetch_errors.log and delete dead rows.
 #
@@ -27,7 +30,7 @@ Classplus,greenhouse,classplus,
 Clevertap,greenhouse,clevertap,
 Conga,greenhouse,conga,
 Coupang,greenhouse,coupang,
-Cred Avenue,greenhouse,credavenue,
+# dup of verified lever/cred -> Cred Avenue,greenhouse,credavenue,
 Darwinbox,greenhouse,darwinbox,
 Databricks,greenhouse,databricks,
 DataWeave,greenhouse,dataweave,
@@ -41,7 +44,7 @@ ElasticRun,greenhouse,elasticrun,
 Emergent Labs,greenhouse,emergentlabsinc,
 Exotel,greenhouse,exotel,
 Ezetap,greenhouse,ezetap,
-Fampay,greenhouse,fampay,
+Fampay,lever,fampay,
 Flexport,greenhouse,flexport,
 Flutura,greenhouse,flutura,
 Fractal Analytics,greenhouse,fractal,
@@ -155,7 +158,7 @@ Euler Motors,lever,eulermotors,
 Exotel,lever,exotel,
 Fashinza,lever,fashinza,
 Fibe (EarlySalary),lever,earlysalary,
-Groww,lever,growwapp,
+Groww,greenhouse,groww,
 Haptik,lever,haptik,
 Hevo Data,lever,hevodata,
 Housing.com,lever,housing,
@@ -183,7 +186,7 @@ NoBroker,lever,nobroker,
 Ofbusiness,lever,ofbusiness,
 Ola Electric,lever,olaelectric,
 Onehouse,lever,Onehouse,
-Paytm Money,lever,paytmmoney,
+# dup of verified lever/paytm -> Paytm Money,lever,paytmmoney,
 PharmEasy,lever,pharmeasy,
 PhillipCapital India,lever,phillipcapital,
 Porter,lever,porter,logistics/commerce
@@ -203,7 +206,7 @@ Urban Company,lever,urbanclap,
 Vymo,lever,vymo,
 Warner Music Group,lever,wmg,
 Yash Technologies,lever,yash-technologies,
-Zenoti,lever,zenoti,
+Zenoti,greenhouse,zenoti,
 Zepto,lever,zepto,logistics/commerce
 ZestMoney,lever,zestmoney,
 Zetwerk,lever,zetwerk,
@@ -234,7 +237,7 @@ Capillary Technologies,ashby,capillary,
 Cars24,ashby,cars24,
 Cartesia,ashby,cartesia,
 Classmate (ITC),ashby,itc-classmate,
-CloudSEK,ashby,cloudsek,
+CloudSEK,greenhouse,cloudsek,
 Crayon Data,ashby,crayondata,
 Credgenics,ashby,credgenics,
 Cuemath,ashby,cuemath,
@@ -247,7 +250,7 @@ Eruditus,ashby,eruditus,
 Evalueserve,ashby,evalueserve,
 EXL Service,ashby,exlservice,
 Facilio,ashby,facilio,
-Fi Money,ashby,epifi,
+Fi Money,lever,epifi,
 Finarkein Analytics,ashby,finarkein,
 FirstCry,ashby,firstcry,logistics/commerce
 Fisdom,ashby,fisdom,
@@ -284,7 +287,7 @@ Nanonets,ashby,nanonets,
 Neural Concept,ashby,neuralconcept,
 Nira Finance,ashby,nira-finance,
 Nucleus Software,ashby,nucleussoftware,
-Observe.AI,ashby,observeai,
+Observe.AI,greenhouse,observeai,
 OkCredit,ashby,okcredit,
 Ola,ashby,olacabs,logistics/commerce
 OneCode,ashby,onecode,
@@ -296,7 +299,7 @@ Pepper Content,ashby,peppercontent,
 Pepperfry,ashby,pepperfry,logistics/commerce
 Physics Wallah,ashby,physicswallah,
 Pixxel,ashby,pixxel,
-Pocket FM,ashby,pocketfm,
+Pocket FM,lever,pocketfm,
 Pratilipi,ashby,pratilipi,
 Quantiphi,ashby,quantiphi,
 Recykal,ashby,recykal,
@@ -329,7 +332,7 @@ Waycool,ashby,waycool,logistics/commerce
 WNS Global Services,ashby,wns,
 Yellow.ai,ashby,yellowai,
 Yulu,ashby,yulu,logistics/commerce
-Zeta Suite,ashby,zeta,
+Zeta Suite,lever,zeta,
 Zomato,ashby,zomato,logistics/commerce
 ZS Associates India,ashby,zs-associates,
 #
@@ -524,3 +527,33 @@ Proximity Works,workable,proximity-works,,
 #
 # ===== AGENCY (batch 2) =====
 Weekday AI,agency,https://apply.workable.com/weekday-1/,,
+# --- 29 boards added 2026-09-14: every slug probed against the live API and confirmed to carry India-located roles. ---
+Amplitude,greenhouse,amplitude,,"verified: 2 India roles, 0 matching filters"
+Anyscale,ashby,anyscale,,"verified: 3 India roles, 3 matching filters"
+Astronomer,ashby,astronomer,,"verified: 1 India roles, 1 matching filters"
+Atlan,ashby,atlan,,"verified: 6 India roles, 1 matching filters"
+Clerk,ashby,clerk,,"verified: 1 India roles, 0 matching filters"
+ClickHouse,ashby,clickhouse,,"verified: 9 India roles, 1 matching filters"
+Cockroach Labs,greenhouse,cockroachlabs,,"verified: 2 India roles, 0 matching filters"
+Deepgram,ashby,deepgram,,"verified: 1 India roles, 1 matching filters"
+Figma,greenhouse,figma,,"verified: 1 India roles, 0 matching filters"
+Fivetran,greenhouse,fivetran,,"verified: 20 India roles, 5 matching filters"
+Grafana Labs,greenhouse,grafanalabs,,"verified: 2 India roles, 0 matching filters"
+Harvey,ashby,harvey,,"verified: 8 India roles, 1 matching filters"
+Highradius,greenhouse,highradius,,"verified: 59 India roles, 7 matching filters"
+LaunchDarkly,greenhouse,launchdarkly,,"verified: 5 India roles, 0 matching filters"
+Mixpanel,greenhouse,mixpanel,,"verified: 2 India roles, 0 matching filters"
+Neon,ashby,neon,,"verified: 1 India roles, 0 matching filters"
+PlanetScale,greenhouse,planetscale,,"verified: 1 India roles, 0 matching filters"
+Redis,ashby,redis,,"verified: 3 India roles, 0 matching filters"
+Replit,ashby,replit,,"verified: 1 India roles, 0 matching filters"
+Scale AI,greenhouse,scaleai,,"verified: 2 India roles, 1 matching filters"
+SingleStore,greenhouse,singlestore,,"verified: 6 India roles, 2 matching filters"
+Starburst,greenhouse,starburst,,"verified: 3 India roles, 1 matching filters"
+Supabase,ashby,supabase,,"verified: 4 India roles, 0 matching filters"
+Temporal,ashby,temporal,,"verified: 3 India roles, 0 matching filters"
+Together AI,greenhouse,togetherai,,"verified: 7 India roles, 2 matching filters"
+Toptal,lever,toptal,,"verified: 1 India roles, 0 matching filters"
+Turing,greenhouse,turing,,"verified: 2 India roles, 0 matching filters"
+Vercel,greenhouse,vercel,,"verified: 4 India roles, 0 matching filters"
+Yugabyte,greenhouse,yugabyte,,"verified: 6 India roles, 1 matching filters"
