@@ -1547,3 +1547,5 @@
 2026-09-15T16:30:08.138548+05:30	Weekday AI	HTTPError: 429 Client Error: Too Many Requests for url: https://apply.workable.com/weekday-1/
 2026-09-15T20:16:30.697184+05:30	Medikabazaar	HTTPError: 404 Client Error: Not Found for url: https://api.lever.co/v0/postings/medikabazaar?mode=json
 2026-09-16T01:06:52.889208+05:30	Medikabazaar	HTTPError: 404 Client Error: Not Found for url: https://api.lever.co/v0/postings/medikabazaar?mode=json
+2026-09-16T04:17:20.571777+05:30	Medikabazaar	HTTPError: 404 Client Error: Not Found for url: https://api.lever.co/v0/postings/medikabazaar?mode=json
+2026-09-16T04:18:41.375457+05:30	Newspace	ValueError: keka: no tenant identifier on https://newspace.keka.com/careers/
