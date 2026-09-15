@@ -1541,3 +1541,7 @@
 2026-09-15T09:38:20.936193+05:30	Medikabazaar	HTTPError: 404 Client Error: Not Found for url: https://api.lever.co/v0/postings/medikabazaar?mode=json
 2026-09-15T09:41:46.911870+05:30	Medikabazaar	HTTPError: 404 Client Error: Not Found for url: https://api.lever.co/v0/postings/medikabazaar?mode=json
 2026-09-15T12:40:46.569032+05:30	Medikabazaar	HTTPError: 404 Client Error: Not Found for url: https://api.lever.co/v0/postings/medikabazaar?mode=json
+2026-09-15T16:29:11.024453+05:30	Medikabazaar	HTTPError: 404 Client Error: Not Found for url: https://api.lever.co/v0/postings/medikabazaar?mode=json
+2026-09-15T16:30:08.138266+05:30	SHIELD	HTTPError: 429 Client Error: Too Many Requests for url: https://apply.workable.com/api/v1/widget/accounts/shield-1?details=true
+2026-09-15T16:30:08.138483+05:30	Proximity Works	HTTPError: 429 Client Error: Too Many Requests for url: https://apply.workable.com/api/v1/widget/accounts/proximity-works?details=true
+2026-09-15T16:30:08.138548+05:30	Weekday AI	HTTPError: 429 Client Error: Too Many Requests for url: https://apply.workable.com/weekday-1/
