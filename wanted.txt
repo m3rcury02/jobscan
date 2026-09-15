@@ -1,13 +1,12 @@
-# Companies to find boards for. One per line.
-# Add "| referral" if you can get a referral there - those bypass COMPANY_DROP
-# and get tagged *REFERRAL* in the digest.
+# Companies to find boards for. One per line; add "| referral" where you
+# can get one - those bypass COMPANY_DROP and get tagged *REFERRAL*.
 #
 # Run: Actions -> jobscan -> Run workflow -> mode: discover
-# Discovery runs in CI because some Workday shards (wd101, wd2) and corporate
-# hosts are unreachable from proxied networks and silently under-report.
-#
-# Names already matched to a board are skipped, so it is safe to leave them here.
+# discover.py tries, in order: a URL you put in careers_urls.txt, the ATS
+# slug probe, the company's own careers page, then a 13-shard Workday sweep.
+# Names already matched to a board are skipped, so leaving them here is safe.
 
+# ---- carried over from the previous round ----
 Wells Fargo | referral
 Qualcomm | referral
 HSBC | referral
@@ -125,3 +124,103 @@ Think Design | referral
 Tricon Infotech | referral
 TEKsystems | referral
 UnitedLayer | referral
+
+# ---- added 2026-09-15: these were only ever slug-probed in the very first pass.
+#      They never got the careers-page read or the Workday shard sweep, which
+#      is what found Bosch (543 India roles), Citi (511) and Genpact (524). ----
+ADA | referral
+American Express | referral
+Andpayment | referral
+Apple | referral
+Aster | referral
+Atlassian | referral
+Aukera | referral
+BT Group | referral
+Blackbox | referral
+Bluehill | referral
+Bravura Tech | referral
+Brick&Bolt | referral
+CadreSports | referral
+Capgemini | referral
+Catechy Solutions | referral
+Cessna | referral
+Chaarana Labs | referral
+CliniExperts | referral
+Cognizant | referral
+Creysto | referral
+Dassault Systemes | referral
+Deloitte | referral
+Diligent | referral
+Dohful | referral
+EY | referral
+Earnifi | referral
+Egis | referral
+Ema.ai | referral
+Espirito | referral
+Euphoric Thought | referral
+Fashion UK | referral
+Federal Bank | referral
+GoComet | referral
+Google | referral
+Grant Thornton | referral
+HCLTech | referral
+HDFC | referral
+Healjour | referral
+IBM | referral
+IML | referral
+Infosys | referral
+Intueri | referral
+Iylon | referral
+KNCC | referral
+KPMG | referral
+Kearney | referral
+Kepler Aerospace | referral
+L&T | referral
+LTIMindtree | referral
+Les Baskets | referral
+Limitless | referral
+Lingopanda | referral
+Madhan Mohan | referral
+Mazle.ai | referral
+Mewesalus Care | referral
+Microsoft | referral
+Mining Grid | referral
+Monk Studios | referral
+NI | referral
+NPF | referral
+NSRCEL IIMB | referral
+NST | referral
+Netchex | referral
+Nirad | referral
+OSBI | referral
+Opptra | referral
+Pazy | referral
+Pine Labs | referral
+Pragma | referral
+Primetrace | referral
+PwC | referral
+Quantacus AI | referral
+Quantum QMCO | referral
+RBIH | referral
+RP & Co | referral
+Resyynth Agritech | referral
+Rocket | referral
+Rootpay | referral
+Roots India | referral
+SKS Advisor | referral
+STG Labs | referral
+Sechpoint | referral
+Skilign | referral
+Svarapps | referral
+SwiffyLabs | referral
+TCL | referral
+TCS | referral
+Tech Mahindra | referral
+TekChant | referral
+TinkerKraft | referral
+Triloma | referral
+Triplespeed | referral
+UBL | referral
+Userfacet | referral
+Wipro | referral
+ZS | referral
