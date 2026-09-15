@@ -594,3 +594,5 @@ PayPal,workday,jobs,paypal.wd1,referral network; workday tenant verified,yes
 Shell,workday,ShellCareers,shell.wd3,referral network; workday tenant verified,yes
 # --- bespoke-portal adapters added 2026-09-15 ---
 Amazon,amazon,amazon-india,,public JSON API; normalized_country_code=IND,yes
+# --- discovered 2026-09-15 from wanted.txt ---
+Impact Analytics,greenhouse,impact,,"discovered; 3 India roles, 1 matching",yes
