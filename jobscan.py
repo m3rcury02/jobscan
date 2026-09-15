@@ -620,6 +620,51 @@ def fetch_amazon(token="", tenant=None):
     return out
 
 
+def fetch_eightfold(token, tenant=None):
+    """Eightfold career sites. Token = subdomain, Tenant = the domain= param.
+
+    Public JSON, no key, and t_create is a real posting timestamp - which
+    matters because the alternative for these companies was scraping a
+    rendered page that carries no dates at all.
+    """
+    sub = token.strip()
+    dom = (tenant or "").strip()
+    base = f"https://{sub}.eightfold.ai/api/apply/v2/jobs"
+    out, start = [], 0
+    while start < 500:
+        url = f"{base}?start={start}&num=100&location=India"
+        if dom:
+            url += f"&domain={dom}"
+        data = get_json(url)
+        pos = data.get("positions") or []
+        if not pos:
+            break
+        for j in pos:
+            posted = ""
+            ts = j.get("t_create")
+            if ts:
+                try:
+                    posted = datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%d")
+                except (ValueError, OSError):
+                    pass
+            locs = j.get("locations") or ([j["location"]] if j.get("location") else [])
+            url_j = (j.get("canonicalPositionUrl")
+                     or f"https://{sub}.eightfold.ai/careers/job?pid={j.get('id')}")
+            out.append({
+                "title": j.get("name", ""),
+                "location": "; ".join(dict.fromkeys(str(x) for x in locs)),
+                "url": url_j,
+                "description": strip_html(j.get("job_description") or ""),
+                "posted": posted,
+            })
+        # advance by what came back, not what was asked for: the API caps the
+        # page size well below num, and stepping by num skips the difference
+        start += len(pos)
+        if start >= (data.get("count") or 0):
+            break
+    return out
+
+
 def fetch_agency(token, tenant=None):
     """Recruitment consultancies and staffing firms. Same scrape as custom, but
     flagged: the hiring company is not named, so these cannot be scored or
@@ -632,6 +677,7 @@ def fetch_agency(token, tenant=None):
 
 ADAPTERS = {
     "amazon": fetch_amazon,
+    "eightfold": fetch_eightfold,
     "keka": fetch_keka,
     "greenhouse": fetch_greenhouse,
     "lever": fetch_lever,

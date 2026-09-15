@@ -617,3 +617,6 @@ Q2 Software,workday,Q2,q2ebanking.wd5,"from careers page; 10 India roles, 2 matc
 Razorpay,greenhouse,razorpaysoftwareprivatelimited,,"from careers page; 18 India roles, 0 matching",yes
 Scimplify,keka,scimplify,,"from careers page; 58 India roles, 1 matching",yes
 State Street,workday,Global,statestreet.wd1,"from careers page; 223 India roles, 22 matching",yes
+# --- eightfold 2026-09-15: public JSON, no key, real t_create dates. ---
+HSBC,eightfold,hsbc,hsbc.com,"eightfold API; 156 India roles, 1 matching",yes
+NetApp,eightfold,netapp,netapp.com,"eightfold API; 80 India roles, 33 matching",yes
