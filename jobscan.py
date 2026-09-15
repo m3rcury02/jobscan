@@ -54,6 +54,8 @@ WORKERS = 8
 # --backlog window. Beyond ~90 days a posting is usually a req the board never
 # closed rather than a live opening.
 BACKLOG_MAX_AGE = 90
+# How deep to page a single Workday board. Only the largest tenants reach it.
+WORKDAY_MAX = 600
 
 # --------------------------------------------------------------------------
 # PROFILE - edit this when your stack changes
@@ -510,6 +512,15 @@ def fetch_keka(token, tenant=None):
     return out
 
 
+def _wd_bullet_location(bullets):
+    """Last bulletField is the location when locationsText is missing. The
+    first is a requisition id like R00356610, so never take a lone bullet."""
+    if not bullets or len(bullets) < 2:
+        return ""
+    tail = str(bullets[-1]).strip()
+    return "" if re.fullmatch(r"[A-Z]{1,3}\d{4,}", tail) else tail
+
+
 def fetch_workday(token, tenant=None):
     """Workday. Token = site name (e.g. Cisco_Careers).
     Tenant = host prefix including the wd number (e.g. cisco.wd5).
@@ -524,8 +535,11 @@ def fetch_workday(token, tenant=None):
     hdrs = {**HEADERS, "Content-Type": "application/json",
             "Accept": "application/json"}
 
-    out, offset = [], 0
-    while offset < 200:
+    # 600 not 200: big tenants order their India results by department, so
+    # Accenture's engineering roles do not start until around offset 80 and
+    # run past 600. Boards smaller than this break out early on an empty page.
+    out, offset, total = [], 0, 0
+    while offset < WORKDAY_MAX:
         body = {"appliedFacets": {}, "limit": 20, "offset": offset,
                 "searchText": "India"}
         r = requests.post(api, json=body, headers=hdrs, timeout=TIMEOUT)
@@ -534,17 +548,24 @@ def fetch_workday(token, tenant=None):
         posts = data.get("jobPostings", [])
         if not posts:
             break
+        # Accenture reports the real total on page 1 and 0 on every page
+        # after, so trusting each page's total truncates the board at 40.
+        total = max(total, data.get("total") or 0)
         for j in posts:
             path = j.get("externalPath", "")
             out.append({
                 "title": j.get("title", ""),
-                "location": j.get("locationsText", "") or "",
+                # Some tenants (Accenture among them) omit locationsText
+                # entirely and put the location last in bulletFields, after
+                # the requisition id.
+                "location": (j.get("locationsText") or "").strip()
+                            or _wd_bullet_location(j.get("bulletFields")),
                 "url": f"{host}/en-US/{token}{path}",
                 "description": " ".join(j.get("bulletFields") or []),
                 "posted": _relative_posted(j.get("postedOn", "")),
             })
         offset += 20
-        if offset >= data.get("total", 0):
+        if len(posts) < 20 or (total and offset >= total):
             break
     return out
 

@@ -581,5 +581,14 @@ SpotDraft,ashby,spotdraft,,"referral network; verified 10 India roles, 2 matchin
 Stripe,greenhouse,stripe,,"referral network; verified 47 India roles, 2 matching",yes
 Toast,greenhouse,toast,,"referral network; verified 26 India roles, 2 matching",yes
 WPP,greenhouse,wpp,,"referral network; verified 68 India roles, 7 matching",yes
-
-
+# --- workday boards added 2026-09-15: tenant+site resolved by probe (422=wrong host, 404=right host, 200=right site) and ownership confirmed. ---
+#   rejected: rocket.wd5 is Rocket Software (San Jose/CRI), no India roles
+#   rejected: standard.wd1 returns 1 US benefits role, not the bank
+#   rejected: tricon.wd3 is Tricon Residential, Tustin CA / Nashville TN
+Accenture,workday,AccentureCareers,accenture.wd103,referral network; workday tenant verified,yes
+Baker Hughes,workday,Bakerhughes,bakerhughes.wd5,referral network; workday tenant verified,yes
+Chevron,workday,jobs,chevron.wd5,referral network; workday tenant verified,yes
+GoTo,workday,GotoCareers,goto.wd5,referral network; workday tenant verified,yes
+Lytx,workday,Lytx,lytx.wd1,referral network; workday tenant verified,yes
+PayPal,workday,jobs,paypal.wd1,referral network; workday tenant verified,yes
+Shell,workday,ShellCareers,shell.wd3,referral network; workday tenant verified,yes
