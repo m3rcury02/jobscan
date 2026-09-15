@@ -779,6 +779,90 @@ def fetch_agency(token, tenant=None):
     return jobs
 
 
+# --------------------------------------------------------------------------
+# FIRECRAWL - JS-rendered / bot-shy careers pages
+# --------------------------------------------------------------------------
+# Token = full careers search URL (already filtered to India + keyword where the
+# site allows it). Needs FIRECRAWL_API_KEY. Uses markdown mode (1 credit/page)
+# and reads [title](url) links, so each role keeps its own URL.
+#
+# Cost control: these rows are only fetched on the UTC hours listed in
+# FIRECRAWL_HOURS_UTC (default "2" = once a day, 07:30 IST), or on any
+# non-scan mode. 5 boards x 30 days = ~150 credits/month.
+
+FIRECRAWL_URL = "https://api.firecrawl.dev/v2/scrape"
+MD_LINK = re.compile(r"\[((?:[^\[\]]|\\\[|\\\])+?)\]\((https?://[^)\s]+)\)")
+
+
+def _firecrawl_due():
+    if os.environ.get("MODE", "scan") != "scan":
+        return True
+    hours = os.environ.get("FIRECRAWL_HOURS_UTC", "2")
+    now = datetime.now(timezone.utc).hour
+    return str(now) in [h.strip() for h in hours.split(",")]
+
+
+def parse_markdown_jobs(md, base_url=""):
+    """Pull job-shaped links out of Firecrawl markdown. Pure function, testable."""
+    out, seen_urls = [], set()
+    for m in MD_LINK.finditer(md):
+        raw, url = m.group(1), m.group(2)
+        # card links pack title + location into the text, split by escaped newlines
+        parts = [p.strip(" *#\\") for p in re.split(r"(?:\\\\|\\n|\n)+", raw)]
+        parts = [p for p in parts if p]
+        if not parts:
+            continue
+        title = re.sub(r"\\(.)", r"\1", parts[0])          # markdown escapes
+        title = re.sub(r"\s{2,}", " ", title).strip()
+        low = title.lower()
+        if not (4 < len(title) < 110):
+            continue
+        if not any(k in low for k in TITLE_KEEP):
+            continue
+        if url in seen_urls or re.search(r"(apply|login|sign-?in|alert)", url, re.I) and "job" not in url.lower():
+            continue
+        seen_urls.add(url)
+        rest = " ".join(parts[1:])
+        loc = ""
+        for city in INDIA_CITIES:
+            if re.search(r"\b" + re.escape(city) + r"\b", rest + " " + md[m.end():m.end() + 160], re.I):
+                loc = city.title()
+                break
+        out.append({
+            "title": title,
+            "location": loc or "India",
+            "url": url,
+            "description": "",
+            "posted": _relative_posted(rest),
+        })
+    return out
+
+
+def fetch_firecrawl(token, tenant=None):
+    key = os.environ.get("FIRECRAWL_API_KEY")
+    if not key:
+        raise ValueError("FIRECRAWL_API_KEY not set")
+    if not _firecrawl_due():
+        return []          # not an error: skipped to save credits this run
+    wait = int(tenant) if (tenant or "").isdigit() else 6000
+    r = requests.post(
+        FIRECRAWL_URL,
+        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+        json={"url": token, "formats": ["markdown"], "onlyMainContent": True,
+              "waitFor": wait, "maxAge": 0},
+        timeout=90,
+    )
+    r.raise_for_status()
+    body = r.json()
+    md = (body.get("data") or {}).get("markdown", "")
+    if not md:
+        raise ValueError("firecrawl returned no markdown")
+    jobs = parse_markdown_jobs(md, token)
+    for j in jobs:
+        j["firecrawl"] = True
+    return jobs
+
+
 ADAPTERS = {
     "amazon": fetch_amazon,
     "eightfold": fetch_eightfold,
@@ -794,6 +878,7 @@ ADAPTERS = {
     "custom": fetch_custom,
     "agency": fetch_agency,
     "workday": fetch_workday,
+    "firecrawl": fetch_firecrawl,
 }
 
 # --------------------------------------------------------------------------

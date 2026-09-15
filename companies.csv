@@ -650,3 +650,14 @@ Omnissa,workday,omnissa_External_Career_Site,omnissa.wd501,"shard swept; 27 Indi
 o9 Solutions,workday,o9SolutionsExternal,o9solutions.wd5,"careers URL was already the workday board; 36 India roles, 5 matching",yes
 Hiver,pinpoint,hiverhq,,"pinpoint /postings.json; 8 India roles, 4 matching",yes
 NeevCloud,keka,rackbank,,"shares parent RackBank's keka tenant; mostly datacentre roles; 6 India roles, 3 matching",yes
+# --- 2026-09-15 third round: verified through Firecrawl ---
+#   Dell and TI left Radancy for Oracle HCM; both verified against the live
+#   recruitingCEJobRequisitions endpoint with location=India.
+Dell Technologies,oracle,CX_1001,iawmqy.fa.ocs.oraclecloud.com,"moved off Radancy; 9 India 'software' reqs on 2026-09-15",yes
+Texas Instruments,oracle,CX,edbz.fa.us2.oraclecloud.com,"moved off Radancy; 38 India 'software' reqs, mostly silicon",yes
+#   firecrawl rows: Tenant = waitFor ms. Needs FIRECRAWL_API_KEY secret.
+#   Tesco and Siemens are Avature; the keyword lives in the URL path.
+Tesco,firecrawl,https://careers.tesco.com/en_GB/careers/SearchJobs/software%20engineer%20bengaluru,5000,"Avature; 18 results 2026-09-15",yes
+Siemens,firecrawl,https://jobs.siemens.com/en_US/externaljobs/SearchJobs/software%20engineer%20bangalore,5000,"Avature; 89 results 2026-09-15",yes
+Goldman Sachs,firecrawl,https://higher.gs.com/results?LOCATION=Bengaluru&page=1&search=engineer&sort=POSTED_DATE,8000,"left tal.net for higher.gs.com (Next.js); 18 Bengaluru roles",yes
+Newspace,keka,newspace,,"supplied URL was right all along; board renders publicly in a browser. Aerospace; many stale postings. Verify with --dry-run",yes

@@ -4,6 +4,44 @@
 # WORKING lines are already in companies.csv.
 # Everything else records why the supplied URL did not yield a board.
 
+
+# ================= 2026-09-15 FIRECRAWL AUDIT =================
+# Rendered 24 of the failing URLs in a real browser. Most failures were NOT the
+# stated cause (JS rendering, 403, Cloudflare). The tenant simply does not
+# exist at that URL: the slugs were guessed. Re-diagnosed:
+#
+# TENANT DOES NOT EXIST (page says so explicitly):
+#   freshteam  Analyttica, Ati Motors, Storylane,
+#              Netcore Unbxd                          "We couldn't find <x>.freshteam.com"
+#   keka       Zemoso, Snapmint, StatusNeo, GIVA,
+#              IndusOS, MrMed, R360                   "Invalid Tenant" (not a 403)
+#   workable   NeevCloud                               404 (already fixed: keka/rackbank)
+#   zoho       Tricon Infotech                         "does not exist"
+#   workday    Carelon                                 community.workday.com/invalid-url
+#   -> Polymerize and Think Design (freshteam) untested; expect the same.
+#      Find the real slug by clicking Apply on the company's own site.
+#
+# MOVED PLATFORM (now in companies.csv):
+#   Dell Technologies  radancy -> oracle CX_1001 @ iawmqy.fa.ocs.oraclecloud.com
+#   Texas Instruments  radancy -> oracle CX @ edbz.fa.us2.oraclecloud.com
+#   Goldman Sachs      tal.net -> higher.gs.com (firecrawl row)
+#   Tesco              own site -> Avature careers.tesco.com (firecrawl row)
+#   Siemens            Avature jobs.siemens.com/en_US/externaljobs (firecrawl row)
+#   Flipkart           own site -> flipkart.turbohire.co (renders empty even
+#                      after 9s in a browser; unresolved)
+#
+# WORKS - the old diagnosis was wrong:
+#   keka       Newspace  public board, ~200 roles; added to companies.csv
+#
+# GENUINELY BLOCKED:
+#   keka       Blissclub, HiLabs  real 403 page: tenant exists, public
+#              careers portal is switched off. Nothing to scrape.
+#   workday    Wells Fargo  headless browser gets the "Workday unavailable" page.
+#              Workday rows must go through the cxs API, not Firecrawl.
+#   darwinbox  Myntra redirects to candidate login. Zepto loads via
+#              /ms/candidatev2/main/careers/allJobs but lists only FM ops,
+#              FMCG and real estate roles: no tech hiring there.
+
 # ================= WORKING =================
 AMETEK | https://jobs.ametek.com/search/?q=&locationsearch=India
 Avolta | https://careers.avoltaworld.com/search/?createNewAlert=false&q=&locationsearch=India

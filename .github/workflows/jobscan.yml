@@ -49,6 +49,7 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_TO: ${{ secrets.SMTP_TO }}
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
           MODE: ${{ github.event.inputs.mode || 'scan' }}
           MAX_AGE: ${{ github.event.inputs.max_age || '2' }}
         run: |

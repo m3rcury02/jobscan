@@ -131,6 +131,7 @@ The digest is triage, not a decision. For anything in Section A:
 | `pinpoint` | Token = subdomain. Public JSON at `/postings.json`. No posting dates. |
 | `amazon` | no token needed. Filters on `normalized_country_code`, not the fuzzy loc_query. |
 | `custom` `agency` | plain GET plus text heuristics. See below. |
+| `firecrawl` | Token = full search URL, Tenant = waitFor ms. Real browser via Firecrawl; once a day. See below. |
 
 Naukri is deliberately absent: it needs a headless browser and its listings skew heavily
 toward IT services bulk hiring.
@@ -236,3 +237,29 @@ The adapter sends `searchText: "India"` and pages up to `WORKDAY_MAX` (600)
 results per board. Some tenants report the real total on page one and 0 on
 every page after, so the loop keeps the largest total it has seen rather than
 trusting each page - without that, Accenture truncated at 40 of 600.
+
+## Firecrawl (ATS type `firecrawl`)
+
+For careers pages that only render in a browser: Next.js sites, Avature, and
+anything where `custom` finds zero roles. Add the repo secret
+`FIRECRAWL_API_KEY`. Rows without it log an error and are skipped.
+
+```
+Goldman Sachs,firecrawl,https://higher.gs.com/results?LOCATION=Bengaluru&search=engineer,8000,,yes
+```
+
+It requests markdown (1 credit a page) and reads `[title](url)` links, so
+every role keeps its real URL, unlike `custom`'s `page#slug`. Dates are rarely
+present, so these roles fall back to first-sighting dating like `custom`.
+
+**Cost.** Firecrawl rows run only on the UTC hours in `FIRECRAWL_HOURS_UTC`
+(default `2`, i.e. 07:30 IST, once a day) during scheduled scans, and on every
+manual mode. Five rows use about 150 credits a month. Putting a row on every
+2-hour scan would use 12x that.
+
+**What it will not fix.** Workday serves headless browsers a fake outage page;
+use the `workday` adapter. Pages behind a candidate login (some Darwinbox
+tenants) have nothing public to read. A slug that does not exist is still a
+slug that does not exist: check the page text before blaming rendering.
+
+Parser tests: `python -m pytest tests/` (fixtures are real Firecrawl output).
