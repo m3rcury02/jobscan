@@ -20,3 +20,14 @@ def test_apply_and_alert_links_ignored():
 
 def test_non_engineering_titles_dropped():
     assert [j["title"] for j in jobs("satsure")] == ["Software Development Engineer - 2"]
+
+def test_lilly_phenom_cards_title_first():
+    # Phenom card markdown puts title on its own line above a separate
+    # "Location\n<city>" block, unlike Tesco/Siemens/Goldman's single-line
+    # cards - this is the shape most Phenom sites use.
+    got = {j["title"]: j["location"] for j in jobs("lilly")}
+    assert got["Sr. Principal Machine Learning Engineer"] == "Bangalore"
+    assert got["Associate Director, Data Engineering"] == "Bangalore"
+    # Manufacturing/Sales roles on the same page are titles, but off-target
+    # for this scanner's engineering filter - excluded here is correct.
+    assert "Territory Manager - Immunology & Neurology" not in got

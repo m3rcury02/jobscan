@@ -6,13 +6,46 @@ group-A companies actually probed this session, only 1 guess (Testsigma) was rig
 every unverified row below the same way: a starting point for a real check, not something to
 re-slug on faith. `careers_urls.txt` records the checks already done that way.
 
-As of 2026-09-16: 79 of 245 referral companies are wired into `companies.csv` and verified live
+As of 2026-09-16: 80 of 245 referral companies are wired into `companies.csv` and verified live
 (see git log / `companies.csv`). This file tracks the rest.
 
 ## Covered since 2026-09-15 (moved out of this list)
 
 Carelon, Dell Technologies, Goldman Sachs, Texas Instruments, Newspace (Keka adapter fixed for
-its 2026 template), Testsigma (was mistagged `lever`; real board is `testsigma.keka.com`).
+its 2026 template), Testsigma (was mistagged `lever`; real board is `testsigma.keka.com`),
+Eli Lilly (firecrawl row - `careers.lilly.com/us/en/india`, Phenom-powered, verified parses
+cleanly: see `tests/fx_lilly.md`).
+
+## Tier 3 (firecrawl) reality check - a parser limitation, not a config problem
+
+Tried 10 candidate careers pages for group B/"own" companies this session. Only Eli Lilly
+parsed cleanly. The other 9 failures share one root cause: `parse_markdown_jobs` (in
+`jobscan.py`) extracts title/location by treating the **markdown link text** as the whole
+card - it assumes the title is the first line inside `[...]（url)`. That holds for Tesco,
+Siemens, and Goldman (the existing fixtures) and for Eli Lilly's Phenom cards, but not for:
+
+- **Brillio, KPIT**: title is a heading *outside* the link; the link text is just "Apply".
+- **GlobalLogic**: the link text puts location+work-model *before* the title
+  (`[BangaloreIndiaHybrid\n**MySQL Database Administrator**](url)`), so the parser reads the
+  location as the title and the real title never matches `TITLE_KEEP`.
+- **Nextwealth**: no job listing on the page at all (marketing copy only) - not a parser issue,
+  there's genuinely nothing to scrape.
+- **Volvo**: `volvogroup.com/en/careers.html` is a landing page; the real listing is at
+  `jobs.volvogroup.com` (untried).
+- **Societe Generale**: `careers.societegenerale.com` is France-only in French; the India/English
+  listing (linked from that page as "à l'étranger") needs its own URL, untried.
+- **BNP Paribas**: the IT/Tech/Data page shows only 4-5 curated highlights, not the full
+  listing; the real listing needs the "See all offers" URL with query params, untried.
+
+**The fix that unlocks this whole tier**: pass `jsonOptions` with a schema
+(`title`/`location`/`url`/`posted`) to `firecrawl_scrape`/`fetch_firecrawl` instead of relying
+on markdown-link-text heuristics. That's shape-agnostic - it would have worked on Brillio, KPIT,
+and GlobalLogic as-is. This is a `fetch_firecrawl` change (new code), not something achievable
+by picking better URLs, and wasn't attempted this session. Worth doing before adding more
+firecrawl rows one at a time.
+
+**Wells Fargo and Eli Lilly are both Phenom** (`cdn.phenompeople.com` in the page assets) - if
+the Phenom bucket gets revisited, Lilly's markdown shape is the one that already parses.
 
 ## A1. Verified this session - real platform found, not yet added
 
@@ -65,25 +98,25 @@ Checked-and-404 this session (guessed slug, live probe failed - do not reuse the
 
 ## B. Own careers site, alert varies (17) - Tier 3 firecrawl candidates
 
-  BNP Paribas              bespoke
-  Blackhawk                bespoke
-  Brillio                  bespoke
-  Eli Lilly                bespoke
+  BNP Paribas              bespoke (tried - curated highlights only, needs "all offers" URL)
+  Blackhawk                bespoke (real ATS is iCIMS - careers-blackhawknetwork.icims.com)
+  Brillio                  bespoke (tried - fails parser, see note above)
   Flipkart                 bespoke (turbohire.co renders empty even after 9s - skip)
-  GlobalLogic              bespoke
+  GlobalLogic              bespoke (tried - fails parser, see note above)
   HashedIn                 bespoke
-  KPIT                     bespoke
+  KPIT                     bespoke (tried - fails parser, see note above)
   Loginsoft                bespoke
   Manipal Hospitals        bespoke
-  Nextwealth               bespoke
-  Polestar Analytics       bespoke
+  Nextwealth               bespoke (tried - no job listing on the page)
+  Polestar Analytics       bespoke (real URL is /career not /careers)
   STL Digital              bespoke
   Siemens                  bespoke (covered - firecrawl)
   Tesco                    bespoke (covered - firecrawl)
   UnitedLayer              bespoke
-  Volvo                    bespoke
+  Volvo                    bespoke (tried - landing page only, real listing at jobs.volvogroup.com)
 
-Plus Schneider Electric, Social Panga, Societe Generale (group A "own").
+Plus Schneider Electric (403 to plain requests, untried via firecrawl), Social Panga (untried),
+Societe Generale (tried - France/French-only listing, India/English page untried).
 
 ## C. No findable job board — LinkedIn alert or referral contact only (95)
 
