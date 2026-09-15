@@ -1,0 +1,364 @@
+From 56ad9f9c8734b5ecd242e4bd7e99e6f02195a3b2 Mon Sep 17 00:00:00 2001
+From: claude <c@x>
+Date: Tue, 15 Sep 2026 16:44:07 +0000
+Subject: [PATCH] Firecrawl adapter, Oracle rows for Dell/TI, audited careers
+ URLs
+
+---
+ .github/workflows/jobscan.yml  |  1 +
+ README.md                      | 27 +++++++++++
+ careers_urls.txt               | 38 +++++++++++++++
+ companies.csv                  | 11 +++++
+ jobscan.py                     | 85 ++++++++++++++++++++++++++++++++++
+ tests/fx_goldman.md            | 27 +++++++++++
+ tests/fx_satsure.md            | 11 +++++
+ tests/fx_siemens.md            | 13 ++++++
+ tests/fx_tesco.md              |  9 ++++
+ tests/test_firecrawl_parser.py | 22 +++++++++
+ 10 files changed, 244 insertions(+)
+ create mode 100644 tests/fx_goldman.md
+ create mode 100644 tests/fx_satsure.md
+ create mode 100644 tests/fx_siemens.md
+ create mode 100644 tests/fx_tesco.md
+ create mode 100644 tests/test_firecrawl_parser.py
+
+diff --git a/.github/workflows/jobscan.yml b/.github/workflows/jobscan.yml
+index feca503..796a7f4 100644
+--- a/.github/workflows/jobscan.yml
++++ b/.github/workflows/jobscan.yml
+@@ -49,6 +49,7 @@ jobs:
+           SMTP_USER: ${{ secrets.SMTP_USER }}
+           SMTP_PASS: ${{ secrets.SMTP_PASS }}
+           SMTP_TO: ${{ secrets.SMTP_TO }}
++          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+           MODE: ${{ github.event.inputs.mode || 'scan' }}
+           MAX_AGE: ${{ github.event.inputs.max_age || '2' }}
+         run: |
+diff --git a/README.md b/README.md
+index 59ac967..af2e584 100644
+--- a/README.md
++++ b/README.md
+@@ -131,6 +131,7 @@ The digest is triage, not a decision. For anything in Section A:
+ | `pinpoint` | Token = subdomain. Public JSON at `/postings.json`. No posting dates. |
+ | `amazon` | no token needed. Filters on `normalized_country_code`, not the fuzzy loc_query. |
+ | `custom` `agency` | plain GET plus text heuristics. See below. |
++| `firecrawl` | Token = full search URL, Tenant = waitFor ms. Real browser via Firecrawl; once a day. See below. |
+ 
+ Naukri is deliberately absent: it needs a headless browser and its listings skew heavily
+ toward IT services bulk hiring.
+@@ -236,3 +237,29 @@ The adapter sends `searchText: "India"` and pages up to `WORKDAY_MAX` (600)
+ results per board. Some tenants report the real total on page one and 0 on
+ every page after, so the loop keeps the largest total it has seen rather than
+ trusting each page - without that, Accenture truncated at 40 of 600.
++
++## Firecrawl (ATS type `firecrawl`)
++
++For careers pages that only render in a browser: Next.js sites, Avature, and
++anything where `custom` finds zero roles. Add the repo secret
++`FIRECRAWL_API_KEY`. Rows without it log an error and are skipped.
++
++```
++Goldman Sachs,firecrawl,https://higher.gs.com/results?LOCATION=Bengaluru&search=engineer,8000,,yes
++```
++
++It requests markdown (1 credit a page) and reads `[title](url)` links, so
++every role keeps its real URL, unlike `custom`'s `page#slug`. Dates are rarely
++present, so these roles fall back to first-sighting dating like `custom`.
++
++**Cost.** Firecrawl rows run only on the UTC hours in `FIRECRAWL_HOURS_UTC`
++(default `2`, i.e. 07:30 IST, once a day) during scheduled scans, and on every
++manual mode. Five rows use about 150 credits a month. Putting a row on every
++2-hour scan would use 12x that.
++
++**What it will not fix.** Workday serves headless browsers a fake outage page;
++use the `workday` adapter. Pages behind a candidate login (some Darwinbox
++tenants) have nothing public to read. A slug that does not exist is still a
++slug that does not exist: check the page text before blaming rendering.
++
++Parser tests: `python -m pytest tests/` (fixtures are real Firecrawl output).
+diff --git a/careers_urls.txt b/careers_urls.txt
+index 79c0afe..e72230c 100644
+--- a/careers_urls.txt
++++ b/careers_urls.txt
+@@ -4,6 +4,44 @@
+ # WORKING lines are already in companies.csv.
+ # Everything else records why the supplied URL did not yield a board.
+ 
++
++# ================= 2026-09-15 FIRECRAWL AUDIT =================
++# Rendered 24 of the failing URLs in a real browser. Most failures were NOT the
++# stated cause (JS rendering, 403, Cloudflare). The tenant simply does not
++# exist at that URL: the slugs were guessed. Re-diagnosed:
++#
++# TENANT DOES NOT EXIST (page says so explicitly):
++#   freshteam  Analyttica, Ati Motors, Storylane,
++#              Netcore Unbxd                          "We couldn't find <x>.freshteam.com"
++#   keka       Zemoso, Snapmint, StatusNeo, GIVA,
++#              IndusOS, MrMed, R360                   "Invalid Tenant" (not a 403)
++#   workable   NeevCloud                               404 (already fixed: keka/rackbank)
++#   zoho       Tricon Infotech                         "does not exist"
++#   workday    Carelon                                 community.workday.com/invalid-url
++#   -> Polymerize and Think Design (freshteam) untested; expect the same.
++#      Find the real slug by clicking Apply on the company's own site.
++#
++# MOVED PLATFORM (now in companies.csv):
++#   Dell Technologies  radancy -> oracle CX_1001 @ iawmqy.fa.ocs.oraclecloud.com
++#   Texas Instruments  radancy -> oracle CX @ edbz.fa.us2.oraclecloud.com
++#   Goldman Sachs      tal.net -> higher.gs.com (firecrawl row)
++#   Tesco              own site -> Avature careers.tesco.com (firecrawl row)
++#   Siemens            Avature jobs.siemens.com/en_US/externaljobs (firecrawl row)
++#   Flipkart           own site -> flipkart.turbohire.co (renders empty even
++#                      after 9s in a browser; unresolved)
++#
++# WORKS - the old diagnosis was wrong:
++#   keka       Newspace  public board, ~200 roles; added to companies.csv
++#
++# GENUINELY BLOCKED:
++#   keka       Blissclub, HiLabs  real 403 page: tenant exists, public
++#              careers portal is switched off. Nothing to scrape.
++#   workday    Wells Fargo  headless browser gets the "Workday unavailable" page.
++#              Workday rows must go through the cxs API, not Firecrawl.
++#   darwinbox  Myntra redirects to candidate login. Zepto loads via
++#              /ms/candidatev2/main/careers/allJobs but lists only FM ops,
++#              FMCG and real estate roles: no tech hiring there.
++
+ # ================= WORKING =================
+ AMETEK | https://jobs.ametek.com/search/?q=&locationsearch=India
+ Avolta | https://careers.avoltaworld.com/search/?createNewAlert=false&q=&locationsearch=India
+diff --git a/companies.csv b/companies.csv
+index b5c100b..bf5b324 100644
+--- a/companies.csv
++++ b/companies.csv
+@@ -650,3 +650,14 @@ Omnissa,workday,omnissa_External_Career_Site,omnissa.wd501,"shard swept; 27 Indi
+ o9 Solutions,workday,o9SolutionsExternal,o9solutions.wd5,"careers URL was already the workday board; 36 India roles, 5 matching",yes
+ Hiver,pinpoint,hiverhq,,"pinpoint /postings.json; 8 India roles, 4 matching",yes
+ NeevCloud,keka,rackbank,,"shares parent RackBank's keka tenant; mostly datacentre roles; 6 India roles, 3 matching",yes
++# --- 2026-09-15 third round: verified through Firecrawl ---
++#   Dell and TI left Radancy for Oracle HCM; both verified against the live
++#   recruitingCEJobRequisitions endpoint with location=India.
++Dell Technologies,oracle,CX_1001,iawmqy.fa.ocs.oraclecloud.com,"moved off Radancy; 9 India 'software' reqs on 2026-09-15",yes
++Texas Instruments,oracle,CX,edbz.fa.us2.oraclecloud.com,"moved off Radancy; 38 India 'software' reqs, mostly silicon",yes
++#   firecrawl rows: Tenant = waitFor ms. Needs FIRECRAWL_API_KEY secret.
++#   Tesco and Siemens are Avature; the keyword lives in the URL path.
++Tesco,firecrawl,https://careers.tesco.com/en_GB/careers/SearchJobs/software%20engineer%20bengaluru,5000,"Avature; 18 results 2026-09-15",yes
++Siemens,firecrawl,https://jobs.siemens.com/en_US/externaljobs/SearchJobs/software%20engineer%20bangalore,5000,"Avature; 89 results 2026-09-15",yes
++Goldman Sachs,firecrawl,https://higher.gs.com/results?LOCATION=Bengaluru&page=1&search=engineer&sort=POSTED_DATE,8000,"left tal.net for higher.gs.com (Next.js); 18 Bengaluru roles",yes
++Newspace,keka,newspace,,"supplied URL was right all along; board renders publicly in a browser. Aerospace; many stale postings. Verify with --dry-run",yes
+diff --git a/jobscan.py b/jobscan.py
+index 9d3bbc4..b7a0c68 100644
+--- a/jobscan.py
++++ b/jobscan.py
+@@ -779,6 +779,90 @@ def fetch_agency(token, tenant=None):
+     return jobs
+ 
+ 
++# --------------------------------------------------------------------------
++# FIRECRAWL - JS-rendered / bot-shy careers pages
++# --------------------------------------------------------------------------
++# Token = full careers search URL (already filtered to India + keyword where the
++# site allows it). Needs FIRECRAWL_API_KEY. Uses markdown mode (1 credit/page)
++# and reads [title](url) links, so each role keeps its own URL.
++#
++# Cost control: these rows are only fetched on the UTC hours listed in
++# FIRECRAWL_HOURS_UTC (default "2" = once a day, 07:30 IST), or on any
++# non-scan mode. 5 boards x 30 days = ~150 credits/month.
++
++FIRECRAWL_URL = "https://api.firecrawl.dev/v2/scrape"
++MD_LINK = re.compile(r"\[((?:[^\[\]]|\\\[|\\\])+?)\]\((https?://[^)\s]+)\)")
++
++
++def _firecrawl_due():
++    if os.environ.get("MODE", "scan") != "scan":
++        return True
++    hours = os.environ.get("FIRECRAWL_HOURS_UTC", "2")
++    now = datetime.now(timezone.utc).hour
++    return str(now) in [h.strip() for h in hours.split(",")]
++
++
++def parse_markdown_jobs(md, base_url=""):
++    """Pull job-shaped links out of Firecrawl markdown. Pure function, testable."""
++    out, seen_urls = [], set()
++    for m in MD_LINK.finditer(md):
++        raw, url = m.group(1), m.group(2)
++        # card links pack title + location into the text, split by escaped newlines
++        parts = [p.strip(" *#\\") for p in re.split(r"(?:\\\\|\\n|\n)+", raw)]
++        parts = [p for p in parts if p]
++        if not parts:
++            continue
++        title = re.sub(r"\\(.)", r"\1", parts[0])          # markdown escapes
++        title = re.sub(r"\s{2,}", " ", title).strip()
++        low = title.lower()
++        if not (4 < len(title) < 110):
++            continue
++        if not any(k in low for k in TITLE_KEEP):
++            continue
++        if url in seen_urls or re.search(r"(apply|login|sign-?in|alert)", url, re.I) and "job" not in url.lower():
++            continue
++        seen_urls.add(url)
++        rest = " ".join(parts[1:])
++        loc = ""
++        for city in INDIA_CITIES:
++            if re.search(r"\b" + re.escape(city) + r"\b", rest + " " + md[m.end():m.end() + 160], re.I):
++                loc = city.title()
++                break
++        out.append({
++            "title": title,
++            "location": loc or "India",
++            "url": url,
++            "description": "",
++            "posted": _relative_posted(rest),
++        })
++    return out
++
++
++def fetch_firecrawl(token, tenant=None):
++    key = os.environ.get("FIRECRAWL_API_KEY")
++    if not key:
++        raise ValueError("FIRECRAWL_API_KEY not set")
++    if not _firecrawl_due():
++        return []          # not an error: skipped to save credits this run
++    wait = int(tenant) if (tenant or "").isdigit() else 6000
++    r = requests.post(
++        FIRECRAWL_URL,
++        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
++        json={"url": token, "formats": ["markdown"], "onlyMainContent": True,
++              "waitFor": wait, "maxAge": 0},
++        timeout=90,
++    )
++    r.raise_for_status()
++    body = r.json()
++    md = (body.get("data") or {}).get("markdown", "")
++    if not md:
++        raise ValueError("firecrawl returned no markdown")
++    jobs = parse_markdown_jobs(md, token)
++    for j in jobs:
++        j["firecrawl"] = True
++    return jobs
++
++
+ ADAPTERS = {
+     "amazon": fetch_amazon,
+     "eightfold": fetch_eightfold,
+@@ -794,6 +878,7 @@ ADAPTERS = {
+     "custom": fetch_custom,
+     "agency": fetch_agency,
+     "workday": fetch_workday,
++    "firecrawl": fetch_firecrawl,
+ }
+ 
+ # --------------------------------------------------------------------------
+diff --git a/tests/fx_goldman.md b/tests/fx_goldman.md
+new file mode 100644
+index 0000000..f446018
+--- /dev/null
++++ b/tests/fx_goldman.md
+@@ -0,0 +1,27 @@
++Showing 18 of 18 matches
++
++[The Core Engineering-L2-Bengaluru-Analyst-Quantitative Engineering\\
++\\
++Bengaluru·India\\
++\\
++·Analyst](https://higher.gs.com/roles/184493)
++
++Quantitative Engineering
++
++[The Core Engineering-L2-Bengaluru-Vice President-Software Engineering\\
++\\
++Bengaluru·India\\
++\\
++·Vice President](https://higher.gs.com/roles/168826)
++
++[The Core Engineering-L2-Bengaluru-Associate-Software Engineering\\
++\\
++Bengaluru·India\\
++\\
++·Associate](https://higher.gs.com/roles/179358)
++
++[Asset & Wealth Management - PWM Data Engineering - Vice President - Bengaluru\\
++\\
++Bengaluru·India\\
++\\
++·Vice President](https://higher.gs.com/roles/168761)
+diff --git a/tests/fx_satsure.md b/tests/fx_satsure.md
+new file mode 100644
+index 0000000..cdce8f6
+--- /dev/null
++++ b/tests/fx_satsure.md
+@@ -0,0 +1,11 @@
++[**Software Development Engineer - 2**\\
++\\
++Bangalore\\
++\\
++Full Time](https://satsure.keka.com/careers/jobdetails/153475)
++
++[**Facilities Manager**\\
++\\
++Bangalore\\
++\\
++Full Time](https://satsure.keka.com/careers/jobdetails/152378)
+diff --git a/tests/fx_siemens.md b/tests/fx_siemens.md
+new file mode 100644
+index 0000000..82251c7
+--- /dev/null
++++ b/tests/fx_siemens.md
+@@ -0,0 +1,13 @@
++### [Senior Software Engineer](https://jobs.siemens.com/en_US/externaljobs/JobDetail/518572)
++
++Bangalore, Karnataka, India • Job ID: 518572 • Research & Development
++
++[Learn more](https://jobs.siemens.com/en_US/externaljobs/JobDetail/518572)
++
++### [Software Engineer - C\# WPF](https://jobs.siemens.com/en_US/externaljobs/JobDetail/520549)
++
++Bangalore, Karnataka, India • Job ID: 520549 • Research & Development
++
++### [Sr Software Engineer (Datawarehouse)](https://jobs.siemens.com/en_US/externaljobs/JobDetail/512517)
++
++Pune, Maharashtra, India • Job ID: 512517
+diff --git a/tests/fx_tesco.md b/tests/fx_tesco.md
+new file mode 100644
+index 0000000..4232432
+--- /dev/null
++++ b/tests/fx_tesco.md
+@@ -0,0 +1,9 @@
++### [Software Development Engineer II](https://careers.tesco.com/en_GB/careers/JobDetail/Software-Development-Engineer-II/190770)
++
++Tesco India • Bengaluru, Karnataka, India • Hybrid • Full-Time • Apply by 28-Oct-2026
++
++[Read more](https://careers.tesco.com/en_GB/careers/JobDetail/Software-Development-Engineer-II/190770)
++
++[Apply](https://careers.tesco.com/en_GB/careers/RedirectApply?jobId=190770)
++
++[Let's connect](https://careers.tesco.com/en_GB/careers/TalentCommunity)  or [Create a job alert](https://careers.tesco.com/en_GB/careers/RegisterJobAlerts)
+diff --git a/tests/test_firecrawl_parser.py b/tests/test_firecrawl_parser.py
+new file mode 100644
+index 0000000..f9b236f
+--- /dev/null
++++ b/tests/test_firecrawl_parser.py
+@@ -0,0 +1,22 @@
++"""Run: python -m pytest tests/  (fixtures are real Firecrawl output, 2026-09-15)"""
++from pathlib import Path
++import jobscan as J
++
++FX = Path(__file__).parent
++
++def jobs(name):
++    return J.parse_markdown_jobs((FX / f"fx_{name}.md").read_text())
++
++def test_goldman_cards_keep_per_role_urls():
++    urls = {j["url"] for j in jobs("goldman")}
++    assert "https://higher.gs.com/roles/179358" in urls
++
++def test_markdown_escapes_removed():
++    assert "Software Engineer - C# WPF" in {j["title"] for j in jobs("siemens")}
++
++def test_apply_and_alert_links_ignored():
++    got = jobs("tesco")
++    assert len(got) == 1 and got[0]["location"] == "Bengaluru"
++
++def test_non_engineering_titles_dropped():
++    assert [j["title"] for j in jobs("satsure")] == ["Software Development Engineer - 2"]
+-- 
+2.43.0
+
