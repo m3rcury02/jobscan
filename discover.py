@@ -164,6 +164,79 @@ def probe_workday(name):
     return None
 
 
+# ---------------------------------------------------------------------------
+# Reading the company's own careers page. This finds far more than guessing.
+#
+# Workday tenants and site names are arbitrary strings: q2ebanking, alcon.wd5
+# with site "careers_alcon", GE Vernova on "Vernova_ExternalSite", Citi's site
+# is literally "2". Roughly 70 generated candidates were tried against four
+# known-good hosts and only one matched. The company links its own board from
+# its careers page, so read it there instead.
+# ---------------------------------------------------------------------------
+
+ATS_LINK = [
+    ("workday", re.compile(r"https?://([a-z0-9\-]+)\.(wd\d+)\.myworkdayjobs\.com"
+                           r"/(?:[a-z]{2}-[A-Z]{2}/)?([A-Za-z0-9_\-]+)", re.I)),
+    ("greenhouse", re.compile(r"https?://(?:boards|job-boards)\.greenhouse\.io/"
+                              r"(?:embed/job_board\?for=)?([A-Za-z0-9_\-]+)", re.I)),
+    ("lever", re.compile(r"https?://jobs\.lever\.co/([A-Za-z0-9_\-]+)", re.I)),
+    ("ashby", re.compile(r"https?://jobs\.ashbyhq\.com/([A-Za-z0-9_\-.]+)", re.I)),
+    ("smartrecruiters", re.compile(r"https?://(?:careers|jobs)\.smartrecruiters\.com/"
+                                   r"([A-Za-z0-9_\-]+)", re.I)),
+    ("keka", re.compile(r"https?://([a-z0-9\-]+)\.keka\.com/careers", re.I)),
+]
+HTML_HEADERS = {**J.HEADERS,
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"}
+
+
+def _careers_urls(name):
+    b = re.sub(r"[^a-z0-9 ]", " ", name.lower()).split()
+    if not b:
+        return []
+    doms = ["".join(b) + ".com", b[0] + ".com"]
+    if len(b) > 1:
+        doms.append("".join(b[:2]) + ".com")
+    urls = []
+    for d in dict.fromkeys(doms):
+        urls += [f"https://careers.{d}", f"https://jobs.{d}",
+                 f"https://careers.{d}/en", f"https://careers.{d}/jobs",
+                 f"https://www.{d}/careers", f"https://www.{d}/en/careers",
+                 f"https://{d}/careers"]
+    return urls
+
+
+def probe_careers_page(name):
+    """Follow the company's careers page and read the ATS link out of it."""
+    for u in _careers_urls(name):
+        try:
+            r = S.get(u, headers=HTML_HEADERS, timeout=10, allow_redirects=True)
+        except Exception:
+            continue
+        if r.status_code != 200:
+            continue
+        for ats, rx in ATS_LINK:
+            m = rx.search(r.url) or rx.search(r.text)
+            if not m:
+                continue
+            g = m.groups()
+            tenant, tok = ("", g[0]) if ats != "workday" else (f"{g[0]}.{g[1]}", g[2])
+            try:
+                jobs = (J.fetch_workday(tok, tenant) if ats == "workday"
+                        else J.ADAPTERS[ats](tok))
+            except Exception:
+                continue
+            if not jobs:
+                continue
+            v, who, india = verdict(name, ats, tok, jobs)
+            if v != "reject":
+                # the company's own site pointed here, so identity is as good
+                # as it gets without a board name to read
+                return {"ats": ats, "token": tok, "tenant": tenant, "jobs": jobs,
+                        "who": f"{who} (linked from {u})", "verdict": v,
+                        "india": len(india)}
+    return None
+
+
 def load_wanted():
     if not WANTED.exists():
         print(f"No {WANTED.name}; nothing to discover.")
@@ -199,7 +272,7 @@ def main():
 
     def work(item):
         n, ref = item
-        return n, ref, (probe_ats(n) or probe_workday(n))
+        return n, ref, (probe_ats(n) or probe_careers_page(n) or probe_workday(n))
 
     found, missing = [], []
     with ThreadPoolExecutor(max_workers=12) as pool:

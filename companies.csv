@@ -601,3 +601,19 @@ Caterpillar,workday,CaterpillarCareers,cat.wd5,"site from careers URL; 41 India 
 Citi,workday,2,citi.wd5,"site from careers URL; 511 India roles, 39 matching",yes
 HPE,workday,Jobsathpe,hpe.wd5,"site from careers URL; 283 India roles, 101 matching",yes
 Cardinal Health,workday,Ext,cardinalhealth.wd1,"site from careers URL; 27 India roles, 0 matching",yes
+# --- 2026-09-15: ATS links read off each company's own careers page.
+#     Tenants and sites here are unguessable - q2ebanking, nttglobaldatacenters,
+#     Vernova_ExternalSite, careers_alcon, razorpaysoftwareprivatelimited. ---
+#   rejected Standard Chartered: standard.wd1/Search returns 1 US benefits role, 0 India - not the bank
+#   rejected Impact Analytics: greenhouse/impact is impact.com, a different company
+Alcon,workday,careers_alcon,alcon.wd5,"from careers page; 9 India roles, 2 matching",yes
+Amadeus Labs,workday,jobs,amadeus.wd502,"from careers page; 7 India roles, 2 matching",yes
+Bosch,smartrecruiters,BoschGroup,,"from careers page; 543 India roles, 97 matching",yes
+Expedia Group,workday,search,expedia.wd108,"from careers page; 9 India roles, 1 matching",yes
+GE Vernova,workday,Vernova_ExternalSite,gevernova.wd5,"from careers page; 35 India roles, 8 matching",yes
+Genpact,workday,External_Careers,genpact.wd108,"from careers page; 524 India roles, 43 matching",yes
+NTT Global Data Centers,workday,External,nttglobaldatacenters.wd501,"from careers page; 36 India roles, 1 matching (linked from NTT DATA's careers page)",yes
+Q2 Software,workday,Q2,q2ebanking.wd5,"from careers page; 10 India roles, 2 matching",yes
+Razorpay,greenhouse,razorpaysoftwareprivatelimited,,"from careers page; 18 India roles, 0 matching",yes
+Scimplify,keka,scimplify,,"from careers page; 58 India roles, 1 matching",yes
+State Street,workday,Global,statestreet.wd1,"from careers page; 223 India roles, 22 matching",yes
