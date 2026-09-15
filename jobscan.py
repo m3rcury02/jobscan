@@ -454,19 +454,23 @@ def fetch_custom(token, tenant=None):
 KEKA_ID = re.compile(r"identifier:\s*['\"]([0-9a-f-]{36})['\"]")
 KEKA_PORTAL = re.compile(r"portalName:\s*['\"]([^'\"]+)['\"]")
 KEKA_INNER = re.compile(r"fetch\(['\"]([^'\"]+careerportal[^'\"]+)['\"]")
+KEKA_META_PORTAL = re.compile(r'<meta\s+name=["\']portalName["\']\s*content=["\']([^"\']*)["\']', re.I)
 
 
 def fetch_keka(token, tenant=None):
     """Keka ATS. Token = subdomain (e.g. 'gokwik') or the full careers URL.
 
     The careers page is an empty JS shell, which is why the generic custom
-    scraper found nothing on these boards. The real data is JSON:
+    scraper found nothing on these boards. Two template generations exist:
 
-      /careers/                                   -> shell, fetches...
-      /careers/api/embedjobs/<hash>.html          -> carries window.khConfig
-      /careers/api/embedjobs/<portal>/active/<id> -> the job list
+      old: /careers/ -> fetches an embedjobs hash page carrying a GUID
+           `identifier`, then /careers/api/embedjobs/<portal>/active/<id>
+      new (cdn.keka.com/careers/v/2026/): no GUID at all - the portal name
+           alone (from <meta name="portalName">, or "default") is the whole
+           key: /careers/api/jobs/<portal>/active
 
-    Two GETs to learn the tenant id, one to read the jobs.
+    Try the old scheme first since most tenants are still on it; fall back
+    to the new one when no GUID is present.
     """
     sub = token.strip()
     if sub.startswith("http"):
@@ -485,13 +489,16 @@ def fetch_keka(token, tenant=None):
         page = r.text
 
     mid = KEKA_ID.search(page)
-    if not mid:
-        raise ValueError(f"keka: no tenant identifier on {base}/careers/")
-    ident = mid.group(1)
-    mp = KEKA_PORTAL.search(page)
-    portal = mp.group(1) if mp else "default"
+    if mid:
+        ident = mid.group(1)
+        mp = KEKA_PORTAL.search(page)
+        portal = mp.group(1) if mp else "default"
+        data = get_json(f"{base}/careers/api/embedjobs/{portal}/active/{ident}")
+    else:
+        mp = KEKA_META_PORTAL.search(shell.text)
+        portal = (mp.group(1) if mp else "").strip() or "default"
+        data = get_json(f"{base}/careers/api/jobs/{portal}/active")
 
-    data = get_json(f"{base}/careers/api/embedjobs/{portal}/active/{ident}")
     out = []
     for j in data:
         locs = []

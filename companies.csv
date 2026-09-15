@@ -173,7 +173,6 @@ Level AI,lever,levelai,
 # DEAD-404 Licious,lever,licious,
 # DEAD-404 Log9 Materials,lever,log9materials,
 # DEAD-404 MakeMyTrip,lever,makemytrip,
-Medikabazaar,lever,medikabazaar,
 Meesho,lever,meesho,logistics/commerce,,yes
 Merkle Science,lever,merklescience,
 Mindtickle,lever,mindtickle,
@@ -660,4 +659,5 @@ Texas Instruments,oracle,CX,edbz.fa.us2.oraclecloud.com,"moved off Radancy; 38 I
 Tesco,firecrawl,https://careers.tesco.com/en_GB/careers/SearchJobs/software%20engineer%20bengaluru,5000,"Avature; 18 results 2026-09-15",yes
 Siemens,firecrawl,https://jobs.siemens.com/en_US/externaljobs/SearchJobs/software%20engineer%20bangalore,5000,"Avature; 89 results 2026-09-15",yes
 Goldman Sachs,firecrawl,https://higher.gs.com/results?LOCATION=Bengaluru&page=1&search=engineer&sort=POSTED_DATE,8000,"left tal.net for higher.gs.com (Next.js); 18 Bengaluru roles",yes
-Newspace,keka,newspace,,"supplied URL was right all along; board renders publicly in a browser. Aerospace; many stale postings. Verify with --dry-run",yes
+Newspace,keka,newspace,,"on Keka's newer 2026 template (no GUID identifier); fetch_keka now falls back to /careers/api/jobs/<portal>/active. Aerospace; many stale postings. Verify with --dry-run",yes
+Testsigma,keka,testsigma,,"remaining_companies.md said lever - wrong; real board is testsigma.keka.com, verified 2 India roles",yes
