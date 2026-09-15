@@ -742,6 +742,33 @@ def fetch_successfactors(token, tenant=None):
     return out
 
 
+def fetch_pinpoint(token, tenant=None):
+    """Pinpoint ATS. Token = subdomain, e.g. hiverhq.
+
+    Public JSON at /postings.json, no key. The board carries no posting date,
+    so these fall back to first-sighting dating in run().
+    """
+    sub = token.strip().replace("https://", "").split(".")[0]
+    data = get_json(f"https://{sub}.pinpointhq.com/postings.json")
+    out = []
+    for j in (data.get("data") if isinstance(data, dict) else data) or []:
+        loc = j.get("location") or {}
+        if isinstance(loc, dict):
+            parts = [loc.get("name") or "", loc.get("city") or "",
+                     loc.get("country") or ""]
+            loc = ", ".join(dict.fromkeys(x for x in parts if x))
+        out.append({
+            "title": j.get("title", ""),
+            "location": str(loc),
+            "url": j.get("url") or f"https://{sub}.pinpointhq.com{j.get('path','')}",
+            "description": strip_html(" ".join(
+                str(j.get(k) or "") for k in
+                ("description", "key_responsibilities", "skills_knowledge_expertise"))),
+            "posted": "",
+        })
+    return out
+
+
 def fetch_agency(token, tenant=None):
     """Recruitment consultancies and staffing firms. Same scrape as custom, but
     flagged: the hiring company is not named, so these cannot be scored or
@@ -755,6 +782,7 @@ def fetch_agency(token, tenant=None):
 ADAPTERS = {
     "amazon": fetch_amazon,
     "eightfold": fetch_eightfold,
+    "pinpoint": fetch_pinpoint,
     "successfactors": fetch_successfactors,
     "keka": fetch_keka,
     "greenhouse": fetch_greenhouse,

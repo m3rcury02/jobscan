@@ -642,3 +642,11 @@ Avolta,successfactors,careers.avoltaworld.com,,"supplied URL; 10 India roles, 0 
 # Omnissa is on wd501, not the wd5 in its careers URL, and its site is
 # omnissa_External_Career_Site. Both had to be swept for.
 Omnissa,workday,omnissa_External_Career_Site,omnissa.wd501,"shard swept; 27 India roles, 11 matching",yes
+# --- 2026-09-15 second round of supplied URLs ---
+#   PhonePe, Ather, FinBox, SoundHound, Testsigma and Uni Cards load their
+#   job lists from a lazy JS chunk: no JSON-LD, no embedded state, no ATS
+#   host, and PhonePe's gatsby page-data carries no jobs. One-off work each.
+#   ClearTax moved from Lever to Darwinbox, which is Cloudflare-gated.
+o9 Solutions,workday,o9SolutionsExternal,o9solutions.wd5,"careers URL was already the workday board; 36 India roles, 5 matching",yes
+Hiver,pinpoint,hiverhq,,"pinpoint /postings.json; 8 India roles, 4 matching",yes
+NeevCloud,keka,rackbank,,"shares parent RackBank's keka tenant; mostly datacentre roles; 6 India roles, 3 matching",yes
