@@ -752,13 +752,33 @@ def save_seen(seen):
 
 
 def append_pipeline(rows):
-    new_file = not PIPELINE_CSV.exists()
     cols = ["DateSeen", "Company", "Title", "Location", "MinYOE", "Referral", "URL",
             "Posted", "FitScore", "FitReason", "GapNote", "Status",
             "AppliedDate", "FollowUpDate"]
+    existing = None
+    if PIPELINE_CSV.exists():
+        with open(PIPELINE_CSV, newline="", encoding="utf-8") as f:
+            existing = next(csv.reader(f), None)
+
+    if existing:
+        # Keep any column a human added by hand; never drop tracking data.
+        cols = list(dict.fromkeys(cols + [c for c in existing if c not in cols]))
+        if existing != cols:
+            # Header gained a column. Appending wider rows under the old header
+            # would shift every field right, so rewrite the file once instead.
+            with open(PIPELINE_CSV, newline="", encoding="utf-8") as f:
+                old_rows = list(csv.DictReader(f))
+            with open(PIPELINE_CSV, "w", newline="", encoding="utf-8") as f:
+                w = csv.DictWriter(f, fieldnames=cols)
+                w.writeheader()
+                for r in old_rows:
+                    w.writerow({c: (r.get(c) or "") for c in cols})
+            print(f"pipeline.csv migrated to {len(cols)} columns "
+                  f"({len(old_rows)} rows preserved)")
+
     with open(PIPELINE_CSV, "a", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=cols)
-        if new_file:
+        if not existing:
             w.writeheader()
         for r in rows:
             w.writerow({c: r.get(c, "") for c in cols})
