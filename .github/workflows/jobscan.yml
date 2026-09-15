@@ -2,8 +2,11 @@ name: jobscan
 
 on:
   schedule:
-    # 07:30 IST = 02:00 UTC, every day
-    - cron: "0 2 * * *"
+    # Every 2 hours. A role posted at 10am IST reaches you by noon at worst.
+    # Repo is private, so Actions minutes are capped at 2000/month on the free
+    # tier; at ~3 billed minutes a run this uses roughly half of that. Hourly
+    # would overrun it - make the repo public for unlimited minutes first.
+    - cron: "0 */2 * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -14,6 +17,7 @@ on:
         options:
           - scan
           - backlog
+          - discover
           - diagnose
           - prune
           - dry-run
@@ -50,6 +54,7 @@ jobs:
         run: |
           case "$MODE" in
             backlog)  python jobscan.py --repair-seen && python jobscan.py --backlog ;;
+            discover) python discover.py ;;
             diagnose) python jobscan.py --diagnose ;;
             prune)    python jobscan.py --prune ;;
             dry-run)  python jobscan.py --dry-run --max-age "$MAX_AGE" ;;
@@ -60,7 +65,7 @@ jobs:
         run: |
           git config user.name  "jobscan"
           git config user.email "jobscan@users.noreply.github.com"
-          git add seen.json pipeline.csv fetch_errors.log dead_rows.txt companies.csv || true
+          git add seen.json pipeline.csv fetch_errors.log dead_rows.txt companies.csv wanted.txt || true
           git diff --staged --quiet || git commit -m "$MODE $(date -u +%Y-%m-%d)"
           git push
         env:

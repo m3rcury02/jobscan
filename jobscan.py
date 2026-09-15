@@ -570,6 +570,56 @@ def fetch_workday(token, tenant=None):
     return out
 
 
+AMAZON_URL = "https://www.amazon.jobs/en/search.json"
+
+
+def fetch_amazon(token="", tenant=None):
+    """Amazon / AWS. Public JSON, no key. Token is unused.
+
+    loc_query is fuzzy - "India" returns Sydney - so filter on the
+    normalized_country_code facet instead, which is exact.
+    """
+    out, offset = [], 0
+    while offset < 500:
+        params = {
+            "normalized_country_code[]": "IND",
+            "result_limit": 100,
+            "offset": offset,
+            "sort": "recent",
+        }
+        r = requests.get(AMAZON_URL, params=params, headers=HEADERS, timeout=TIMEOUT)
+        r.raise_for_status()
+        data = r.json()
+        jobs = data.get("jobs") or []
+        if not jobs:
+            break
+        for j in jobs:
+            if (j.get("country_code") or "").upper() != "IND":
+                continue
+            posted = ""
+            raw = (j.get("posted_date") or "").strip()
+            for fmt in ("%B %d, %Y", "%Y-%m-%d"):
+                try:
+                    posted = datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+                    break
+                except ValueError:
+                    pass
+            # basic_qualifications carries the YOE line min_yoe() looks for
+            desc = " ".join(x for x in (j.get("basic_qualifications"),
+                                        j.get("description")) if x)
+            out.append({
+                "title": j.get("title", ""),
+                "location": j.get("normalized_location") or j.get("location", ""),
+                "url": "https://www.amazon.jobs" + (j.get("job_path") or ""),
+                "description": strip_html(desc),
+                "posted": posted,
+            })
+        offset += 100
+        if offset >= (data.get("hits") or 0):
+            break
+    return out
+
+
 def fetch_agency(token, tenant=None):
     """Recruitment consultancies and staffing firms. Same scrape as custom, but
     flagged: the hiring company is not named, so these cannot be scored or
@@ -581,6 +631,7 @@ def fetch_agency(token, tenant=None):
 
 
 ADAPTERS = {
+    "amazon": fetch_amazon,
     "keka": fetch_keka,
     "greenhouse": fetch_greenhouse,
     "lever": fetch_lever,
@@ -893,7 +944,12 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
 
     append_pipeline(rows)
     save_seen(seen)
-    send_email(f"Job Pipeline - {today}", digest)
+    if not kept:
+        # On a short polling interval most runs find nothing. Saving seen.json
+        # still matters; mailing an empty digest every couple of hours does not.
+        print("No new roles; skipping email.")
+        return
+    send_email(f"Job Pipeline - {today} ({len(kept)} new)", digest)
 
 
 def _age_label(j):
