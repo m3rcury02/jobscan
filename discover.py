@@ -36,7 +36,11 @@ CHECK = {
     "lever": "https://api.lever.co/v0/postings/{t}?mode=json",
     "smartrecruiters": "https://api.smartrecruiters.com/v1/companies/{t}/postings?limit=1",
 }
-WDS = ["wd1", "wd5", "wd3", "wd103", "wd105", "wd2", "wd10", "wd12", "wd101"]
+# wd2 and wd101 are unreachable from a proxied network but fine from CI, and
+# wd50x shards exist too - Omnissa is on wd501, Amadeus on wd502. A tenant is
+# not "absent" until every one of these has been tried.
+WDS = ["wd1", "wd5", "wd3", "wd103", "wd105", "wd2", "wd10", "wd12", "wd101",
+       "wd108", "wd501", "wd502", "wd503"]
 SUFFIX = re.compile(r"\b(technologies|technology|labs|inc|ltd|limited|pvt|private|"
                     r"solutions|systems|software|india|global|group|corp|company|co|"
                     r"analytics|digital|studios|ventures)\b", re.I)
@@ -128,11 +132,25 @@ def probe_ats(name):
     return None
 
 
-def probe_workday(name):
-    """422 = wrong host. 404 = right host, wrong site. 200 = both right."""
+def probe_workday(name, tenant_hint=None, site_hint=None):
+    """Find the shard, then the site.
+
+    The status codes mean what a controlled test says they mean, not what is
+    intuitive. With one payload held constant across four requests:
+
+        cisco.wd5 + Cisco_Careers -> 200      cisco.wd5 + BOGUS -> 404
+        cisco.wd1 + Cisco_Careers -> 422      cisco.wd1 + BOGUS -> 422
+
+    The same body returns 200, so a 422 is not schema rejection. 422 means the
+    tenant does not live on that shard; 404 means it does and the site name is
+    wrong. So a 422 is a reason to try the next shard, and a 404 is a reason to
+    start guessing site names.
+    """
     body = {"appliedFacets": {}, "limit": 20, "offset": 0, "searchText": "India"}
-    for t in dict.fromkeys([re.sub(r"[^a-z0-9]", "", name.lower()),
-                            re.sub(r"[^a-z0-9 ]", " ", name.lower()).split()[0]]):
+    cands = [tenant_hint] if tenant_hint else []
+    cands += [re.sub(r"[^a-z0-9]", "", name.lower()),
+              re.sub(r"[^a-z0-9 ]", " ", name.lower()).split()[0]]
+    for t in dict.fromkeys(c for c in cands if c):
         if not 2 <= len(t) <= 30:
             continue
         host = None
@@ -147,7 +165,9 @@ def probe_workday(name):
         if not host:
             continue
         C = t.capitalize()
-        for site in ["External", "External_Career_Site", "ExternalCareerSite",
+        for site in ([site_hint] if site_hint else []) + [
+                     f"{t}_External_Career_Site", f"{t}ExternalCareerSite",
+                     "External", "External_Career_Site", "ExternalCareerSite",
                      "Careers", "careers", "External_Careers", "jobs", "Jobs",
                      f"{C}_Careers", f"{C}Careers", f"{C}", f"{C}ExternalCareerSite",
                      f"{C}_External_Career_Site", t, "Search"]:

@@ -533,7 +533,11 @@ def fetch_workday(token, tenant=None):
     host = f"https://{tenant}.myworkdayjobs.com"
     api = f"{host}/wday/cxs/{tenant.split('.')[0]}/{token}/jobs"
     hdrs = {**HEADERS, "Content-Type": "application/json",
-            "Accept": "application/json"}
+            "Accept": "application/json",
+            # Workday sits behind an edge that is happier with a same-origin
+            # looking request. It is not what causes a 422 - that is the tenant
+            # not living on the shard - but it is the correct thing to send.
+            "Origin": host}
 
     # 600 not 200: big tenants order their India results by department, so
     # Accenture's engineering roles do not start until around offset 80 and

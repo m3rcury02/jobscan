@@ -639,3 +639,6 @@ SatSure,keka,satsure,,"supplied URL; 22 India roles, 5 matching",yes
 AMETEK,successfactors,jobs.ametek.com,,"supplied URL; 25 India roles, 5 matching",yes
 Shipthis,custom,https://shipthis.freshteam.com/jobs,,"supplied URL; 2 India roles, 2 matching",yes
 Avolta,successfactors,careers.avoltaworld.com,,"supplied URL; 10 India roles, 0 matching",yes
+# Omnissa is on wd501, not the wd5 in its careers URL, and its site is
+# omnissa_External_Career_Site. Both had to be swept for.
+Omnissa,workday,omnissa_External_Career_Site,omnissa.wd501,"shard swept; 27 India roles, 11 matching",yes
