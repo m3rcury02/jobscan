@@ -1,105 +1,110 @@
-# Careers URLs I could not find on my own.
+# Careers URLs supplied 2026-09-15. Kept so the work is not lost and so a
+# rerun can pick up anything that later starts working.
 #
-# Put the URL of the page that LISTS JOBS after the pipe - not the company
-# homepage, not a 'life at X' marketing page. If the list only appears after
-# clicking a filter, paste the URL from the address bar at that point.
-#
-# Then: Actions -> jobscan -> Run workflow -> mode: discover
-# discover.py reads these first, before it tries guessing anything.
-#
-# Lines without a URL are skipped, so fill in as few or as many as you like.
+# WORKING lines are already in companies.csv.
+# Everything else records why the supplied URL did not yield a board.
 
-# ---- my guessed domain did not resolve at all. A URL definitely helps. ----
-7-Eleven | 
-Akamai | 
-Anheuser-Busch | 
-Ather | 
-Avolta | 
-BNP Paribas | 
-Blackhawk | 
-Blissclub | 
-Capillary Technologies | 
-Carelon | 
-ClearTax | 
-Dell Technologies | 
-Eli Lilly | 
-Flipkart | 
-GIVA | 
-GlobalLogic | 
-Hiver | 
-Indus DC Ventures | 
-JioStar | 
-MrMed | 
-NAVEX | 
-NeevCloud | 
-Newspace | 
-Nextwealth | 
-Omnissa | 
-R360 | 
-SatSure | 
-StatusNeo | 
-Texas Instruments | 
-Think Design | 
-Xflow | 
-Zepto | 
+# ================= WORKING =================
+AMETEK | https://jobs.ametek.com/search/?q=&locationsearch=India
+Avolta | https://careers.avoltaworld.com/search/?createNewAlert=false&q=&locationsearch=India
+JioStar | https://disney.wd5.myworkdayjobs.com/disneycareer?locations=5db6f40449411000bda8457224f80000
+SatSure | https://satsure.keka.com/careers/
+Shipthis | https://shipthis.freshteam.com/jobs
 
-# ---- a page loaded but had no job-board link on it. The URL I tried is in
-#      the comment; replace it only if it is the wrong page. ----
-AMETEK |            # tried: https://careers.ametek.com
-Analyttica |            # tried: https://www.analyttica.com/careers
-Apexon |            # tried: https://www.apexon.com/careers
-Ati Motors |            # tried: https://www.ati.com/careers
-Brillio |            # tried: https://careers.brillio.com
-Deutsche Bank |            # tried: https://www.deutsche.com/careers
-Epsilon |            # tried: https://careers.epsilon.com
-Fastenal |            # tried: https://careers.fastenal.com
-FinBox |            # tried: https://www.finbox.com/careers
-Gale |            # tried: https://www.gale.com/careers
-Goldman Sachs |            # tried: https://www.goldmansachs.com/careers
-HashedIn |            # tried: https://www.hashedin.com/careers
-HiLabs |            # tried: https://www.hilabs.com/careers
-KPIT |            # tried: https://www.kpit.com/careers
-Loginsoft |            # tried: https://www.loginsoft.com/careers
-Manipal Hospitals |            # tried: https://careers.manipalhospitals.com
-Morgan Stanley |            # tried: https://www.morganstanley.com/careers
-Myntra |            # tried: https://careers.myntra.com
-Netcore Unbxd |            # tried: https://www.netcore.com/careers
-Nykaa |            # tried: https://careers.nykaa.com
-PhonePe |            # tried: https://www.phonepe.com/careers
-Polestar Analytics |            # tried: https://www.polestaranalytics.com/careers
-Polymerize |            # tried: https://www.polymerize.com/careers
-STL Digital |            # tried: https://www.stldigital.com/careers
-Shipthis |            # tried: https://shipthis.com/careers
-Siemens |            # tried: https://jobs.siemens.com
-Smiths Detection |            # tried: https://www.smithsdetection.com/careers
-Snapmint |            # tried: https://careers.snapmint.com
-SoundHound |            # tried: https://www.soundhound.com/careers
-Storylane |            # tried: https://careers.storylane.com
-Syngene |            # tried: https://www.syngene.com/careers
-Tesco |            # tried: https://careers.tesco.com
-Testsigma |            # tried: https://www.testsigma.com/careers
-Transak |            # tried: https://careers.transak.com
-Tricon Infotech |            # tried: https://www.triconinfotech.com/careers
-Uni Cards |            # tried: https://www.unicards.com/careers
-UnitedLayer |            # tried: https://www.unitedlayer.com/careers
-Urban Company |            # tried: https://careers.urbancompany.com
-Volvo |            # tried: https://volvo.com/careers
-Wells Fargo |            # tried: https://www.wellsfargo.com/careers
-Zemoso |            # tried: https://www.zemoso.com/careers
-o9 Solutions |            # tried: https://www.o9solutions.com/careers
+# ===== ashby: board page loads but posting-api returns 404 - private board.
+# Gale | https://jobs.ashbyhq.com/gale
+# Transak | https://jobs.ashbyhq.com/transak
+# Xflow | https://jobs.ashbyhq.com/xflow
 
-# ---- these run a platform that refuses or defeats automated reads.
-#      A URL will not change that, listed here only so nothing looks lost. ----
-# Impact Analytics (greenhouse)
-# Indegene (successfactors)
-# Infineon (eightfold)
-# Lowe's (phenom)
-# NTT DATA (workday)
-# Nutanix (jobvite)
-# Publicis Groupe (icims)
-# Qualcomm (eightfold)
-# Schneider Electric (oracle-hcm)
-# Social Panga (eqjobs)
-# Societe Generale (oracle-hcm)
-# Standard Chartered (successfactors)
-# TEKsystems (phenom)
+# ===== bespoke: bespoke site - no adapter.
+# BNP Paribas | https://group.bnpparibas/en/careers/job-offers?country=India
+# Blackhawk | https://careers.blackhawknetwork.com/jobs?filter%5Bcountry%5D=India
+# Brillio | https://jobs.brillio.com/
+# Eli Lilly | https://careers.lilly.com/us/en/search-results?m=3&location=India
+# Flipkart | https://www.flipkartcareers.com/#!/joblist
+# GlobalLogic | https://www.globallogic.com/career-search-page/?country=india
+# HashedIn | https://hashedin.com/job-openings/
+# KPIT | https://kpitcareers.kpit.com/
+# Loginsoft | https://jobs.loginsoft.com/
+# Manipal Hospitals | https://careers.manipalhospitals.com/job-openings/
+# Nextwealth | https://nextwealth.in/current-openings/
+# Polestar Analytics | https://www.polestarllp.com/careers
+# STL Digital | https://www.stldigital.com/careers/#career-openings
+# Siemens | https://jobs.siemens.com/careers?query=India
+# Tesco | https://www.tesco-careers.com/search-and-apply/?location=Bengaluru
+# UnitedLayer | https://www.unitedlayer.com/current-openings/
+# Volvo | https://www.volvogroup.com/en/careers/job-search.html?country=India
+
+# ===== darwinbox: Cloudflare challenge on the jobs API.
+# Capillary Technologies | https://capillarytech.darwinbox.in/ms/candidate/careers
+# Myntra | https://myntra.darwinbox.in/ms/candidate/careers
+# Nykaa | https://nykaa.darwinbox.in/ms/candidate/careers
+# Urban Company | https://urbancompany.darwinbox.in/ms/candidate/careers
+# Zepto | https://zepto.darwinbox.in/ms/candidate/careers
+
+# ===== eightfold: network error reaching tenant from here.
+# Deutsche Bank | https://deutschebank.eightfold.ai/careers?location=India
+
+# ===== freshteam: job list is JS-rendered; served HTML has no postings.
+# Analyttica | https://analyttica.freshteam.com/jobs
+# Ati Motors | https://atimotors.freshteam.com/jobs
+# Netcore Unbxd | https://unbxd.freshteam.com/jobs
+# Polymerize | https://polymerize.freshteam.com/jobs
+# Storylane | https://storylane.freshteam.com/jobs
+# Think Design | https://thinkdesign.freshteam.com/jobs
+
+# ===== keka: keka redirects to /careers/Content/403.html - tenant blocks automated reads.
+# Blissclub | https://blissclub.keka.com/careers/
+# GIVA | https://giva.keka.com/careers
+# HiLabs | https://hilabs.keka.com/careers/
+# Indus DC Ventures | https://indusos.keka.com/careers/
+# MrMed | https://mrmed.keka.com/careers/
+# Newspace | https://newspace.keka.com/careers/
+# R360 | https://r360.keka.com/careers/
+# Snapmint | https://snapmint.keka.com/careers/
+# StatusNeo | https://statusneo.keka.com/careers/
+# Zemoso | https://zemoso.keka.com/careers/
+
+# ===== lever: jobs.lever.co/<slug> returns Lever's own 404 page - that board does not exist. Company likely moved off Lever.
+# Ather | https://jobs.lever.co/atherenergy
+# ClearTax | https://jobs.lever.co/cleartax
+# FinBox | https://jobs.lever.co/finbox
+# Hiver | https://jobs.lever.co/hiverhq
+# PhonePe | https://jobs.lever.co/phonepe
+# SoundHound | https://jobs.lever.co/soundhound
+# Testsigma | https://jobs.lever.co/testsigma
+# Uni Cards | https://jobs.lever.co/uni
+# o9 Solutions | https://jobs.lever.co/o9solutions
+
+# ===== radancy: Radancy/SelectMinds - no adapter.
+# Akamai | https://akamai.referrals.selectminds.com/jobs/search/in/india
+# Dell Technologies | https://jobs.dell.com/en/search-jobs/India/375/2/1269750/20/77/50/2
+# Fastenal | https://careers.fastenal.com/search-jobs/India/18858/2/1269750/20/77/50/2
+# Texas Instruments | https://careers.ti.com/search-jobs/?location=India
+
+# ===== smartrecruiters: board resolves but has no India roles.
+# Epsilon | https://jobs.smartrecruiters.com/PublicisGroupe/Epsilon
+
+# ===== successfactors: proxy error reaching host from here.
+# Anheuser-Busch | https://jobs.abinbev.com/search/?createNewAlert=false&q=&locationsearch=India
+
+# ===== talnet: tal.net platform - no adapter.
+# Goldman Sachs | https://goldmansachs.tal.net/vx/lang-en-GB/mobile-0/appcentre-1/brand-2/xf-d0554c0cfb6c/candidate/jobboard/vacancy/1/adv/
+# Morgan Stanley | https://morganstanley.tal.net/vx/lang-en-GB/mobile-0/brand-2/candidate/jobboard/vacancy/1/adv/
+
+# ===== workable: unknown
+# NeevCloud | https://apply.workable.com/neevcloud/
+
+# ===== workday: cxs tenant differs from the subdomain - 422 on every body shape. Need the /wday/cxs/<TENANT>/<SITE>/jobs path from DevTools Network.
+# 7-Eleven | https://7eleven.wd5.myworkdayjobs.com/7ElevenCareers?locations=19036c84d7a81014e2d31215b2480000
+# Apexon | https://apexon.wd1.myworkdayjobs.com/Apexon_Careers?locations=d186cbbd377b01934ba74ef43d395724
+# Carelon | https://elevancehealth.wd1.myworkdayjobs.com/Carelon_Global_Solutions_India
+# NAVEX | https://navex.wd1.myworkdayjobs.com/NAVEXCareers?q=India
+# Omnissa | https://omnissa.wd5.myworkdayjobs.com/OmnissaCareers?q=India
+# Smiths Detection | https://smithsdetection.wd3.myworkdayjobs.com/Smiths_Detection_Careers?q=India
+# Syngene | https://syngene.wd3.myworkdayjobs.com/Syngene_Careers
+# Wells Fargo | https://wellsfargo.wd1.myworkdayjobs.com/WellsFargoJobs?q=India
+
+# ===== zohorecruit: Zoho Recruit - no adapter.
+# Tricon Infotech | https://triconinfotech.zohorecruit.com/jobs/Careers
+
