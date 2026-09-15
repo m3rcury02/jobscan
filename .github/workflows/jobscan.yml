@@ -65,7 +65,7 @@ jobs:
         run: |
           git config user.name  "jobscan"
           git config user.email "jobscan@users.noreply.github.com"
-          git add seen.json pipeline.csv fetch_errors.log dead_rows.txt companies.csv wanted.txt || true
+          git add seen.json pipeline.csv fetch_errors.log dead_rows.txt companies.csv wanted.txt discovered_review.csv || true
           git diff --staged --quiet || git commit -m "$MODE $(date -u +%Y-%m-%d)"
           git push
         env:

@@ -27,6 +27,7 @@ import jobscan as J
 
 ROOT = Path(__file__).parent
 WANTED = ROOT / "wanted.txt"
+REVIEW = "discovered_review.csv"
 
 CHECK = {
     "greenhouse": "https://boards-api.greenhouse.io/v1/boards/{t}/jobs",
@@ -79,27 +80,29 @@ def owner(ats, tok):
     return ""          # ashby/lever/workday expose no board name; fall back to locations
 
 
-def plausible(name, ats, tok, jobs):
-    """Two independent gates, and a board must clear both.
+def verdict(name, ats, tok, jobs):
+    """Return "confirmed", "review" or "reject".
 
-    India roles is the hard gate. Every board here exists to surface Indian
-    openings, so one with none is worthless even when it is the right company -
-    and worthless is also exactly what a wrong-company match looks like.
+    Only an exact name match auto-adds. Everything else goes to a review file.
 
-    Name matching alone is not enough and must never stand on its own:
-    greenhouse/diligent reports itself as "Diligent Services", which passes any
-    prefix test against "Diligent" while actually hiring crane operators and
-    plumbing foremen in Florida. Its zero Indian roles are what give it away.
+    This is deliberately stricter than it looks like it needs to be, because
+    two softer versions already failed. A 5-character prefix test accepted
+    greenhouse/impact for "Impact Analytics" - that board is impact.com, and
+    it has Indian roles, so no amount of India-filtering catches it. Substring
+    matching is no better: it accepts "Pine" for "Pine Labs" and "Diligent
+    Services" for "Diligent", and those are different companies too.
+
+    Name similarity simply cannot settle corporate identity. So anything short
+    of an exact match is a question for a human, not a guess for this script.
     """
     india = [j for j in jobs if J.is_india(j["location"])
              and not J.is_non_india_only(j["location"])]
     if not india:
-        return False, "no India roles"
+        return "reject", "no India roles", india
     who = owner(ats, tok)
-    if who and _norm(who)[:5] and _norm(name)[:5] not in _norm(who) \
-            and _norm(who)[:5] not in _norm(name):
-        return False, f"board belongs to {who}"
-    return True, (who or f"{len(india)} India roles")
+    if who and _norm(who) == _norm(name):
+        return "confirmed", who, india
+    return "review", (who or "board publishes no company name"), india
 
 
 def probe_ats(name):
@@ -117,10 +120,10 @@ def probe_ats(name):
                 continue
             if not jobs:
                 continue
-            ok, who = plausible(name, ats, tok, jobs)
-            if ok:
+            v, who, india = verdict(name, ats, tok, jobs)
+            if v != "reject":
                 return {"ats": ats, "token": tok, "tenant": "", "who": who,
-                        "jobs": jobs}
+                        "jobs": jobs, "verdict": v, "india": len(india)}
     return None
 
 
@@ -153,10 +156,11 @@ def probe_workday(name):
                 continue
             if not jobs:
                 continue
-            ok, who = plausible(name, "workday", site, jobs)
-            if ok:
+            v, who, india = verdict(name, "workday", site, jobs)
+            if v != "reject":
                 return {"ats": "workday", "token": site, "tenant": host,
-                        "who": who, "jobs": jobs}
+                        "who": who, "jobs": jobs, "verdict": v,
+                        "india": len(india)}
     return None
 
 
@@ -209,29 +213,88 @@ def main():
             print(f"  FOUND {n[:22]:24} {hit['ats']:16} {hit['token'][:24]:26} "
                   f"{len(ind):4} India {len(mat):3} match   [{hit['who']}]")
 
-    if found:
-        ri = hdr.index("Referral") if "Referral" in hdr else None
-        lines = (ROOT / "companies.csv").read_text(encoding="utf-8").split("\n")
-        while lines and not lines[-1].strip():
-            lines.pop()
-        lines.append(f"# --- discovered {datetime.date.today()} from wanted.txt ---")
-        for n, ref, hit, ind, mat in sorted(found):
-            row = [n, hit["ats"], hit["token"], hit["tenant"],
-                   f"discovered; {ind} India roles, {mat} matching"]
-            row += [""] * (len(hdr) - len(row))
-            if ri is not None and ref:
-                row[ri] = "yes"
-            b = io.StringIO()
-            csv.writer(b, lineterminator="").writerow(row[:len(hdr)])
-            lines.append(b.getvalue())
-        (ROOT / "companies.csv").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    confirmed = [f for f in found if f[2]["verdict"] == "confirmed"]
+    review = [f for f in found if f[2]["verdict"] == "review"]
 
-    print(f"\nadded {len(found)} boards; no board found for {len(missing)}")
+    if confirmed:
+        write_rows(hdr, confirmed,
+                   f"# --- discovered {datetime.date.today()}: "
+                   f"board's own company name matches exactly ---")
+
+    if review:
+        # Identity unconfirmed. Written here, not into companies.csv, so a
+        # wrong-company board cannot reach the digest without a human look.
+        with open(ROOT / REVIEW, "w", newline="", encoding="utf-8") as f:
+            w = csv.writer(f)
+            w.writerow(["Company", "ATS", "Token", "Tenant", "Referral",
+                        "BoardSaysItIs", "IndiaRoles", "SampleTitle", "SampleLocation"])
+            for n, ref, hit, ind, mat in sorted(review):
+                j = (hit["jobs"] or [{}])[0]
+                w.writerow([n, hit["ats"], hit["token"], hit["tenant"],
+                            "yes" if ref else "", hit["who"], ind,
+                            j.get("title", "")[:70], j.get("location", "")[:40]])
+        print(f"\n{len(review)} boards need a human check -> {REVIEW}")
+        print("  Each returns Indian roles but does not name itself as the")
+        print("  company you asked for. Open the file, delete any row that is")
+        print("  the wrong company, then: python discover.py --promote")
+        for n, ref, hit, ind, mat in sorted(review):
+            print(f"    {n[:22]:24} {hit['ats']:14} {hit['token'][:22]:24} "
+                  f"says it is: {hit['who'][:34]}")
+
+    print(f"\nauto-added {len(confirmed)}; {len(review)} awaiting review; "
+          f"no board found for {len(missing)}")
     if missing:
         print("  " + ", ".join(sorted(missing)[:40]))
         print("  These run their own portal. Each needs a bespoke adapter -")
         print("  see fetch_amazon() for the shape one takes.")
 
 
+def write_rows(hdr, items, banner):
+    ri = hdr.index("Referral") if "Referral" in hdr else None
+    lines = (ROOT / "companies.csv").read_text(encoding="utf-8").split("\n")
+    while lines and not lines[-1].strip():
+        lines.pop()
+    lines.append(banner)
+    for n, ref, hit, ind, mat in sorted(items):
+        row = [n, hit["ats"], hit["token"], hit["tenant"],
+               f"discovered; {ind} India roles, {mat} matching"]
+        row += [""] * (len(hdr) - len(row))
+        if ri is not None and ref:
+            row[ri] = "yes"
+        b = io.StringIO()
+        csv.writer(b, lineterminator="").writerow(row[:len(hdr)])
+        lines.append(b.getvalue())
+    (ROOT / "companies.csv").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def promote():
+    """Move rows a human kept in the review file into companies.csv."""
+    path = ROOT / REVIEW
+    if not path.exists():
+        print(f"No {REVIEW}; nothing to promote.")
+        return
+    with open(path, newline="", encoding="utf-8") as f:
+        rows = list(csv.DictReader(f))
+    if not rows:
+        print(f"{REVIEW} is empty; nothing to promote.")
+        return
+    hdr = next(csv.reader(io.StringIO(
+        (ROOT / "companies.csv").read_text(encoding="utf-8"))))
+    items = [(r["Company"], r.get("Referral", "").lower().startswith("y"),
+              {"ats": r["ATS"], "token": r["Token"], "tenant": r.get("Tenant", ""),
+               "who": r.get("BoardSaysItIs", "")}, r.get("IndiaRoles", "?"), "?")
+             for r in rows]
+    write_rows(hdr, items,
+               f"# --- promoted from {REVIEW} {datetime.date.today()} "
+               f"after a human confirmed the company ---")
+    path.unlink()
+    print(f"promoted {len(rows)} boards into companies.csv; {REVIEW} cleared")
+    for r in rows:
+        print(f"    {r['Company'][:24]:26} {r['ATS']}/{r['Token']}")
+
+
 if __name__ == "__main__":
-    main()
+    if "--promote" in sys.argv:
+        promote()
+    else:
+        main()
