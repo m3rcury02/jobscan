@@ -185,7 +185,11 @@ def main():
     rows = list(csv.reader(io.StringIO(
         (ROOT / "companies.csv").read_text(encoding="utf-8"))))
     hdr = rows[0]
-    have = {(r[1].strip().lower(), r[2].strip().lower())
+    # Tenant is part of the key: a Workday site name is only unique within a
+    # tenant. Autodesk and Cardinal Health both call their site "Ext", and
+    # keying on (ats, token) alone silently drops the second one.
+    have = {(r[1].strip().lower(), r[2].strip().lower(),
+             (r[3].strip().lower() if len(r) > 3 else ""))
             for r in rows[1:] if len(r) >= 3 and r[2].strip()
             and not r[0].lstrip().startswith("#")}
     known = {_norm(r[0]) for r in rows[1:] if r and not r[0].lstrip().startswith("#")}
@@ -203,7 +207,7 @@ def main():
             if not hit:
                 missing.append(n)
                 continue
-            if (hit["ats"], hit["token"].lower()) in have:
+            if (hit["ats"], hit["token"].lower(), hit["tenant"].lower()) in have:
                 print(f"  {n[:24]:26} already covered by {hit['ats']}/{hit['token']}")
                 continue
             ind = [j for j in hit["jobs"] if J.is_india(j["location"])

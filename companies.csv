@@ -595,3 +595,9 @@ Shell,workday,ShellCareers,shell.wd3,referral network; workday tenant verified,y
 # --- bespoke-portal adapters added 2026-09-15 ---
 Amazon,amazon,amazon-india,,public JSON API; normalized_country_code=IND,yes
 # --- discovered 2026-09-15 from wanted.txt ---
+# --- workday sites looked up, not guessed, 2026-09-15. Site names are
+#     arbitrary: HPE is 'Jobsathpe', Cardinal Health is 'Ext', Citi's is '2'. ---
+Caterpillar,workday,CaterpillarCareers,cat.wd5,"site from careers URL; 41 India roles, 14 matching",yes
+Citi,workday,2,citi.wd5,"site from careers URL; 511 India roles, 39 matching",yes
+HPE,workday,Jobsathpe,hpe.wd5,"site from careers URL; 283 India roles, 101 matching",yes
+Cardinal Health,workday,Ext,cardinalhealth.wd1,"site from careers URL; 27 India roles, 0 matching",yes
