@@ -1,4 +1,4 @@
-Company,ATS,Token,Tenant,Note
+Company,ATS,Token,Tenant,Note,Referral
 # 485 live boards. NOTE: rows added before 2026-09 were slugified from company
 # names and never verified - ~230 of them 404 and are dead weight. Every row
 # added from 2026-09-14 on was probed against the live API first. Do the same
@@ -38,7 +38,7 @@ DoorDash India,greenhouse,doordashindia,
 Druva,greenhouse,druva,
 # DEAD-404 Dunzo,greenhouse,dunzo,logistics/commerce
 EarnIn,greenhouse,earnin,
-Easyship,greenhouse,easyship,
+Easyship,greenhouse,easyship,,,yes
 # DEAD-404 Eka Plus,greenhouse,ekaplus,
 # DEAD-404 ElasticRun,greenhouse,elasticrun,
 Emergent Labs,greenhouse,emergentlabsinc,
@@ -87,7 +87,7 @@ Moloco,greenhouse,moloco,
 # DEAD-404 Navi Technologies,greenhouse,navi,
 # DEAD-404 Netcore Cloud,greenhouse,netcorecloud,
 # DEAD-404 Niramai,greenhouse,niramai,
-Nirmata,greenhouse,nirmata,
+Nirmata,greenhouse,nirmata,,,
 # DEAD-404 Niyo,greenhouse,niyo,
 # DEAD-404 Numberz,greenhouse,numberz,
 Okta,greenhouse,okta,
@@ -105,15 +105,15 @@ project44,greenhouse,project44,
 # DEAD-404 Razorpay,greenhouse,razorpay,
 # DEAD-404 Rivigo,greenhouse,rivigo,logistics/commerce
 Roku,greenhouse,roku,
-Rubrik,greenhouse,rubrik,
+Rubrik,greenhouse,rubrik,,,yes
 # DEAD-404 Salesken,greenhouse,salesken,
 Sauce Labs,greenhouse,saucelabs,
 # DEAD-404 Scaler,greenhouse,scaler,
-SentinelOne,greenhouse,sentinellabs,
+SentinelOne,greenhouse,sentinellabs,,,yes
 # DEAD-404 Setu,greenhouse,setu,
 Sezzle,greenhouse,sezzle,
 # DEAD-404 Shadowfax,greenhouse,shadowfax,logistics/commerce
-Sigmoid,greenhouse,sigmoid,
+Sigmoid,greenhouse,sigmoid,,,yes
 # DEAD-404 Signzy,greenhouse,signzy,
 # DEAD-404 Simplilearn,greenhouse,simplilearn,
 # DEAD-404 Sprinklr,greenhouse,sprinklr,
@@ -146,7 +146,7 @@ Binance,lever,binance,
 # DEAD-404 Climes,lever,climes,
 # DEAD-404 Country Delight,lever,countrydelight,
 # DEAD-404 Coverfox,lever,coverfox,
-CRED,lever,cred,
+CRED,lever,cred,,,yes
 # DEAD-404 Cure.fit,lever,curefit,
 # DEAD-404 Delhivery,lever,delhivery,logistics/commerce
 Drivetrain,lever,drivetrain,
@@ -174,7 +174,7 @@ Level AI,lever,levelai,
 # DEAD-404 Log9 Materials,lever,log9materials,
 # DEAD-404 MakeMyTrip,lever,makemytrip,
 Medikabazaar,lever,medikabazaar,
-Meesho,lever,meesho,logistics/commerce
+Meesho,lever,meesho,logistics/commerce,,yes
 Merkle Science,lever,merklescience,
 Mindtickle,lever,mindtickle,
 # DEAD-404 Moglix,lever,moglix,
@@ -237,7 +237,7 @@ Broccoli AI,ashby,broccoli,
 # DEAD-404 Cars24,ashby,cars24,
 Cartesia,ashby,cartesia,
 # DEAD-404 Classmate (ITC),ashby,itc-classmate,
-CloudSEK,greenhouse,cloudsek,
+CloudSEK,greenhouse,cloudsek,,,yes
 # DEAD-404 Crayon Data,ashby,crayondata,
 # DEAD-404 Credgenics,ashby,credgenics,
 # DEAD-404 Cuemath,ashby,cuemath,
@@ -361,7 +361,7 @@ Scapia,custom,https://scapia.freshteam.com/jobs,,fintech
 Haptik,custom,https://haptik.freshteam.com/jobs,,conversational AI
 Cyware,custom,https://cyware.freshteam.com/jobs,,cybersecurity
 TravClan,custom,https://travclan.freshteam.com/jobs,,travel tech
-Credit Saison India,custom,https://creditsaisonin-talent.freshteam.com/jobs,,fintech
+Credit Saison India,custom,https://creditsaisonin-talent.freshteam.com/jobs,,fintech,
 Paxcom,custom,https://paxcom.freshteam.com/jobs,,ecommerce tech
 HappyLocate,custom,https://happylocate.freshteam.com/jobs,,relocation/logistics
 VIDA,custom,https://vida.freshteam.com/jobs,,mobility
@@ -374,7 +374,7 @@ Acceleration Robotics,custom,https://accelerationrobotics.freshteam.com/jobs,,ro
 # These DO publish "N days ago", which the adapter converts to a real date,
 # so the 2-day window applies to them normally.
 Bebetta,keka,bebetta,,"was custom scraper, returned 0 - keka API adapter"
-GoKwik,keka,gokwik,,"was custom scraper, returned 0 - keka API adapter"
+GoKwik,keka,gokwik,,"was custom scraper, returned 0 - keka API adapter",yes
 # no published jobs, keka embed widget absent -> Valeo Health,keka,valeohealth,,"was custom scraper, returned 0 - keka API adapter"
 # no published jobs, keka embed widget absent -> India Health Link,keka,ihl,,"was custom scraper, returned 0 - keka API adapter"
 # no published jobs, keka embed widget absent -> PopClub,keka,popclub,,"was custom scraper, returned 0 - keka API adapter"
@@ -401,10 +401,10 @@ People10,agency,https://people10.freshteam.com/jobs,,
 # Read both off the careers URL:
 #   https://cisco.wd5.myworkdayjobs.com/en-US/Cisco_Careers/...
 #                ^tenant = cisco.wd5        ^token = Cisco_Careers
-Cisco,workday,Cisco_Careers,cisco.wd5,
+Cisco,workday,Cisco_Careers,cisco.wd5,,yes
 Intel,workday,External,intel.wd1,
-NVIDIA,workday,NVIDIAExternalCareerSite,nvidia.wd5,
-Salesforce,workday,External_Career_Site,salesforce.wd12,
+NVIDIA,workday,NVIDIAExternalCareerSite,nvidia.wd5,,yes
+Salesforce,workday,External_Career_Site,salesforce.wd12,,yes
 Thomson Reuters,workday,External_Career_Site,thomsonreuters.wd5,
 F5,workday,f5jobs,ffive.wd5,
 PTC,workday,PTC,ptc.wd1,
@@ -413,7 +413,7 @@ AVEVA,workday,AVEVA_careers,aveva.wd3,
 Silicon Labs,workday,SiliconLabsCareers,silabs.wd1,
 Kyndryl,workday,KyndrylProfessionalCareers,kyndryl.wd5,
 Lloyds Technology Centre,workday,Lloyds_Technology_Centre,lbg.wd3,
-Carelon Global Solutions,workday,carelonglobal_in,elevancehealth.wd1,
+Carelon Global Solutions,workday,carelonglobal_in,elevancehealth.wd1,,yes
 Assurant,workday,Assurant_Careers,assurant.wd1,
 R1 RCM,workday,R1RCM,r1rcm.wd1,
 Astreya,workday,life-at-astreya-opportunities,astreya.wd5,
@@ -439,8 +439,8 @@ Endpoint Clinical,lever,endpointclinical,,
 Sprinto,lever,Sprinto,,
 Saviynt,lever,saviynt,,
 Smarsh,lever,smarsh,,
-Nium,lever,nium,,
-Paytm,lever,paytm,,
+Nium,lever,nium,,,
+Paytm,lever,paytm,,,yes
 Lingaro,lever,lingarogroup,,
 ValGenesis,lever,valgenesis,,
 Stable Money,lever,stable-money1,,
@@ -452,8 +452,8 @@ WatchGuard,lever,watchguard,,
 Palantir,lever,palantir,,
 # --- ashby ---
 Wisdom AI,ashby,Wisdom-AI,,
-CertifyOS,ashby,certifyos,,
-Ema,ashby,ema,,
+CertifyOS,ashby,certifyos,,,yes
+Ema,ashby,ema,,,yes
 Cerebras Systems,ashby,cerebras,,
 Plane,ashby,plane,,
 Kandou AI,ashby,kandou-ai,,
@@ -491,10 +491,10 @@ Airbus,workday,Airbus,ag.wd3,
 Synchrony Financial,workday,careers,synchronyfinancial.wd5,
 Walmart Global Tech,workday,WalmartExternal,walmart.wd504,
 SS&C Technologies,workday,SSCTechnologies,ssctech.wd1,
-Broadcom,workday,External_Career,broadcom.wd1,
+Broadcom,workday,External_Career,broadcom.wd1,,yes
 Synechron,workday,SynechronCareers,synechron.wd1,
 Fractal Analytics,workday,Careers,fractal.wd1,
-Visa,workday,Visa,visa.wd5,
+Visa,workday,Visa,visa.wd5,,yes
 Veradigm,workday,VR,veradigm.wd12,
 NXP Semiconductors,workday,careers,nxp.wd3,
 Autodesk,workday,Ext,autodesk.wd1,
@@ -502,7 +502,7 @@ Autodesk,workday,Ext,autodesk.wd1,
 # ===== SMARTRECRUITERS =====
 # List call returns title+location but no description: these score on
 # title alone and appear in digest Section D.
-Swiggy,smartrecruiters,SWIGGY,,
+Swiggy,smartrecruiters,SWIGGY,,,yes
 LinkedIn,smartrecruiters,LinkedIn3,,
 Nexthink,smartrecruiters,Nexthink,,
 V-Comply,smartrecruiters,V-Comply,,
@@ -514,7 +514,7 @@ Eurofins,smartrecruiters,Eurofins,,
 H&M Group,smartrecruiters,HMGroup,,
 Shippeo,smartrecruiters,Shippeo,,
 Check Point,smartrecruiters,CheckPointSoftwareTechnologies2,,
-Nielsen,smartrecruiters,TheNielsenCompany,,
+Nielsen,smartrecruiters,TheNielsenCompany,,,yes
 Fastjobs.io,smartrecruiters,Fastjobsio1,,
 #
 # ===== WORKABLE =====
@@ -564,4 +564,22 @@ Signzy,keka,signzy,,"verified: 24 India roles, 1 matching filters"
 Teachmint,keka,teachmint,,"verified: 24 India roles, 4 matching filters"
 Unicommerce,keka,unicommerce,,"verified: 2 India roles, 0 matching filters"
 Zluri,keka,zluri,,"verified: 3 India roles, 2 matching filters"
+# --- 16 referral-network boards added 2026-09-15: slug probed live AND board ownership confirmed against the company name. ---
+AQR,greenhouse,aqr,,"referral network; verified 12 India roles, 2 matching",yes
+Airbound,ashby,airbound,,"referral network; verified 6 India roles, 0 matching",yes
+AppsFlyer,greenhouse,appsflyer,,"referral network; verified 4 India roles, 1 matching",yes
+Celonis,greenhouse,celonis,,"referral network; verified 38 India roles, 12 matching",yes
+CommerceIQ,greenhouse,commerceiq,,"referral network; verified 6 India roles, 0 matching",yes
+DigiCert,greenhouse,digicert,,"referral network; verified 22 India roles, 14 matching",yes
+Groupon,greenhouse,groupon,,"referral network; verified 4 India roles, 1 matching",yes
+Lokal,smartrecruiters,lokal,,"referral network; verified 9 India roles, 0 matching",yes
+Movable Ink,greenhouse,movableink,,"referral network; verified 2 India roles, 0 matching",yes
+Reltio,greenhouse,reltio,,"referral network; verified 12 India roles, 0 matching",yes
+ServiceNow,smartrecruiters,servicenow,,"referral network; verified 50 India roles, 8 matching",yes
+Smartsheet,greenhouse,smartsheet,,"referral network; verified 17 India roles, 2 matching",yes
+SpotDraft,ashby,spotdraft,,"referral network; verified 10 India roles, 2 matching",yes
+Stripe,greenhouse,stripe,,"referral network; verified 47 India roles, 2 matching",yes
+Toast,greenhouse,toast,,"referral network; verified 26 India roles, 2 matching",yes
+WPP,greenhouse,wpp,,"referral network; verified 68 India roles, 7 matching",yes
+
 

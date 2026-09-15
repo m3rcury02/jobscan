@@ -627,7 +627,13 @@ def title_ok(title):
     return any(good in t for good in TITLE_KEEP)
 
 
-def company_ok(company):
+def company_ok(company, referral=False):
+    """COMPANY_DROP exists to keep mass-market service firms out of the digest.
+    A referral changes that calculus entirely - a role you can be walked into
+    is worth seeing whoever posted it - so a Referral row skips the check.
+    """
+    if referral:
+        return True
     c = (company or "").lower()
     return not any(bad in c for bad in COMPANY_DROP)
 
@@ -747,7 +753,7 @@ def save_seen(seen):
 
 def append_pipeline(rows):
     new_file = not PIPELINE_CSV.exists()
-    cols = ["DateSeen", "Company", "Title", "Location", "MinYOE", "URL",
+    cols = ["DateSeen", "Company", "Title", "Location", "MinYOE", "Referral", "URL",
             "Posted", "FitScore", "FitReason", "GapNote", "Status",
             "AppliedDate", "FollowUpDate"]
     with open(PIPELINE_CSV, "a", newline="", encoding="utf-8") as f:
@@ -774,8 +780,10 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
             return c, None, f"unknown ATS '{ats}'"
         try:
             jobs = fn(c["Token"], c.get("Tenant"))
+            ref = (c.get("Referral") or "").strip().lower() in ("y", "yes", "1", "true")
             for j in jobs:
                 j["company"] = c.get("Company") or c["Token"]
+                j["referral"] = ref
             return c, jobs, None
         except Exception as e:
             return c, None, f"{type(e).__name__}: {e}"
@@ -792,7 +800,7 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
     for j in raw:
         if not j.get("url") or j["url"] in seen:
             continue
-        if not company_ok(j["company"]):
+        if not company_ok(j["company"], j.get("referral")):
             continue
         if not title_ok(j["title"]):
             continue
@@ -829,6 +837,7 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
         "URL": j["url"], "Posted": j.get("posted", ""),
         "FitScore": j["FitScore"], "FitReason": j["FitReason"],
         "GapNote": j["GapNote"], "Status": "New",
+        "Referral": "yes" if j.get("referral") else "",
         "AppliedDate": "", "FollowUpDate": "",
     } for j in kept]
 
@@ -866,15 +875,20 @@ def build_digest(jobs, raw_count, errors, today, max_age, too_old, undated):
     mid = [j for j in described if 40 <= j["FitScore"] < 70]
     weak = [j for j in described if j["FitScore"] < 40]
 
+    refs = [j for j in jobs if j.get("referral")]
     lines = [f"JOB PIPELINE - {today}",
-             f"Roles posted in the last {max_age} day(s)", "=" * 52, ""]
+             f"Roles posted in the last {max_age} day(s)"]
+    if refs:
+        lines.append(f"{len(refs)} at companies where you have a referral "
+                     f"(marked *REFERRAL*)")
+    lines += ["=" * 52, ""]
 
     lines.append(f"SECTION A - STRONG FIT ({len(strong)})")
     lines.append("-" * 52)
     if strong:
         for j in strong:
             lines += [
-                f"[{j['FitScore']}] {j['title']}",
+                f"[{j['FitScore']}]{' *REFERRAL*' if j.get('referral') else ''} {j['title']}",
                 f"      {j['company']} | {j['location']} | {_age_label(j)}",
                 f"      {j['FitReason']}",
                 f"      {j['GapNote']}",
@@ -887,7 +901,8 @@ def build_digest(jobs, raw_count, errors, today, max_age, too_old, undated):
     lines.append(f"SECTION B - WORTH A LOOK ({len(mid)})")
     lines.append("-" * 52)
     for j in mid:
-        lines.append(f"[{j['FitScore']}] {j['title']} - {j['company']}, "
+        tag = " *REFERRAL*" if j.get("referral") else ""
+        lines.append(f"[{j['FitScore']}]{tag} {j['title']} - {j['company']}, "
                      f"{j['location']} ({_age_label(j)})\n      {j['url']}")
     if not mid:
         lines.append("  (none)")
