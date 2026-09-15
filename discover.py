@@ -28,6 +28,7 @@ import jobscan as J
 ROOT = Path(__file__).parent
 WANTED = ROOT / "wanted.txt"
 REVIEW = "discovered_review.csv"
+CAREERS_URLS = ROOT / "careers_urls.txt"
 
 CHECK = {
     "greenhouse": "https://boards-api.greenhouse.io/v1/boards/{t}/jobs",
@@ -205,9 +206,32 @@ def _careers_urls(name):
     return urls
 
 
+def load_supplied_urls():
+    """careers_urls.txt: "Company | https://...". Hand-supplied beats guessed."""
+    out = {}
+    if not CAREERS_URLS.exists():
+        return out
+    for line in CAREERS_URLS.read_text(encoding="utf-8").splitlines():
+        line = line.split("#")[0].strip()
+        if "|" not in line:
+            continue
+        name, _, url = line.partition("|")
+        url = url.strip()
+        if name.strip() and url.startswith("http"):
+            out.setdefault(name.strip(), []).append(url)
+    return out
+
+
+SUPPLIED = None
+
+
 def probe_careers_page(name):
     """Follow the company's careers page and read the ATS link out of it."""
-    for u in _careers_urls(name):
+    global SUPPLIED
+    if SUPPLIED is None:
+        SUPPLIED = load_supplied_urls()
+    # a URL a human pasted is tried before anything derived from the name
+    for u in SUPPLIED.get(name, []) + _careers_urls(name):
         try:
             r = S.get(u, headers=HTML_HEADERS, timeout=10, allow_redirects=True)
         except Exception:

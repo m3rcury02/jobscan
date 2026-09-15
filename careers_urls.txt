@@ -1,0 +1,105 @@
+# Careers URLs I could not find on my own.
+#
+# Put the URL of the page that LISTS JOBS after the pipe - not the company
+# homepage, not a 'life at X' marketing page. If the list only appears after
+# clicking a filter, paste the URL from the address bar at that point.
+#
+# Then: Actions -> jobscan -> Run workflow -> mode: discover
+# discover.py reads these first, before it tries guessing anything.
+#
+# Lines without a URL are skipped, so fill in as few or as many as you like.
+
+# ---- my guessed domain did not resolve at all. A URL definitely helps. ----
+7-Eleven | 
+Akamai | 
+Anheuser-Busch | 
+Ather | 
+Avolta | 
+BNP Paribas | 
+Blackhawk | 
+Blissclub | 
+Capillary Technologies | 
+Carelon | 
+ClearTax | 
+Dell Technologies | 
+Eli Lilly | 
+Flipkart | 
+GIVA | 
+GlobalLogic | 
+Hiver | 
+Indus DC Ventures | 
+JioStar | 
+MrMed | 
+NAVEX | 
+NeevCloud | 
+Newspace | 
+Nextwealth | 
+Omnissa | 
+R360 | 
+SatSure | 
+StatusNeo | 
+Texas Instruments | 
+Think Design | 
+Xflow | 
+Zepto | 
+
+# ---- a page loaded but had no job-board link on it. The URL I tried is in
+#      the comment; replace it only if it is the wrong page. ----
+AMETEK |            # tried: https://careers.ametek.com
+Analyttica |            # tried: https://www.analyttica.com/careers
+Apexon |            # tried: https://www.apexon.com/careers
+Ati Motors |            # tried: https://www.ati.com/careers
+Brillio |            # tried: https://careers.brillio.com
+Deutsche Bank |            # tried: https://www.deutsche.com/careers
+Epsilon |            # tried: https://careers.epsilon.com
+Fastenal |            # tried: https://careers.fastenal.com
+FinBox |            # tried: https://www.finbox.com/careers
+Gale |            # tried: https://www.gale.com/careers
+Goldman Sachs |            # tried: https://www.goldmansachs.com/careers
+HashedIn |            # tried: https://www.hashedin.com/careers
+HiLabs |            # tried: https://www.hilabs.com/careers
+KPIT |            # tried: https://www.kpit.com/careers
+Loginsoft |            # tried: https://www.loginsoft.com/careers
+Manipal Hospitals |            # tried: https://careers.manipalhospitals.com
+Morgan Stanley |            # tried: https://www.morganstanley.com/careers
+Myntra |            # tried: https://careers.myntra.com
+Netcore Unbxd |            # tried: https://www.netcore.com/careers
+Nykaa |            # tried: https://careers.nykaa.com
+PhonePe |            # tried: https://www.phonepe.com/careers
+Polestar Analytics |            # tried: https://www.polestaranalytics.com/careers
+Polymerize |            # tried: https://www.polymerize.com/careers
+STL Digital |            # tried: https://www.stldigital.com/careers
+Shipthis |            # tried: https://shipthis.com/careers
+Siemens |            # tried: https://jobs.siemens.com
+Smiths Detection |            # tried: https://www.smithsdetection.com/careers
+Snapmint |            # tried: https://careers.snapmint.com
+SoundHound |            # tried: https://www.soundhound.com/careers
+Storylane |            # tried: https://careers.storylane.com
+Syngene |            # tried: https://www.syngene.com/careers
+Tesco |            # tried: https://careers.tesco.com
+Testsigma |            # tried: https://www.testsigma.com/careers
+Transak |            # tried: https://careers.transak.com
+Tricon Infotech |            # tried: https://www.triconinfotech.com/careers
+Uni Cards |            # tried: https://www.unicards.com/careers
+UnitedLayer |            # tried: https://www.unitedlayer.com/careers
+Urban Company |            # tried: https://careers.urbancompany.com
+Volvo |            # tried: https://volvo.com/careers
+Wells Fargo |            # tried: https://www.wellsfargo.com/careers
+Zemoso |            # tried: https://www.zemoso.com/careers
+o9 Solutions |            # tried: https://www.o9solutions.com/careers
+
+# ---- these run a platform that refuses or defeats automated reads.
+#      A URL will not change that, listed here only so nothing looks lost. ----
+# Impact Analytics (greenhouse)
+# Indegene (successfactors)
+# Infineon (eightfold)
+# Lowe's (phenom)
+# NTT DATA (workday)
+# Nutanix (jobvite)
+# Publicis Groupe (icims)
+# Qualcomm (eightfold)
+# Schneider Electric (oracle-hcm)
+# Social Panga (eqjobs)
+# Societe Generale (oracle-hcm)
+# Standard Chartered (successfactors)
+# TEKsystems (phenom)
