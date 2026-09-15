@@ -1,12 +1,22 @@
-# Companies to find boards for. One per line; add "| referral" where you
-# can get one - those bypass COMPANY_DROP and get tagged *REFERRAL*.
+# Board discovery: exhausted 2026-09-15
 #
-# Run: Actions -> jobscan -> Run workflow -> mode: discover
-# discover.py tries, in order: a URL you put in careers_urls.txt, the ATS
-# slug probe, the company's own careers page, then a 13-shard Workday sweep.
-# Names already matched to a board are skipped, so leaving them here is safe.
+# Every name from the 246-company referral list has been through the full path:
+# ATS slug probe, careers-page read, 13-shard Workday sweep, and hand-supplied URLs.
+# 69 resolved to a board. The rest are blocked for recorded reasons - see
+# careers_urls.txt for the per-company outcome.
+#
+# This file is now only worth editing when you have a NEW company to add.
+# Add it as "Name | referral" and run the workflow in discover mode.
+#
+# What a discover run will not fix, because these are deliberate choices by the
+# companies rather than gaps in the tooling:
+#   Darwinbox tenants  Cloudflare challenge      Zepto, Myntra, Nykaa, Urban Company
+#   Eightfold 403s     API access switched off   Qualcomm, Infineon, Citi, Deutsche Bank
+#   Keka 403s          tenant blocks readers     Blissclub, GIVA, HiLabs and 7 more
+#   client-rendered    job list loads in JS      PhonePe, Flipkart, Apple, Google, IBM
+#   no public board    small firms, LinkedIn only  many of the smaller names
 
-# ---- carried over from the previous round ----
+# ---- names already tried. Kept so a rerun skips them cheaply. ----
 Wells Fargo | referral
 Qualcomm | referral
 HSBC | referral
@@ -124,10 +134,6 @@ Think Design | referral
 Tricon Infotech | referral
 TEKsystems | referral
 UnitedLayer | referral
-
-# ---- added 2026-09-15: these were only ever slug-probed in the very first pass.
-#      They never got the careers-page read or the Workday shard sweep, which
-#      is what found Bosch (543 India roles), Citi (511) and Genpact (524). ----
 ADA | referral
 American Express | referral
 Andpayment | referral

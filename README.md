@@ -1,7 +1,10 @@
 # jobscan
 
-Polls company ATS boards every weekday, filters to India-based backend / full-stack / AI roles
-at 0-5 years, scores each against your stack, and emails a ranked digest.
+Polls company ATS boards every two hours, filters to India-based backend / full-stack / AI
+roles at 0-5 years, scores each against your stack, and emails a ranked digest.
+
+310 boards across 14 adapters. Roles at companies where you have a referral bypass the
+service-firm filter and are tagged *REFERRAL* in the digest.
 
 No API keys for the job boards. All endpoints are public.
 
@@ -40,15 +43,56 @@ No API keys for the job boards. All endpoints are public.
    ```
    Check `fetch_errors.log` for any board returning 404 (wrong token) or 403.
 
-6. Push. The workflow runs 07:30 IST Mon-Fri. Trigger a manual run from the Actions tab
+6. Push. The workflow runs every two hours. Trigger a manual run from the Actions tab
    to confirm the email lands.
+
+   Cadence is every two hours rather than hourly because the repo is private, so Actions
+   bills against the 2000 minute free tier. A ~3 billed minute run every hour needs about
+   2160 of them. Make the repo public for unlimited minutes if you want hourly.
+
+## Modes
+
+Actions > jobscan > Run workflow > mode:
+
+| mode | what it does |
+|---|---|
+| `scan` | the default, and what the cron runs. Roles from the last 2 days. |
+| `backlog` | repairs seen.json, then reports every open role up to 90 days old. Run once after adding boards. |
+| `discover` | reads `wanted.txt`, finds each company's board, writes verified ones to `companies.csv`. |
+| `diagnose` | probes every board and reports why each failure happened. Run monthly. |
+| `prune` | comments out every row `diagnose` found returning 404. |
+| `dry-run` | prints the digest, sends nothing. |
 
 ## Files
 
 - `companies.csv` - your target board list. The only file you edit regularly.
+- `wanted.txt` - companies to find boards for. `discover` mode reads this.
+- `careers_urls.txt` - hand-supplied careers URLs, with the outcome of each recorded.
 - `seen.json` - URLs already reported. Prevents repeat digests. Committed by CI.
 - `pipeline.csv` - append-only record of everything found, with scores.
 - `fetch_errors.log` - boards that failed, with reason.
+- `dead_rows.txt` - written by `diagnose`, consumed by `prune`.
+- `discover.py` - board discovery. Separate from the scanner; only runs in `discover` mode.
+
+## The Referral column
+
+`COMPANY_DROP` keeps mass-market service firms out of the digest. A referral inverts that
+tradeoff - a role someone can walk you into is worth seeing whoever posted it - so a row
+with `Referral = yes` skips the check entirely and its roles are tagged `*REFERRAL*` in
+the digest and in `pipeline.csv`.
+
+Without it, adding Accenture, Infosys, TCS, Wipro, Cognizant, Capgemini, HCLTech,
+LTIMindtree or Tech Mahindra achieves nothing: every job they return is discarded.
+
+## seen.json is "already emailed", nothing else
+
+This file decides what you never see again, so the one rule that matters: only ever add
+a URL to it that was actually sent to you. An earlier version also added anything older
+than the freshness window, which silently buried 547 open roles - the digest showed 16 a
+day while hundreds sat hidden.
+
+`python jobscan.py --repair-seen` rebuilds it from `pipeline.csv`, which is the real
+record of what was sent. Run it if the digest ever goes suspiciously quiet.
 
 ## Tuning
 
@@ -74,11 +118,22 @@ The digest is triage, not a decision. For anything in Section A:
 3. Apply by hand.
 4. Set `Status` and `AppliedDate` in `pipeline.csv`.
 
-## Adding Naukri or Workday
+## Adapters
 
-Both need a headless browser or a POST body, so they do not fit the plain-GET adapter
-pattern. Add them only if a target company is reachable no other way. Naukri's backend
-listings skew heavily toward IT services bulk hiring.
+| ATS value | notes |
+|---|---|
+| `greenhouse` `lever` `ashby` `smartrecruiters` `workable` | plain GET, public JSON |
+| `workday` | POST. Token = site, Tenant = `<name>.wdN`. See below. |
+| `oracle` | Token = site number (often `CX_1`), Tenant = full oraclecloud host |
+| `keka` | Token = subdomain. Two GETs to learn the tenant id, one to read jobs. |
+| `eightfold` | Token = subdomain, Tenant = the `domain=` param. Caps pages at 10. |
+| `successfactors` | Token = host, e.g. `jobs.ametek.com`. Two page templates exist; both parsed. |
+| `pinpoint` | Token = subdomain. Public JSON at `/postings.json`. No posting dates. |
+| `amazon` | no token needed. Filters on `normalized_country_code`, not the fuzzy loc_query. |
+| `custom` `agency` | plain GET plus text heuristics. See below. |
+
+Naukri is deliberately absent: it needs a headless browser and its listings skew heavily
+toward IT services bulk hiring.
 
 ## Companies with no ATS (custom careers pages)
 
@@ -154,14 +209,30 @@ https://cisco.wd5.myworkdayjobs.com/en-US/Cisco_Careers/job/...
              ^ Tenant = cisco.wd5       ^ Token = Cisco_Careers
 ```
 
-Sixteen tenants are pre-configured. Workday matters because it is where the
-India engineering centres of large global companies sit - Adobe, Intuit, Visa,
-Mastercard, Walmart Global Tech, Target India, JPMorgan, Goldman. Adding one is
-two minutes of reading a URL.
+Workday matters because it is where the India engineering centres of large
+global companies sit. It is also the fiddliest adapter, for two reasons.
+
+**The shard in the careers URL is not always the shard the API lives on.**
+Omnissa's careers URL says `wd5`; its tenant is on `wd501`. 7-Eleven's says
+`wd5`; it is on `wd3`. `discover.py` sweeps thirteen shards for this reason.
+
+**Read the status code, not your intuition.** With one valid payload held
+constant:
+
+```
+cisco.wd5 + Cisco_Careers -> 200      cisco.wd5 + BOGUS -> 404
+cisco.wd1 + Cisco_Careers -> 422      cisco.wd1 + BOGUS -> 422
+```
+
+Since that body returns 200, a 422 is not schema rejection. 422 means the
+tenant is not on that shard - try the next one. 404 means it is, and only the
+site name is wrong - start guessing site names. Site names are arbitrary
+strings: Cardinal Health's is `Ext`, HPE's is `Jobsathpe`, Citi's is `2`.
 
 Dates arrive relative ("Posted 3 Days Ago", "Posted Today", "Posted 30+ Days
 Ago") and are converted to real dates, so the recency window works normally.
 
-The adapter sends `searchText: "India"` and pages up to 200 results per board.
-Very large boards may truncate; narrow by adding the same company twice with
-different sites if that becomes a problem.
+The adapter sends `searchText: "India"` and pages up to `WORKDAY_MAX` (600)
+results per board. Some tenants report the real total on page one and 0 on
+every page after, so the loop keeps the largest total it has seen rather than
+trusting each page - without that, Accenture truncated at 40 of 600.
