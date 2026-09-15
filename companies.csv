@@ -620,3 +620,16 @@ State Street,workday,Global,statestreet.wd1,"from careers page; 223 India roles,
 # --- eightfold 2026-09-15: public JSON, no key, real t_create dates. ---
 HSBC,eightfold,hsbc,hsbc.com,"eightfold API; 156 India roles, 1 matching",yes
 NetApp,eightfold,netapp,netapp.com,"eightfold API; 80 India roles, 33 matching",yes
+# --- 2026-09-15: Qualcomm, Infineon and Citi run Eightfold but return
+#     403 from its public API with or without a Referer. Not included. ---
+Lakshya Digital,workable,lakshyadigitalglobal,,from careers page; 66 India roles,yes
+# --- 2026-09-15 platform adapters ---
+#   Indegene and Standard Chartered are SuccessFactors but serve neither
+#   template this parser handles, and return nothing. Not added.
+#   Societe Generale and Schneider Electric fingerprinted as Oracle HCM but
+#   expose no oraclecloud host - false positives, not added.
+CommScope,successfactors,jobs.commscope.com,,"platform adapter; 14 India roles, 5 matching",yes
+Swiss Re,successfactors,careers.swissre.com,,"platform adapter; 22 India roles, 5 matching",yes
+Marelli,successfactors,jobs.marelli.com,,"platform adapter; 8 India roles, 1 matching",yes
+Festo,successfactors,jobs.festo.com,,"platform adapter; 8 India roles, 3 matching",yes
+JPMorgan Chase,oracle,CX_1001,jpmc.fa.oraclecloud.com,"platform adapter; 200 India roles, 22 matching",yes

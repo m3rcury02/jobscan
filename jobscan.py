@@ -665,6 +665,79 @@ def fetch_eightfold(token, tenant=None):
     return out
 
 
+SF_ROW = re.compile(r'class="data-row"(.*?)(?=class="data-row"|</tbody>)', re.S)
+SF_TILE = re.compile(r'<li class="job-tile\b(.*?)</li>', re.S)
+# jobTitle-link is rarely the whole class attribute: CommScope serves
+# class="jobTitle-link fontcolor472182c9d6801de7". Match it as one class
+# among several, in either attribute order.
+SF_LINK = re.compile(
+    r'class="[^"]*\bjobTitle-link\b[^"]*"[^>]*?href="([^"]+)"[^>]*>(.*?)</a>'
+    r'|href="([^"]+)"[^>]*?class="[^"]*\bjobTitle-link\b[^"]*"[^>]*>(.*?)</a>', re.S)
+SF_LOC = re.compile(r'class="[^"]*jobLocation[^"]*"[^>]*>(.*?)</span>', re.S)
+SF_DATE = re.compile(r'class="[^"]*jobDate[^"]*"[^>]*>(.*?)</span>', re.S)
+SF_TOTAL = re.compile(r'aria-label="Results \d+\s*[\u2013-]\s*(\d+)"'
+                      r'|data-record-returned="(\d+)"')
+
+
+def fetch_successfactors(token, tenant=None):
+    """SAP SuccessFactors Recruiting Marketing sites (jobs.<company>.com).
+
+    Server-rendered, so no JS needed, but two templates are in the wild: an
+    older table of data-row cells and a newer job-tile list. Swiss Re and Festo
+    serve the first, CommScope and Marelli the second, so both are parsed.
+
+    locationsearch=India filters at the source. That is also why a row with no
+    parseable location falls back to "India" rather than being dropped - the
+    query already constrained it.
+    """
+    host = token.strip().replace("https://", "").replace("http://", "").strip("/")
+    base = f"https://{host}"
+    out, startrow, seen_urls = [], 0, set()
+    while startrow < 400:
+        url = f"{base}/search/?q=&locationsearch=India&startrow={startrow}"
+        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        r.raise_for_status()
+        chunks = SF_ROW.findall(r.text) or SF_TILE.findall(r.text)
+        if not chunks:
+            break
+        before = len(out)
+        for chunk in chunks:
+            m = SF_LINK.search(chunk)
+            if not m:
+                continue
+            href = m.group(1) or m.group(3)
+            title = m.group(2) or m.group(4)
+            href = html.unescape(href or "")
+            if not href or href in seen_urls:
+                continue
+            seen_urls.add(href)
+            loc = SF_LOC.search(chunk)
+            dt = SF_DATE.search(chunk)
+            posted = ""
+            if dt:
+                raw = strip_html(dt.group(1)).strip()
+                for fmt in ("%b %d, %Y", "%d %b %Y", "%Y-%m-%d", "%d-%b-%Y"):
+                    try:
+                        posted = datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
+                        break
+                    except ValueError:
+                        pass
+            out.append({
+                "title": strip_html(title).strip(),
+                "location": (strip_html(loc.group(1)).strip() if loc else "") or "India",
+                "url": base + href,
+                "description": "",
+                "posted": posted,
+            })
+        if len(out) == before:
+            break
+        startrow += len(chunks)
+        t = SF_TOTAL.search(r.text)
+        if t and startrow >= int(t.group(1) or t.group(2)):
+            break
+    return out
+
+
 def fetch_agency(token, tenant=None):
     """Recruitment consultancies and staffing firms. Same scrape as custom, but
     flagged: the hiring company is not named, so these cannot be scored or
@@ -678,6 +751,7 @@ def fetch_agency(token, tenant=None):
 ADAPTERS = {
     "amazon": fetch_amazon,
     "eightfold": fetch_eightfold,
+    "successfactors": fetch_successfactors,
     "keka": fetch_keka,
     "greenhouse": fetch_greenhouse,
     "lever": fetch_lever,
