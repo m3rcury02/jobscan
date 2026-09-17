@@ -1551,3 +1551,4 @@
 2026-09-16T04:18:41.375457+05:30	Newspace	ValueError: keka: no tenant identifier on https://newspace.keka.com/careers/
 2026-09-16T22:04:36.867512+05:30	Synechron	HTTPError: 502 Server Error: Bad Gateway for url: https://synechron.wd1.myworkdayjobs.com/wday/cxs/synechron/SynechronCareers/jobs
 2026-09-17T02:37:23.932123+05:30	Postman	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/postman/jobs?content=true
+2026-09-17T05:44:21.559122+05:30	Postman	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/postman/jobs?content=true
