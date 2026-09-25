@@ -1685,3 +1685,10 @@
 2026-09-25T18:59:20.553163+05:30	Postman	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/postman/jobs?content=true
 2026-09-25T18:59:26.702723+05:30	HappyLocate	HTTPError: 500 Server Error: Internal Server Error for url: https://happylocate.freshteam.com/jobs
 2026-09-25T18:59:29.224566+05:30	Bebetta	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-09-25T19:17:03.947795+05:30	Postman	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/postman/jobs?content=true
+2026-09-25T19:17:03.948899+05:30	HappyLocate	HTTPError: 500 Server Error: Internal Server Error for url: https://happylocate.freshteam.com/jobs
+2026-09-25T19:17:10.921224+05:30	Bebetta	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-09-25T19:18:32.054898+05:30	Tesco	HTTPError: 402 Client Error: Payment Required for url: https://api.firecrawl.dev/v2/scrape
+2026-09-25T19:18:32.055019+05:30	Siemens	HTTPError: 402 Client Error: Payment Required for url: https://api.firecrawl.dev/v2/scrape
+2026-09-25T19:18:32.055052+05:30	Goldman Sachs	HTTPError: 402 Client Error: Payment Required for url: https://api.firecrawl.dev/v2/scrape
+2026-09-25T19:18:32.055078+05:30	Eli Lilly	HTTPError: 402 Client Error: Payment Required for url: https://api.firecrawl.dev/v2/scrape
