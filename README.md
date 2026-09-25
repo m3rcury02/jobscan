@@ -1,7 +1,9 @@
 # jobscan
 
-Polls company ATS boards every two hours, filters to India-based backend / full-stack / AI
-roles at 0-5 years, scores each against your stack, and emails a ranked digest.
+Polls company ATS boards every two hours, filters to India-based backend / full-stack / AI /
+cloud roles whose stated experience band includes yours (`MY_YOE`, default 2), fetches the
+full job description, scores it against your stack, and emails a digest that opens with
+the handful of roles to apply to first.
 
 310 boards across 14 adapters. Roles at companies where you have a referral bypass the
 service-firm filter and are tagged *REFERRAL* in the digest.
@@ -50,6 +52,14 @@ No API keys for the job boards. All endpoints are public.
    bills against the 2000 minute free tier. A ~3 billed minute run every hour needs about
    2160 of them. Make the repo public for unlimited minutes if you want hourly.
 
+## After updating to the JD-enrichment version: run `backlog` once
+
+Before 2026-09-25, Workday and Oracle roles were scored on their title alone (their list
+APIs return no description), so almost all of them landed under 40 and were collapsed into
+the "Section C: N filtered out" count - 1,041 of 1,310 roles at referral companies were
+never shown. Every SmartRecruiters link was also a 404. `backlog` mode now releases exactly
+those rows from `seen.json`, fetches their full JDs and re-judges them. Run it once.
+
 ## Modes
 
 Actions > jobscan > Run workflow > mode:
@@ -62,6 +72,7 @@ Actions > jobscan > Run workflow > mode:
 | `diagnose` | probes every board and reports why each failure happened. Run monthly. |
 | `prune` | comments out every row `diagnose` found returning 404. |
 | `dry-run` | prints the digest, sends nothing. |
+| `applied` | records an application: paste the posting URL, pick a status. No checkout needed - it runs in Actions. |
 
 ## Files
 
@@ -69,7 +80,10 @@ Actions > jobscan > Run workflow > mode:
 - `wanted.txt` - companies to find boards for. `discover` mode reads this.
 - `careers_urls.txt` - hand-supplied careers URLs, with the outcome of each recorded.
 - `seen.json` - URLs already reported. Prevents repeat digests. Committed by CI.
-- `pipeline.csv` - append-only record of everything found, with scores.
+- `applied.csv` - your applications. Written by `applied` mode or by hand; the scanner only
+  reads it (follow-up nudges, and a flag on new roles at companies you applied to recently).
+- `pipeline.csv` - one row per role found, with years band, score and digest section. The
+  scanner owns it; `Status`/`AppliedDate` are the only columns it will not overwrite.
 - `fetch_errors.log` - boards that failed, with reason.
 - `dead_rows.txt` - written by `diagnose`, consumed by `prune`.
 - `discover.py` - board discovery. Separate from the scanner; only runs in `discover` mode.
@@ -93,30 +107,60 @@ day while hundreds sat hidden.
 
 `python jobscan.py --repair-seen` rebuilds it from `pipeline.csv`, which is the real
 record of what was sent. Run it if the digest ever goes suspiciously quiet.
+It also leaves out rows that were found but never really shown - the title-scored
+Workday/Oracle rows and the 404ing SmartRecruiters links from before 2026-09-25 - so
+the `backlog` run that follows re-checks them with their full JD.
 
 ## Tuning
 
 Edit the constants at the top of `jobscan.py`:
 
-- `CORE_SKILLS` / `SECONDARY_SKILLS` / `AI_SKILLS` - weighted keyword banks. Add a skill
-  as you gain it. Weights are 1-3.
-- `MAX_YOE` - currently 5. Roles asking for more are dropped.
-- `TITLE_KEEP` / `TITLE_DROP` - if you see junk in Section B, add the offending word to
-  `TITLE_DROP` rather than lowering the score threshold.
+- `MY_YOE` - your years of experience (2). A role is kept when the band its JD states
+  includes this ("1-3", "2-4", "2+"), marked *stretch* when it asks for up to
+  `MY_YOE + YOE_STRETCH` (3), and dropped above that. Bump it as you gain experience.
+- `HAS_MASTERS` - "Bachelor's + 7 years OR Master's + 4 years" is read on the Bachelor's
+  route unless this is True.
+- `CORE_SKILLS` / `SECONDARY_SKILLS` / `AI_SKILLS` - weighted keyword banks, matched as
+  whole words. Add a skill as you gain it (and remove it from `GAP_SKILLS`). Weights 1-3.
+- `TITLE_KEEP` / `TITLE_DROP` - if you see junk, add the offending word to `TITLE_DROP`
+  rather than raising the score threshold.
 - `COMPANY_DROP` - service firms and staffing agencies.
+- `APPLY_FIRST_MAX` / `PER_COMPANY_CAP` / `REFERRAL_BONUS` - the shape of the top list.
 
-Scoring is 50% weighted skill overlap, 30% years fit, 20% role type. It is deterministic
-and cheap. If it ever disagrees with your judgement, the keyword bank is wrong, not the
-formula.
+### How a role is judged
+
+1. Cheap filters on the list data: new, not a service firm, engineering title, India,
+   posted within `--max-age` days.
+2. One detail call per survivor fetches the full JD (Workday, SmartRecruiters, Oracle,
+   Eightfold; the other boards include it already). A failed fetch is logged and the role
+   is shown as title-only, never scored on nothing.
+3. Years: a band in the title wins ("Exp: 4-8 Yrs"); otherwise the highest minimum across
+   the required lines - "3+ years of development, 2+ of design" asks for 3. Preferred /
+   nice-to-have lines, Master's/PhD routes and company history ("for 40 years") are
+   ignored. Graduation-year-gated roles ("2026 batch") are dropped.
+4. Seniority: "Senior", "Sr", "III" titles are kept only when the JD states a band you are
+   in or one year short of. Indian product companies do post "Senior (2-4 yrs)"; without
+   that evidence a senior title reads as 4-6+ years.
+5. Score: 50% weighted skill overlap, 30% years fit (in-band 30, unstated 18, below 15,
+   stretch 12), 20% role type. Deterministic and cheap. If it disagrees with your
+   judgement, the keyword bank is wrong, not the formula.
 
 ## Workflow
 
-The digest is triage, not a decision. For anything in Section A:
+The digest opens with **APPLY FIRST**: at most 8 roles, at most 2 per company, ranked by
+fit score plus a referral bonus plus freshness. Each one carries its years band, the
+skills from your stack the JD asks for (mirror those in the tailored resume - only ones
+you have), what else the JD wants, and the next step.
 
-1. Open the URL, read the actual JD.
-2. Paste it into your resume generator project, generate the tailored resume.
-3. Apply by hand.
-4. Set `Status` and `AppliedDate` in `pipeline.csv`.
+1. Referral company? Send the link to your referrer and let them submit you *before*
+   you apply. An existing application usually blocks or voids the referral.
+2. Otherwise open the URL, read the JD, generate the tailored resume, apply by hand -
+   ideally within 48 hours of posting.
+3. Record it: Actions > jobscan > Run workflow > mode `applied`, paste the URL, pick a
+   status (`referred` if a referrer submitted you). Update the status the same way.
+4. The 07:30 IST digest lists applications 7-21 days old that still read `applied` or
+   `referred`, with the follow-up to send. New roles at a company you applied to in the
+   last 30 days are flagged and demoted: one strong application per company beats five.
 
 ## Adapters
 
@@ -155,7 +199,7 @@ scan it appears in, then recorded in `seen.json` and never shown again. Running
 daily makes this equivalent to a 1-day window.
 
 **No job description.** Scoring them against your stack would be meaningless, so
-they go to digest Section D unscored. Open the page to judge.
+they go to the digest's TITLE MATCH ONLY section unscored. Open the page to judge.
 
 **JavaScript-rendered pages return nothing.** The plain GET sees no jobs and the
 row quietly finds zero roles. If you suspect this, open the careers URL with JS
@@ -179,7 +223,7 @@ full descriptions and proper scoring - all three of which `custom` loses.
 ## Recruitment consultancies (ATS type `agency`)
 
 Six staffing and recruitment boards are included with `ATS = agency`. They are
-scraped like `custom` rows but routed to digest Section E and never scored,
+scraped like `custom` rows but routed to the digest's AGENCY section and never scored,
 because their postings do not name the hiring company.
 
 **Why they are separated rather than excluded.** Agencies genuinely surface
@@ -262,4 +306,5 @@ use the `workday` adapter. Pages behind a candidate login (some Darwinbox
 tenants) have nothing public to read. A slug that does not exist is still a
 slug that does not exist: check the page text before blaming rendering.
 
-Parser tests: `python -m pytest tests/` (fixtures are real Firecrawl output).
+Tests: `pip install pytest && python -m pytest tests/`. Firecrawl fixtures are real
+output; the years-of-experience cases are lines lifted from live JDs.

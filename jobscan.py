@@ -61,32 +61,85 @@ WORKDAY_MAX = 600
 # PROFILE - edit this when your stack changes
 # --------------------------------------------------------------------------
 
+# Your years of experience. A role is judged on whether the band it states
+# includes this number - "1-3", "2-4" and "2+" all do - not on a fixed window.
+MY_YOE = 2
+# Roles asking up to MY_YOE + this are kept but marked "stretch". Anything
+# beyond is dropped: at 2 years, a "4+ years" req is an ATS knockout.
+YOE_STRETCH = 1
+# JDs often read "Bachelor's + 7 years OR Master's + 4 years". The Master's /
+# PhD alternatives are ignored unless you hold one.
+HAS_MASTERS = False
+
 CORE_SKILLS = {
-    "java": 3, "spring boot": 3, "spring": 2, "spring security": 2,
+    "java": 3, "spring boot": 3, "springboot": 3, "spring": 2, "spring security": 2,
     "spring data": 2, "hibernate": 2, "jpa": 2, "rest api": 2,
-    "restful": 2, "microservice": 3, "postgresql": 3, "postgres": 3,
-    "redis": 2, "kafka": 3, "rabbitmq": 2, "docker": 2, "kubernetes": 2,
-    "aws": 2, "github actions": 1, "ci/cd": 1, "junit": 1, "mockito": 1,
-    "sql": 1, "linux": 1, "maven": 1, "gradle": 1,
+    "restful": 2, "microservice": 3, "micro-service": 3, "postgresql": 3,
+    "postgres": 3, "redis": 2, "kafka": 3, "rabbitmq": 2, "docker": 2,
+    "kubernetes": 2, "k8s": 2, "aws": 2, "github actions": 1, "ci/cd": 1,
+    "ci-cd": 1, "junit": 1, "mockito": 1, "sql": 1, "linux": 1, "maven": 1,
+    "gradle": 1,
 }
 
 SECONDARY_SKILLS = {
     "typescript": 2, "node.js": 2, "nodejs": 2, "nestjs": 2, "nest.js": 2,
-    "express": 1, "react": 2, "python": 3, "fastapi": 3, "django": 2,
+    "express.js": 1, "expressjs": 1, "react": 2, "reactjs": 2, "react.js": 2,
+    "python": 3, "fastapi": 3, "django": 2,
     "javascript": 1, "websocket": 1, "grpc": 1, "terraform": 1,
 }
 
 AI_SKILLS = {
     "rag": 3, "retrieval-augmented": 3, "retrieval augmented": 3,
-    "pgvector": 3, "vector database": 2, "vector search": 2,
+    "pgvector": 3, "vector database": 2, "vector db": 2, "vector search": 2,
     "embedding": 2, "reranking": 3, "rerank": 2, "langchain": 2,
     "langgraph": 3, "llm": 2, "large language model": 2,
-    "tool calling": 3, "agentic": 2, "semantic search": 2,
-    "prompt engineering": 1, "openai": 1, "hybrid retrieval": 3,
+    "generative ai": 2, "genai": 2, "gen ai": 2,
+    "tool calling": 3, "function calling": 3, "agentic": 2, "ai agent": 2,
+    "semantic search": 2, "prompt engineering": 1, "openai": 1,
+    "hybrid retrieval": 3,
 }
 
 ALL_SKILLS = {**CORE_SKILLS, **SECONDARY_SKILLS, **AI_SKILLS}
-MAX_SKILL_POINTS = 34  # tuned so a strong match lands near 100
+# Calibrated on 450 live India JDs (2026-09-25) with whole-word matching:
+# median 5 points, top 5% at 22+. So a JD squarely in your stack saturates.
+MAX_SKILL_POINTS = 24
+
+# Spellings of one skill. Each group scores once, at its highest weight, so
+# "PostgreSQL (Postgres)" is not two skills.
+SKILL_ALIASES = {
+    "postgres": "postgresql", "nodejs": "node.js", "nest.js": "nestjs",
+    "retrieval augmented": "rag", "retrieval-augmented": "rag",
+    "rerank": "reranking", "large language model": "llm",
+    "springboot": "spring boot", "micro-service": "microservice",
+    "k8s": "kubernetes", "ci-cd": "ci/cd", "expressjs": "express.js",
+    "reactjs": "react", "react.js": "react", "vector db": "vector database",
+    "genai": "generative ai", "gen ai": "generative ai",
+    "function calling": "tool calling",
+}
+
+# Whole-word, optional plural. Substring matching credited "rag" for every
+# JD containing "storage", "leverage" or "coverage", "aws" for "laws" and
+# "llm" for "enrollment" - rag was the second most-credited skill overall.
+SKILL_RE = {s: re.compile(r"(?<![a-z0-9])" + re.escape(s) + r"s?(?![a-z0-9])")
+            for s in ALL_SKILLS}
+
+# Common asks that are NOT in your profile, shown as the gap line. Remove an
+# entry when you add that skill to the banks above.
+GAP_SKILLS = {
+    "go": r"\bgolang\b|(?<=[,/(])\s*go\b|\bgo(?=\s*[,/)])",
+    "c++": r"c\+\+", "c#": r"(?<![a-z])c#", ".net": r"\.net\b|\bdotnet\b",
+    "rust": r"\brust\b", "scala": r"\bscala\b", "ruby": r"\bruby\b|\brails\b",
+    "php": r"\bphp\b", "angular": r"\bangular", "vue": r"\bvue(?:\.?js)?\b",
+    "kotlin": r"\bkotlin\b", "gcp": r"\bgcp\b|google cloud",
+    "azure": r"\bazure\b", "spark": r"\b(?:py)?spark\b", "airflow": r"\bairflow\b",
+    "snowflake": r"\bsnowflake\b", "pytorch": r"\bpytorch\b",
+    "tensorflow": r"\btensorflow\b", "mongodb": r"\bmongo(?:db)?\b",
+    "elasticsearch": r"\belastic ?search\b", "graphql": r"\bgraphql\b",
+    "embedded/C": r"\bembedded (?:c|systems|software|linux)\b|\brtos\b|\bfirmware\b",
+    "salesforce": r"\bsalesforce\b|\bapex\b", "sap": r"\bsap\b|\babap\b",
+    "networking": r"\b(?:bgp|ospf|mpls|l2/l3)\b",
+}
+GAP_RE = {k: re.compile(v) for k, v in GAP_SKILLS.items()}
 
 # --------------------------------------------------------------------------
 # FILTERS
@@ -147,18 +200,43 @@ TITLE_KEEP = [
     "developer", "data engineer", "devops", "site reliability", "sre",
     "cloud engineer", "solutions engineer", "integration engineer",
     "systems engineer", "engineer ii", "engineer i", "engineer 2",
-    "engineer 3", "engineer iii", "associate engineer", "graduate engineer",
+    "engineer 3", "engineer iii", "associate engineer",
     "programmer", "sdet", "software eng", "engineer -", "engineer,",
+    # AI and cloud titles the list above missed entirely
+    "llm", "genai", "gen ai", "generative ai", "mlops", "ml ops", "ai/ml",
+    "forward deployed", "product engineer", "founding engineer",
+    "research engineer", "python engineer", "reliability engineer",
 ]
 
 TITLE_DROP = [
-    "staff", "principal", "lead", "manager", "director", "architect",
-    "head of", "vp ", "vice president", "intern", "internship",
-    "president", "chief", "fellow", "distinguished", "senior staff",
+    "staff", "principal", "lead", "leader", "manager", "director", "architect",
+    "head of", "vp ", "vice president", "avp", "assistant vice president",
+    "intern", "internship", "president", "chief", "fellow", "distinguished",
+    "senior staff",
+    # new-grad programmes: at 2 years you are outside their eligibility
+    "graduate", "new grad", "trainee", "apprentice", "fresher", "freshers",
 ]
 
 # Campus hiring drives: "IIT Jammu 2026 || TravClan || SDE-1" and similar.
 CAMPUS_DRIVE = re.compile(r"\d{4}\s*\|\||\|\|\s*\d{4}|campus\s+(drive|hiring)", re.I)
+
+# Level words that usually mean 4-6+ years. Not dropped outright - Indian
+# product companies do post "Senior Software Engineer (2-4 years)" - but a
+# senior-titled role is only kept when its JD states a band you fall in.
+SENIOR_RE = re.compile(
+    r"\b(?:senior|sr|snr)\b|\b(?:iii|iv)\b|\b(?:sde|engineer|developer)[\s-]*[34]\b"
+    r"|\blevel\s*[3-9]\b", re.I)
+
+# Graduation-year gates ("2025/2026 batch only") exclude anyone who
+# graduated before them, whatever the years line says.
+_THIS_YEAR = datetime.now(timezone.utc).year
+_GATED_YEARS = "|".join(str(y) for y in range(_THIS_YEAR - 1, _THIS_YEAR + 3))
+BATCH_GATE_RE = re.compile(
+    rf"\b(?:{_GATED_YEARS})\s*(?:batch|graduates?|pass[- ]?outs?|passing out)\b"
+    rf"|\bgraduat\w*\s+(?:in|by)\s+(?:{_GATED_YEARS})\b"
+    rf"|\bclass of (?:{_GATED_YEARS})\b"
+    rf"|\b(?:batch|pass(?:ed)?[- ]?out|graduation year)\s*[:\-]?\s*(?:{_GATED_YEARS})\b",
+    re.I)
 
 COMPANY_DROP = [
     "accenture", "tcs", "tata consultancy", "infosys", "wipro",
@@ -168,13 +246,55 @@ COMPANY_DROP = [
     "staffing", "recruitment", "consultancy services", "talent solutions",
 ]
 
-# Years-of-experience patterns. If minimum > MAX_YOE, drop.
-MAX_YOE = 5
-YOE_PATTERNS = [
-    re.compile(r"(\d+)\s*\+?\s*(?:to|-|–)\s*\d+\s*\+?\s*years?", re.I),
-    re.compile(r"(?:minimum|min\.?|at least)\s*(?:of\s*)?(\d+)\s*\+?\s*years?", re.I),
-    re.compile(r"(\d+)\s*\+\s*years?", re.I),
-]
+# Years-of-experience mentions: "2-4 years", "3+ yrs", "7 + to 10 years",
+# "2years'experience", "at least two years". Numbers only; context is judged
+# in yoe_band().
+_NUMWORD = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+            "seven": 7, "eight": 8, "nine": 9, "ten": 10, "twelve": 12,
+            "fifteen": 15}
+_N = r"(\d{1,2}(?:\.\d)?|" + "|".join(_NUMWORD) + r")"
+YOE_RE = re.compile(
+    rf"\b{_N}\s*(\+)?\s*(?:(?:-|–|—|to)\s*\+?\s*{_N}\s*)?\+?\s*"
+    r"(?:years?|yrs?)(?![a-z])['’]?\s*\+?", re.I)
+# "of relevant experience", "applied experience", "of full stack experience"
+YOE_EXP_AFTER = re.compile(
+    r"\s*(?:of\s+)?(?:[\w/.-]+\s+){0,6}?(?:experience|experinece|exp\b|expertise)", re.I)
+YOE_EXP_BEFORE = re.compile(r"(?:experience|exp)\s*[:\-(]?\s*(?:of\s+)?"
+                            r"(?:minimum\s+(?:of\s+)?|min\.?\s*)?$", re.I)
+# "5+ years in ML systems", "3 years building APIs"
+YOE_CONNECTOR = re.compile(r"\s*(?:of|in|on|as|with|working|building|developing|"
+                           r"designing|writing|hands|delivering|leading)\b", re.I)
+# company history, not a requirement: "for 40 years", "in the last 1 year"
+YOE_BLURB = re.compile(r"\b(?:for|over|than|past|last|since|nearly|almost|founded|"
+                       r"history)\s*(?:the\s+)?(?:last\s+|past\s+)?$", re.I)
+YOE_PREFERRED = re.compile(
+    r"\b(?:prefer(?:red|ably)?|nice[- ]to[- ]have|good[- ]to[- ]have|a plus|"
+    r"bonus|ideally|desir(?:ed|able)|advantage(?:ous)?)\b", re.I)
+# These mark the whole line optional wherever they sit ("2+ years of Go is a
+# plus"); the softer words above only do when they come before the years
+# ("Preferred: 5+ years"), not after ("3+ years, preferably in fintech").
+YOE_OPTIONAL_LINE = re.compile(
+    r"\b(?:a plus|nice[- ]to[- ]have|good[- ]to[- ]have|bonus|advantageous)\b", re.I)
+YOE_REQUIRED_HDR = re.compile(
+    r"\b(?:minimum|basic|required|requirements?|must|qualifications?|what you|"
+    r"who you|you have|you bring|about you|responsibilit)", re.I)
+YOE_ADV_DEGREE = re.compile(
+    r"\b(?:master'?s?|master’s|m\.?s\.?|m\.?tech|mba|ph\.?\s?d|doctorate|"
+    r"advanced degree|post[- ]?graduate)\b", re.I)
+YOE_DEGREE = re.compile(r"\b(?:bachelor|b\.?\s?tech|b\.?\s?e\b|b\.?s\b|degree)", re.I)
+YOE_BACHELOR = re.compile(r"\b(?:bachelor|b\.?\s?tech|b\.?\s?e\b|b\.?\s?s\b|undergraduate)", re.I)
+YOE_DEGREE_START = re.compile(
+    r"\s*(?:an?\s+)?(?:bachelor|master|ph\.?\s?d|b\.?\s?tech|m\.?\s?tech|b\.?\s?e\b|"
+    r"m\.?\s?s\b|mba|doctorate|advanced)", re.I)
+# Split "A or B" only where B is a real alternative route - a years figure or
+# a degree. "Bachelor's in CS or related field and 5+ years" is one route.
+YOE_ALT_SPLIT = re.compile(
+    r";\s*\bor\b\s*|,?\s+\bor\b\s+(?=(?:at\s+least\s+|minimum\s+(?:of\s+)?|an?\s+)?"
+    r"(?:\d|" + "|".join(_NUMWORD) + r"\b|bachelor|master|ph\.?\s?d|b\.?\s?tech|"
+    r"m\.?\s?tech|b\.?\s?e\b|m\.?\s?s\b|mba|doctorate|advanced))", re.I)
+# Walmart-style "Option 1: Bachelor's and 2 years. Option 2: 4 years." -
+# option 2 onward are the no-degree routes.
+YOE_OPTION = re.compile(r"\boption\s*([1-9])\s*[:\-]", re.I)
 
 # --------------------------------------------------------------------------
 # HELPERS
@@ -299,12 +419,14 @@ def fetch_smartrecruiters(token, tenant=None):
             out.append({
                 "title": j.get("name", ""),
                 "location": loc_str,
-                "url": j.get("ref", "").replace(
-                    "api.smartrecruiters.com/v1/companies",
-                    "jobs.smartrecruiters.com"
-                ) or f"https://jobs.smartrecruiters.com/{token}/{j.get('id')}",
-                "description": "",  # detail call needed; title/location suffice for triage
+                # Not the API ref with the host swapped: that keeps a /postings/
+                # segment, and jobs.smartrecruiters.com/<co>/postings/<id> 404s.
+                "url": f"https://jobs.smartrecruiters.com/{token}/{j.get('id')}",
+                "description": "",  # filled by enrich() for roles that pass filters
                 "posted": (j.get("releasedDate") or "")[:10],
+                "_detail": ("smartrecruiters", j.get("ref") or
+                            f"https://api.smartrecruiters.com/v1/companies/{token}"
+                            f"/postings/{j.get('id')}"),
             })
         offset += 100
         if offset >= data.get("totalFound", 0):
@@ -346,8 +468,13 @@ def fetch_oracle(token, tenant=None):
                 "title": j.get("Title", ""),
                 "location": j.get("PrimaryLocation", "") or "",
                 "url": f"https://{tenant}/hcmUI/CandidateExperience/en/sites/{site}/job/{rid}",
+                # a one-line summary; enrich() swaps in the full JD
                 "description": strip_html(j.get("ShortDescriptionStr", "")),
                 "posted": (j.get("PostedDate") or "")[:10],
+                "_detail": ("oracle",
+                            f"https://{tenant}/hcmRestApi/resources/latest/"
+                            f"recruitingCEJobRequisitionDetails?expand=all&onlyData=true"
+                            f"&finder=ById;Id=%22{rid}%22,siteNumber={site}"),
             })
     return out
 
@@ -506,7 +633,7 @@ def fetch_keka(token, tenant=None):
             city = (l.get("city") or l.get("name") or "").strip()
             country = (l.get("countryName") or "").strip()
             locs.append(", ".join(x for x in (city, country) if x))
-        # experience reads like "2 - 4 Years"; append it so min_yoe can see it
+        # experience reads like "2 - 4 Years"; append it so yoe_band() can see it
         exp = (j.get("experience") or "").strip()
         desc = strip_html(j.get("description") or "")
         out.append({
@@ -572,8 +699,12 @@ def fetch_workday(token, tenant=None):
                 "location": (j.get("locationsText") or "").strip()
                             or _wd_bullet_location(j.get("bulletFields")),
                 "url": f"{host}/en-US/{token}{path}",
-                "description": " ".join(j.get("bulletFields") or []),
+                # bulletFields is a requisition id, not a description. Passing
+                # it off as one is what scored every Workday role on its title
+                # alone and buried them in Section C. enrich() fetches the JD.
+                "description": "",
                 "posted": _relative_posted(j.get("postedOn", "")),
+                "_detail": ("workday", f"{api[:-len('/jobs')]}{path}"),
             })
         offset += 20
         if len(posts) < 20 or (total and offset >= total):
@@ -615,7 +746,7 @@ def fetch_amazon(token="", tenant=None):
                     break
                 except ValueError:
                     pass
-            # basic_qualifications carries the YOE line min_yoe() looks for
+            # basic_qualifications carries the YOE line yoe_band() looks for
             desc = " ".join(x for x in (j.get("basic_qualifications"),
                                         j.get("description")) if x)
             out.append({
@@ -661,12 +792,15 @@ def fetch_eightfold(token, tenant=None):
             locs = j.get("locations") or ([j["location"]] if j.get("location") else [])
             url_j = (j.get("canonicalPositionUrl")
                      or f"https://{sub}.eightfold.ai/careers/job?pid={j.get('id')}")
+            detail = f"{base}/{j.get('id')}" + (f"?domain={dom}" if dom else "")
             out.append({
                 "title": j.get("name", ""),
                 "location": "; ".join(dict.fromkeys(str(x) for x in locs)),
                 "url": url_j,
+                # the list endpoint returns job_description empty; enrich() fills it
                 "description": strip_html(j.get("job_description") or ""),
                 "posted": posted,
+                "_detail": ("eightfold", detail),
             })
         # advance by what came back, not what was asked for: the API caps the
         # page size well below num, and stepping by num skips the difference
@@ -889,6 +1023,102 @@ ADAPTERS = {
 }
 
 # --------------------------------------------------------------------------
+# JD ENRICHMENT - one detail call per role that survives the cheap filters
+# --------------------------------------------------------------------------
+# Workday, SmartRecruiters, Oracle and Eightfold list endpoints return a title
+# and a location but no description. Scoring those on the title alone put
+# 1,140 of 1,257 Workday roles - most of them at referral companies - into the
+# Section C head count, never shown. Each board has a public per-job endpoint;
+# call it only for roles that are new, in India, in range and on-title, so a
+# 2-hourly scan costs a few dozen requests and a backlog run a few hundred.
+
+# Below this many characters a "description" is a summary line or nothing:
+# not enough to read years or stack from, so the role is routed as title-only.
+JD_MIN_CHARS = 200
+ENRICH_MAX = 2000
+ENRICH_WORKERS = 8
+
+
+def has_jd(job):
+    return len(job.get("description") or "") >= JD_MIN_CHARS
+
+
+def enrich(job):
+    """Fetch the full JD in place. Returns True on success. Never raises: a
+    failed detail call leaves the list-level data, and the role is shown as
+    title-only rather than scored on nothing."""
+    kind, url = job.get("_detail") or (None, None)
+    if not kind:
+        return False
+    try:
+        data = get_json(url, retries=1)
+        if kind == "workday":
+            info = data.get("jobPostingInfo") or {}
+            desc = strip_html(info.get("jobDescription") or "")
+            locs = [info.get("location")] + list(info.get("additionalLocations") or [])
+            locs = [str(x) for x in locs if x]
+            if locs:
+                job["location"] = "; ".join(dict.fromkeys(locs))
+            if info.get("startDate"):
+                job["posted"] = str(info["startDate"])[:10]
+        elif kind == "smartrecruiters":
+            secs = (data.get("jobAd") or {}).get("sections") or {}
+            desc = strip_html(" ".join(
+                (secs.get(k) or {}).get("text") or ""
+                for k in ("jobDescription", "qualifications", "additionalInformation")))
+        elif kind == "oracle":
+            it = (data.get("items") or [{}])[0]
+            desc = strip_html(" ".join(
+                it.get(k) or "" for k in ("ExternalDescriptionStr",
+                                          "ExternalResponsibilitiesStr",
+                                          "ExternalQualificationsStr")))
+        elif kind == "eightfold":
+            desc = strip_html(data.get("job_description") or "")
+        else:
+            return False
+    except Exception as e:
+        job["_enrich_error"] = f"{type(e).__name__}: {e}"[:160]
+        return False
+    if len(desc) > len(job.get("description") or ""):
+        job["description"] = desc
+    return True
+
+
+def _interleave_by_company(jobs):
+    """Round-robin across companies, so eight workers are not all hitting one
+    Workday tenant at once - that is how a board starts returning 429s."""
+    groups = {}
+    for j in jobs:
+        groups.setdefault(j.get("company", ""), []).append(j)
+    out, queues = [], list(groups.values())
+    while queues:
+        queues = [q for q in queues if q]
+        for q in queues:
+            out.append(q.pop(0))
+    return out
+
+
+def enrich_all(jobs):
+    """Enrich every thin-JD role that has a detail endpoint. Returns
+    (attempted, failed)."""
+    todo = [j for j in jobs if j.get("_detail") and not has_jd(j)]
+    todo = _interleave_by_company(todo)[:ENRICH_MAX]
+    if not todo:
+        return 0, 0
+    print(f"Fetching {len(todo)} job descriptions...")
+    with ThreadPoolExecutor(max_workers=ENRICH_WORKERS) as pool:
+        ok = list(pool.map(enrich, todo))
+    failed = ok.count(False)
+    if failed:
+        by_co = {}
+        for j, good in zip(todo, ok):
+            if not good:
+                by_co.setdefault(j.get("company", "?"), j.get("_enrich_error", ""))
+        for co, err in by_co.items():
+            log_error(co, f"JD fetch failed ({err}); shown as title-only")
+    return len(todo), failed
+
+# --------------------------------------------------------------------------
 # FILTER + SCORE
 # --------------------------------------------------------------------------
 
@@ -943,6 +1173,10 @@ def title_ok(title):
     return any(good in t for good in TITLE_KEEP)
 
 
+def is_senior_title(title):
+    return bool(SENIOR_RE.search(title or ""))
+
+
 def company_ok(company, referral=False):
     """COMPANY_DROP exists to keep mass-market service firms out of the digest.
     A referral changes that calculus entirely - a role you can be walked into
@@ -954,87 +1188,210 @@ def company_ok(company, referral=False):
     return not any(bad in c for bad in COMPANY_DROP)
 
 
-def min_yoe(description):
-    """Lowest 'minimum years' figure found. None if nothing parseable."""
-    if not description:
+def _yoe_num(s):
+    if s is None:
         return None
-    found = []
-    for pat in YOE_PATTERNS:
-        for m in pat.finditer(description[:6000]):
-            try:
-                found.append(int(m.group(1)))
-            except (ValueError, IndexError):
-                pass
-    return min(found) if found else None
+    s = s.lower()
+    return float(_NUMWORD[s]) if s in _NUMWORD else float(s)
+
+
+def _yoe_mentions(text, is_title=False):
+    """(lo, hi) for each years-of-experience mention that reads as a
+    requirement. hi is None for open-ended ("3+ years")."""
+    out = []
+    for m in YOE_RE.finditer(text):
+        lo, hi = _yoe_num(m.group(1)), _yoe_num(m.group(3))
+        # nobody asks a junior for 20+ years; a number that size is company
+        # history ("innovating for 40 years") or a typo
+        if lo is None or lo > 20 or (hi is not None and (hi > 25 or hi < lo)):
+            continue
+        if not is_title:
+            before = text[max(0, m.start() - 40):m.start()]
+            after = text[m.end():m.end() + 80]
+            strong = YOE_EXP_AFTER.match(after) or YOE_EXP_BEFORE.search(before)
+            if not strong and (YOE_BLURB.search(before)
+                               or not YOE_CONNECTOR.match(after)):
+                continue
+        out.append((lo, hi))
+    return out
+
+
+def _line_requirement(line):
+    """Requirement stated by one line, resolving "A or B" alternatives the
+    way a Bachelor's holder reads them. None if the line gates nothing."""
+    clauses = []
+    for part in YOE_ALT_SPLIT.split(line):
+        if not part or not part.strip():
+            continue
+        # "Bachelor's or Master's degree with 6-8 years" / "BE or BTech with
+        # 3+ years": a degree list, one route. Re-join it.
+        if clauses and not _yoe_mentions(clauses[-1]) and YOE_DEGREE_START.match(part):
+            clauses[-1] += " or " + part
+        else:
+            clauses.append(part)
+    numbered, degree_only = [], False     # numbered: (lo, hi, names_a_degree)
+    for c in clauses:
+        if not HAS_MASTERS and YOE_ADV_DEGREE.search(c) and not YOE_BACHELOR.search(c):
+            continue                      # a Master's/PhD-only route
+        ms = _yoe_mentions(c)
+        degree = bool(YOE_DEGREE.search(c))
+        if not ms:
+            degree_only = degree_only or degree
+            continue
+        # conjunctive inside one clause: "5+ years overall, 2+ in Go" is 5
+        lo, hi = max(ms, key=lambda x: (x[0], x[1] is not None))
+        numbered.append((lo, hi, degree))
+    if not numbered:
+        return None
+    if len(numbered) == 1 and not degree_only:
+        return numbered[0][:2]
+    with_degree = [n for n in numbered if n[2]]
+    if with_degree:
+        pool = with_degree
+    elif degree_only:
+        # "Bachelor's degree, OR 3+ years of work experience": the degree
+        # route alone satisfies the line, so the years figure gates nothing
+        return None
+    else:
+        pool = numbered
+    # alternatives: any one route suffices, so the easiest one counts
+    return min(pool, key=lambda r: r[0])[:2]
+
+
+def yoe_band(title, description=""):
+    """(min, max) years the role asks for; max is None when open-ended.
+    Returns None when nothing parseable is stated.
+
+    A years figure in the title wins outright: Cisco and Visa put the real
+    band there ("Software Engineer (1 - 2 years ...)") while the body carries
+    a generic template. Otherwise the requirement is the highest minimum
+    across required lines - "3+ years of software development, 2+ years of
+    design" asks for 3, not 2, which is what the old min() got wrong.
+    Preferred/nice-to-have lines and Master's/PhD routes are ignored.
+    """
+    t = _yoe_mentions(title or "", is_title=True)
+    if t:
+        return max(t, key=lambda x: (x[0], x[1] is not None))
+    text = (description or "")[:10000]
+    if not text:
+        return None
+    text = YOE_OPTION.sub(lambda m: "\n" + ("" if m.group(1) == "1" else "@ALT@ "), text)
+    best, preferred = None, False
+    for raw in text.split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("@ALT@"):
+            continue
+        header = (not re.search(r"\d", line)
+                  and (len(line.split()) <= 5 or (len(line) < 70 and line.endswith(":"))))
+        if header and YOE_PREFERRED.search(line):
+            preferred = True            # a "Preferred Qualifications" header
+            continue
+        if header and YOE_REQUIRED_HDR.search(line):
+            preferred = False
+            continue
+        if preferred or YOE_OPTIONAL_LINE.search(line):
+            continue
+        first = YOE_RE.search(line)
+        soft = YOE_PREFERRED.search(line)
+        if first and soft and soft.start() < first.start():
+            continue
+        req = _line_requirement(line)
+        if req and (best is None or (req[0], req[1] is not None) > (best[0], best[1] is not None)):
+            best = req
+    return best
+
+
+def band_fit(band):
+    """in-band / stretch / below / over / unstated, relative to MY_YOE."""
+    if band is None:
+        return "unstated"
+    lo, hi = band
+    if lo > MY_YOE + YOE_STRETCH:
+        return "over"
+    if lo > MY_YOE:
+        return "stretch"
+    if hi is not None and hi < MY_YOE:
+        return "below"          # "0-1 years": you are past the band
+    return "in-band"
+
+
+def band_label(band):
+    if band is None:
+        return "years not stated"
+    lo, hi = band
+    f = lambda x: str(int(x)) if x == int(x) else str(x)
+    return f"{f(lo)}-{f(hi)} yrs" if hi is not None else f"{f(lo)}+ yrs"
+
+
+def skill_hits(blob):
+    """Canonical skills found, highest weight first."""
+    best = {}
+    for skill, weight in ALL_SKILLS.items():
+        if SKILL_RE[skill].search(blob):
+            canon = SKILL_ALIASES.get(skill, skill)
+            best[canon] = max(best.get(canon, 0), weight)
+    return sorted(best.items(), key=lambda kv: -kv[1])
+
+
+def gap_skills(blob, limit=4):
+    counts = []
+    for label, rx in GAP_RE.items():
+        if label in ALL_SKILLS:
+            continue
+        n = len(rx.findall(blob))
+        if n:
+            counts.append((n, label))
+    return [label for _, label in sorted(counts, key=lambda x: -x[0])[:limit]]
+
+
+def role_points(title):
+    t = (title or "").lower()
+    if any(k in t for k in ["backend", "back-end", "back end"]):
+        return 20
+    if any(k in t for k in ["ai engineer", "ml engineer", "applied ai", "machine learning",
+                            "llm", "genai", "gen ai", "generative ai", "ai/ml",
+                            "forward deployed"]):
+        return 20
+    if any(k in t for k in ["full stack", "fullstack", "full-stack", "platform", "cloud",
+                            "devops", "site reliability", "sre", "mlops", "ml ops",
+                            "infrastructure"]):
+        return 16
+    if any(k in t for k in ["software engineer", "software developer", "sde",
+                            "product engineer", "member of technical staff"]):
+        return 14
+    if "data engineer" in t:
+        return 10
+    return 8
+
+
+YOE_POINTS = {"in-band": 30, "unstated": 18, "stretch": 12, "below": 15}
 
 
 def score(job):
-    """0-100 fit score plus reason and gap strings."""
+    """Adds FitScore / Skills / Gaps / FitReason / GapNote to the job and
+    returns the score. 50% weighted skill overlap, 30% years fit, 20% role."""
     blob = f"{job['title']} {job['description']}".lower()
-
-    hits = []
-    points = 0
-    for skill, weight in ALL_SKILLS.items():
-        if skill in blob:
-            points += weight
-            hits.append((weight, skill))
+    hits = skill_hits(blob)
+    points = sum(w for _, w in hits)
     skill_score = min(points / MAX_SKILL_POINTS, 1.0) * 50
+    fit = job.get("yoe_fit", "unstated")
+    total = round(skill_score + YOE_POINTS.get(fit, 0) + role_points(job["title"]))
 
-    yoe = job.get("min_yoe")
-    if yoe is None:
-        yoe_score = 20            # unstated, assume open
-    elif yoe <= 2:
-        yoe_score = 30
-    elif yoe <= 4:
-        yoe_score = 24
-    elif yoe == 5:
-        yoe_score = 12
+    job["Skills"] = [s for s, _ in hits]
+    job["Gaps"] = gap_skills(blob) if has_jd(job) else []
+    top = job["Skills"][:3]
+    job["FitReason"] = ("Overlap: " + ", ".join(top)) if top else "No direct stack overlap detected"
+    band = band_label(job.get("yoe_band"))
+    if not has_jd(job):
+        job["GapNote"] = "No JD text - open the posting to judge"
+    elif job["Gaps"]:
+        job["GapNote"] = f"{band} ({fit}); JD also wants: {', '.join(job['Gaps'])}"
     else:
-        yoe_score = 0
-
-    t = job["title"].lower()
-    if any(k in t for k in ["backend", "back-end", "back end"]):
-        role_score = 20
-    elif any(k in t for k in ["ai engineer", "ml engineer", "applied ai", "machine learning"]):
-        role_score = 20
-    elif any(k in t for k in ["full stack", "fullstack", "full-stack", "platform"]):
-        role_score = 16
-    elif any(k in t for k in ["software engineer", "software developer", "sde"]):
-        role_score = 14
-    else:
-        role_score = 8
-
-    total = round(skill_score + yoe_score + role_score)
-
-    # collapse aliases so the reason line does not read "postgresql, postgres"
-    aliases = {
-        "postgres": "postgresql", "nodejs": "node.js", "nest.js": "nestjs",
-        "retrieval augmented": "rag", "retrieval-augmented": "rag",
-        "rerank": "reranking", "large language model": "llm",
-        "back-end": "backend", "back end": "backend",
-    }
-    hits.sort(reverse=True)
-    top, seen_alias = [], set()
-    for _, s in hits:
-        canon = aliases.get(s, s)
-        if canon in seen_alias:
-            continue
-        seen_alias.add(canon)
-        top.append(canon)
-        if len(top) == 3:
-            break
-    reason = "Overlap: " + ", ".join(top) if top else "No direct stack overlap detected"
-
-    if yoe is not None and yoe > 4:
-        gap = f"Asks {yoe}+ years"
-    elif not top:
-        gap = "Stack not recognised from description"
-    else:
-        missing = [s for s in ["kubernetes", "kafka", "aws", "go", "scala", "rust"]
-                   if s in blob and s not in ALL_SKILLS]
-        gap = f"Watch: {', '.join(missing)}" if missing else "No blocking gap detected"
-
-    return min(total, 100), reason, gap
+        job["GapNote"] = f"{band} ({fit}); no blocking gap detected"
+    job["FitScore"] = min(total, 100)
+    return job["FitScore"]
 
 
 # --------------------------------------------------------------------------
@@ -1057,9 +1414,19 @@ def load_companies():
     return rows
 
 
+# Old SmartRecruiters links carried the API's /postings/ segment and 404ed.
+SR_LEGACY = re.compile(r"(https://jobs\.smartrecruiters\.com/[^/\s]+)/postings/(\d+)")
+
+
+def canon_url(url):
+    """Map a legacy SmartRecruiters link onto the working form, so seen.json
+    and pipeline.csv keep matching it after the adapter fix."""
+    return SR_LEGACY.sub(r"\1/\2", url or "")
+
+
 def load_seen():
     if SEEN_JSON.exists():
-        return set(json.loads(SEEN_JSON.read_text()))
+        return {canon_url(u) for u in json.loads(SEEN_JSON.read_text())}
     return set()
 
 
@@ -1067,47 +1434,177 @@ def save_seen(seen):
     SEEN_JSON.write_text(json.dumps(sorted(seen), indent=0))
 
 
-def append_pipeline(rows):
-    cols = ["DateSeen", "Company", "Title", "Location", "MinYOE", "Referral", "URL",
-            "Posted", "FitScore", "FitReason", "GapNote", "Status",
-            "AppliedDate", "FollowUpDate"]
-    existing = None
-    if PIPELINE_CSV.exists():
-        with open(PIPELINE_CSV, newline="", encoding="utf-8") as f:
-            existing = next(csv.reader(f), None)
-
-    if existing:
-        # Keep any column a human added by hand; never drop tracking data.
-        cols = list(dict.fromkeys(cols + [c for c in existing if c not in cols]))
-        if existing != cols:
-            # Header gained a column. Appending wider rows under the old header
-            # would shift every field right, so rewrite the file once instead.
-            with open(PIPELINE_CSV, newline="", encoding="utf-8") as f:
-                old_rows = list(csv.DictReader(f))
-            with open(PIPELINE_CSV, "w", newline="", encoding="utf-8") as f:
-                w = csv.DictWriter(f, fieldnames=cols)
-                w.writeheader()
-                for r in old_rows:
-                    w.writerow({c: (r.get(c) or "") for c in cols})
-            print(f"pipeline.csv migrated to {len(cols)} columns "
-                  f"({len(old_rows)} rows preserved)")
-
-    with open(PIPELINE_CSV, "a", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=cols)
-        if not existing:
-            w.writeheader()
-        for r in rows:
-            w.writerow({c: r.get(c, "") for c in cols})
+PIPELINE_COLS = ["DateSeen", "Company", "Title", "Location", "MinYOE", "YOEBand",
+                 "YOEFit", "Referral", "URL", "Posted", "FitScore", "FitReason",
+                 "GapNote", "Section", "Status", "AppliedDate", "FollowUpDate"]
+# Yours. A role that is rescored keeps whatever you put in these.
+USER_COLS = ("Status", "AppliedDate", "FollowUpDate")
 
 
-def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
-    companies = load_companies()
-    seen = set() if reset else load_seen()
+def read_pipeline():
+    if not PIPELINE_CSV.exists():
+        return [], list(PIPELINE_COLS)
+    with open(PIPELINE_CSV, newline="", encoding="utf-8") as f:
+        rd = csv.DictReader(f)
+        rows = list(rd)
+        extra = [c for c in (rd.fieldnames or []) if c not in PIPELINE_COLS]
+    return rows, PIPELINE_COLS + extra
+
+
+def upsert_pipeline(rows, drops=(), user=False):
+    """One row per URL. New roles are appended; a role evaluated again (a
+    backlog re-check) is updated in place, keeping the original DateSeen and
+    anything in USER_COLS - unless `user` is set, i.e. the write is you
+    recording an application. `drops` are (url, reason) pairs: roles already
+    in the file that were re-checked with their full JD and filtered out."""
+    old, cols = read_pipeline()
+    index = {}
+    for r in old:
+        r["URL"] = canon_url(r.get("URL"))
+        if r["URL"] in index:
+            continue                    # keep the first sighting
+        index[r["URL"]] = r
+    for r in rows:
+        prev = index.get(r["URL"])
+        if prev is None:
+            index[r["URL"]] = dict(r)
+            continue
+        for k, v in r.items():
+            if k == "DateSeen" and prev.get(k):
+                continue
+            if k in USER_COLS and prev.get(k) and not user:
+                continue
+            prev[k] = v
+    for url, reason in drops:
+        if url in index:
+            index[url]["Section"] = "X"
+            index[url]["GapNote"] = f"Rechecked with full JD: {reason}"
+    with open(PIPELINE_CSV, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
+        w.writeheader()
+        for r in index.values():
+            w.writerow({c: (r.get(c) if r.get(c) is not None else "") for c in cols})
+
+
+# --------------------------------------------------------------------------
+# APPLICATIONS - applied.csv is the one file you write; the scanner reads it
+# --------------------------------------------------------------------------
+# Record an application from your phone: Actions > jobscan > Run workflow >
+# mode "applied", paste the URL. Or edit applied.csv directly.
+
+APPLIED_CSV = ROOT / "applied.csv"
+APPLIED_COLS = ["Date", "Company", "Title", "URL", "Via", "Status", "Notes"]
+APPLIED_STATUSES = ("applied", "referred", "interview", "rejected", "offer", "withdrawn")
+# Nudge to follow up between these many days after applying
+FOLLOWUP_WINDOW = (7, 21)
+# Applied somewhere this recently? New roles there are flagged, and demoted in
+# APPLY FIRST: one well-aimed application per company beats five.
+COMPANY_COOLDOWN_DAYS = 30
+
+
+def load_applied():
+    if not APPLIED_CSV.exists():
+        return []
+    with open(APPLIED_CSV, newline="", encoding="utf-8") as f:
+        return [r for r in csv.DictReader(f) if (r.get("URL") or r.get("Company"))]
+
+
+def _days_since(date_str):
+    try:
+        d = datetime.strptime((date_str or "")[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return None
+    return (datetime.now(IST).date() - d).days
+
+
+def mark_applied(url, status="applied", note=""):
+    """Record an application in applied.csv and pipeline.csv."""
+    url = canon_url((url or "").strip())
+    status = (status or "applied").strip().lower()
+    if not url:
+        sys.exit("--applied needs the posting URL")
+    if status not in APPLIED_STATUSES:
+        sys.exit(f"status must be one of {', '.join(APPLIED_STATUSES)}")
     today = datetime.now(IST).strftime("%Y-%m-%d")
+    pipe = {canon_url(r.get("URL")): r for r in read_pipeline()[0]}
+    p = pipe.get(url, {})
+    rows = load_applied()
+    for r in rows:
+        if canon_url(r.get("URL")) == url:
+            r["Status"] = status
+            if note:
+                r["Notes"] = note
+            break
+    else:
+        rows.append({"Date": today, "Company": p.get("Company", ""),
+                     "Title": p.get("Title", ""), "URL": url,
+                     "Via": "referral" if status == "referred" else "direct",
+                     "Status": status, "Notes": note})
+    with open(APPLIED_CSV, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=APPLIED_COLS, extrasaction="ignore")
+        w.writeheader()
+        w.writerows(rows)
+    if p:
+        upsert_pipeline([{"URL": url, "Status": status.title(),
+                          "AppliedDate": p.get("AppliedDate") or today}], user=True)
+    who = f"{p.get('Title')} at {p.get('Company')}" if p else url
+    print(f"Recorded: {who} -> {status}"
+          + ("" if p else " (not in pipeline.csv; fill Company/Title in applied.csv)"))
 
-    raw = []
-    errors = 0
-    print(f"Polling {len(companies)} boards with {WORKERS} workers...")
+
+def recent_by_company(applied):
+    out = {}
+    for r in applied:
+        d = _days_since(r.get("Date"))
+        co = (r.get("Company") or "").strip().lower()
+        if co and d is not None and d <= COMPANY_COOLDOWN_DAYS:
+            out.setdefault(co, []).append((d, r.get("Title") or "a role"))
+    return out
+
+
+def followups_due(applied):
+    lo, hi = FOLLOWUP_WINDOW
+    due = []
+    for r in applied:
+        d = _days_since(r.get("Date"))
+        if (r.get("Status") or "").lower() in ("applied", "referred") and d is not None \
+                and lo <= d <= hi:
+            due.append((d, r))
+    return sorted(due, key=lambda x: -x[0])
+
+
+def _followups_hour():
+    """Follow-ups ride on one scan a day (the 02:00 UTC / 07:30 IST cron)
+    rather than all twelve, and on every manual run. Hour 3 is included
+    because scheduled runs often start late; runs are two hours apart, so
+    only one of them lands in the window."""
+    if os.environ.get("MODE", "scan") != "scan":
+        return True
+    hours = os.environ.get("FOLLOWUP_HOURS_UTC", "2,3")
+    return str(datetime.now(timezone.utc).hour) in [h.strip() for h in hours.split(",")]
+
+
+# --------------------------------------------------------------------------
+# RUN
+# --------------------------------------------------------------------------
+
+# Workday lists a role open in many cities as "51 Locations"; the detail call
+# names them, so keep these for enrichment and judge location afterwards.
+MULTI_LOC = re.compile(r"^\d+\s+locations?$", re.I)
+ERRORS_LOG_KEEP = 5000
+
+
+def _trim_errors_log():
+    """fetch_errors.log is committed every run; keep it from growing forever."""
+    if not ERRORS_LOG.exists():
+        return
+    lines = ERRORS_LOG.read_text(encoding="utf-8").splitlines(keepends=True)
+    if len(lines) > ERRORS_LOG_KEEP:
+        ERRORS_LOG.write_text("".join(lines[-ERRORS_LOG_KEEP:]), encoding="utf-8")
+
+
+def poll_boards(companies):
+    raw, errors = [], 0
 
     def poll(c):
         ats = c.get("ATS", "").lower()
@@ -1131,69 +1628,147 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
                 errors += 1
             else:
                 raw.extend(jobs)
+    return raw, errors
 
-    kept, too_old, undated = [], 0, 0
+
+def select(raw, seen, max_age):
+    """Cheap filters, then one detail call per survivor, then the filters
+    that need the JD. Returns (kept, drops, stats); drops are (url, reason)."""
+    from collections import Counter
+    stats = Counter()
+    stage = {}
     for j in raw:
-        if not j.get("url") or j["url"] in seen:
+        j["url"] = canon_url(j.get("url"))
+        if not j["url"] or j["url"] in seen or j["url"] in stage:
             continue
         if not company_ok(j["company"], j.get("referral")):
             continue
         if not title_ok(j["title"]):
             continue
-        if is_non_india_only(j["location"]):
+        loc = (j.get("location") or "").strip()
+        multi = bool(MULTI_LOC.match(loc)) and j.get("_detail")
+        if not multi and (is_non_india_only(loc) or not is_india(loc)):
             continue
-        if not is_india(j["location"]):
-            continue
-
         age = age_days(j.get("posted"))
-        if age is None:
-            undated += 1
-            j["age"] = None
-        elif max_age > 0 and age > max_age:
+        if age is not None and max_age > 0 and age > max_age:
             # NOT added to seen: an old posting is still an open posting, and
             # marking it read here is what silently hid 500+ live roles.
-            too_old += 1
+            stats["too_old"] += 1
             continue
-        else:
-            j["age"] = age
+        stage[j["url"]] = j
 
-        j["min_yoe"] = min_yoe(f"{j['title']} {j['description']}")
-        if j["min_yoe"] is not None and j["min_yoe"] > MAX_YOE:
+    attempted, failed = enrich_all(list(stage.values()))
+    stats["enriched"], stats["enrich_failed"] = attempted - failed, failed
+
+    kept, drops = [], []
+    for j in stage.values():
+        loc = j.get("location") or ""
+        if is_non_india_only(loc) or not is_india(loc):
+            continue                    # the detail call named non-India cities
+        age = age_days(j.get("posted"))
+        if age is not None and max_age > 0 and age > max_age:
+            stats["too_old"] += 1       # the detail call gave the real date
             continue
-        s, reason, gap = score(j)
-        j.update(FitScore=s, FitReason=reason, GapNote=gap)
+        j["age"] = age
+        text = f"{j['title']}\n{j.get('description') or ''}"
+        if BATCH_GATE_RE.search(text):
+            stats["batch_gated"] += 1
+            drops.append((j["url"], "graduation-year gated"))
+            continue
+        band = yoe_band(j["title"], j.get("description") or "")
+        fit = band_fit(band)
+        if fit == "over":
+            stats["over_yoe"] += 1
+            drops.append((j["url"], f"asks {band_label(band)}"))
+            continue
+        if is_senior_title(j["title"]) and fit not in ("in-band", "stretch"):
+            # "Senior"/"III" with no stated band you fall in reads as 4-6+ yrs
+            stats["senior_unproven"] += 1
+            drops.append((j["url"], f"senior title, {band_label(band)}"))
+            continue
+        if age is None:
+            stats["undated"] += 1
+        j["yoe_band"], j["yoe_fit"] = band, fit
+        score(j)
         kept.append(j)
-        seen.add(j["url"])
+    return kept, drops, stats
 
-    kept.sort(key=lambda x: -x["FitScore"])
 
-    rows = [{
-        "DateSeen": today, "Company": j["company"], "Title": j["title"],
-        "Location": j["location"], "MinYOE": j.get("min_yoe", ""),
-        "URL": j["url"], "Posted": j.get("posted", ""),
-        "FitScore": j["FitScore"], "FitReason": j["FitReason"],
-        "GapNote": j["GapNote"], "Status": "New",
-        "Referral": "yes" if j.get("referral") else "",
-        "AppliedDate": "", "FollowUpDate": "",
-    } for j in kept]
+def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
+    _trim_errors_log()
+    companies = load_companies()
+    seen = set() if reset else load_seen()
+    applied = load_applied()
+    today = datetime.now(IST).strftime("%Y-%m-%d")
 
-    digest = build_digest(kept, len(raw), errors, today, max_age, too_old, undated)
-    print(f"\n{len(kept)} new roles ({len(raw)} raw, {too_old} older than "
-          f"{max_age}d, {undated} undated).")
+    print(f"Polling {len(companies)} boards with {WORKERS} workers...")
+    raw, errors = poll_boards(companies)
+    kept, drops, stats = select(raw, seen, max_age)
+
+    recent = recent_by_company(applied)
+    for j in kept:
+        hist = recent.get(j["company"].strip().lower())
+        if hist:
+            d, title = min(hist)
+            j["applied_recently"] = f"you applied for '{title}' here {d}d ago"
+    followups = followups_due(applied) if _followups_hour() else []
+
+    digest, sections = build_digest(kept, stats, len(raw), errors, today, max_age, followups)
+    print(f"\n{len(kept)} new roles ({len(raw)} raw, {stats['too_old']} older than "
+          f"{max_age}d, {stats['over_yoe']} over your years, "
+          f"{stats['senior_unproven']} senior without a band you fit).")
 
     if dry_run:
         print("\n--- DRY RUN ---\n")
         print(digest)
         return
 
-    append_pipeline(rows)
+    rows = [{
+        "DateSeen": today, "Company": j["company"], "Title": j["title"],
+        "Location": j["location"],
+        "MinYOE": "" if not j.get("yoe_band") else f"{j['yoe_band'][0]:g}",
+        "YOEBand": band_label(j.get("yoe_band")) if j.get("yoe_band") else "",
+        "YOEFit": j.get("yoe_fit", ""),
+        "URL": j["url"], "Posted": j.get("posted", ""),
+        "FitScore": j["FitScore"], "FitReason": j["FitReason"],
+        "GapNote": j["GapNote"], "Section": j.get("Section", ""), "Status": "New",
+        "Referral": "yes" if j.get("referral") else "",
+        "AppliedDate": "", "FollowUpDate": "",
+    } for j in kept]
+    upsert_pipeline(rows, drops)
+    seen.update(j["url"] for j in kept)
     save_seen(seen)
-    if not kept:
+    if not kept and not followups:
         # On a short polling interval most runs find nothing. Saving seen.json
         # still matters; mailing an empty digest every couple of hours does not.
         print("No new roles; skipping email.")
         return
-    send_email(f"Job Pipeline - {today} ({len(kept)} new)", digest)
+    first, refs = len(sections["first"]), sum(1 for j in kept if j.get("referral"))
+    subject = f"Jobs {today}: {first} to apply first, {len(kept)} new"
+    if refs:
+        subject += f", {refs} at referral companies"
+    if not kept:
+        subject = f"Jobs {today}: {len(followups)} follow-ups due"
+    send_email(subject, digest)
+
+
+# --------------------------------------------------------------------------
+# DIGEST
+# --------------------------------------------------------------------------
+
+APPLY_FIRST_MAX = 8
+APPLY_FIRST_MIN_SCORE = 55
+PER_COMPANY_CAP = 2
+# A referral is the biggest single lever on getting shortlisted, so a
+# referral role outranks a slightly better text match without one.
+REFERRAL_BONUS = 12
+
+
+def priority(j):
+    age = j.get("age")
+    fresh = {0: 6, 1: 4, 2: 2}.get(age, 0) if age is not None else 0
+    return (j["FitScore"] + (REFERRAL_BONUS if j.get("referral") else 0) + fresh
+            - (8 if j.get("applied_recently") else 0))
 
 
 def _age_label(j):
@@ -1207,64 +1782,136 @@ def _age_label(j):
     return f"posted {a}d ago"
 
 
-def build_digest(jobs, raw_count, errors, today, max_age, too_old, undated):
+def _dedupe_postings(jobs):
+    """Workday posts one req per city with an identical JD. Show it once and
+    list the other cities, so you apply once rather than five times."""
+    out, by_key = [], {}
+    for j in jobs:
+        if not has_jd(j):
+            out.append(j)
+            continue
+        key = (j["company"].lower(), j["title"].strip().lower(),
+               re.sub(r"\s+", " ", j["description"][:600]))
+        if key in by_key:
+            by_key[key].setdefault("also", []).append(j)
+            continue
+        by_key[key] = j
+        out.append(j)
+    return out
+
+
+def _action(j):
+    if j.get("referral"):
+        return (f"Referral company: send this link to your {j['company']} referrer and "
+                f"let them submit you BEFORE you apply - an existing application "
+                f"usually blocks or voids the referral.")
+    if j.get("yoe_fit") == "stretch":
+        return (f"Stretch ({band_label(j.get('yoe_band'))}): apply if your work maps "
+                f"closely, and lead with shipped scope, not tenure.")
+    return "Apply directly - today if you can; the first 48h get the most recruiter attention."
+
+
+def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
     agency = [j for j in jobs if j.get("agency")]
     direct = [j for j in jobs if not j.get("agency")]
-    described = [j for j in direct if j.get("description")]
-    titleonly = [j for j in direct if not j.get("description")]
-    strong = [j for j in described if j["FitScore"] >= 70]
-    mid = [j for j in described if 40 <= j["FitScore"] < 70]
-    weak = [j for j in described if j["FitScore"] < 40]
+    titleonly = [j for j in direct if not has_jd(j)]
+    described = _dedupe_postings(
+        sorted([j for j in direct if has_jd(j)], key=lambda x: -priority(x)))
 
-    refs = [j for j in jobs if j.get("referral")]
+    first, per_co = [], {}
+    for j in described:
+        if len(first) >= APPLY_FIRST_MAX or j["FitScore"] < APPLY_FIRST_MIN_SCORE:
+            continue
+        co = j["company"].lower()
+        if per_co.get(co, 0) >= PER_COMPANY_CAP:
+            continue
+        per_co[co] = per_co.get(co, 0) + 1
+        first.append(j)
+    rest = [j for j in described if j not in first]
+    more = [j for j in rest if j["FitScore"] >= 40]
+    ref_low = [j for j in rest if j["FitScore"] < 40 and j.get("referral")]
+    low = [j for j in rest if j["FitScore"] < 40 and not j.get("referral")]
+
+    for group, sec in ((first, "A"), (more, "B"), (ref_low, "R"), (low, "C"),
+                       (titleonly, "D"), (agency, "E")):
+        for j in group:
+            j["Section"] = sec
+            for dup in j.get("also", []):
+                dup["Section"] = sec
+
+    def also(j):
+        extra = j.get("also") or []
+        if not extra:
+            return ""
+        locs = sorted({d["location"] for d in extra} - {j["location"]})
+        return f" (+{len(extra)} identical posting{'s' if len(extra) > 1 else ''}" + \
+               (f": {'; '.join(locs)[:80]}" if locs else "") + ")"
+
+    tag = lambda j: " *REFERRAL*" if j.get("referral") else ""
+    refs = sum(1 for j in jobs if j.get("referral"))
     lines = [f"JOB PIPELINE - {today}",
-             f"Roles posted in the last {max_age} day(s)"]
+             f"New roles for a {MY_YOE}-year engineer, posted in the last {max_age} day(s)"
+             if max_age > 0 else f"New roles for a {MY_YOE}-year engineer"]
     if refs:
-        lines.append(f"{len(refs)} at companies where you have a referral "
-                     f"(marked *REFERRAL*)")
-    lines += ["=" * 52, ""]
+        lines.append(f"{refs} at companies where you have a referral (marked *REFERRAL*)")
+    lines += ["=" * 60, ""]
 
-    lines.append(f"SECTION A - STRONG FIT ({len(strong)})")
-    lines.append("-" * 52)
-    if strong:
-        for j in strong:
-            lines += [
-                f"[{j['FitScore']}]{' *REFERRAL*' if j.get('referral') else ''} {j['title']}",
-                f"      {j['company']} | {j['location']} | {_age_label(j)}",
-                f"      {j['FitReason']}",
-                f"      {j['GapNote']}",
-                f"      {j['url']}",
-                "",
-            ]
-    else:
-        lines += ["  (none today)", ""]
+    lines.append(f"APPLY FIRST ({len(first)}) - best odds in this batch, "
+                 f"max {PER_COMPANY_CAP} per company")
+    lines.append("-" * 60)
+    if not first:
+        lines += ["  (nothing cleared the bar this batch)", ""]
+    for n, j in enumerate(first, 1):
+        kw = ", ".join(j["Skills"][:7]) or "none detected"
+        lines += [
+            f"{n}. [{j['FitScore']}]{tag(j)} {j['title']}",
+            f"   {j['company']} | {j['location'][:60]}{also(j)} | {_age_label(j)}",
+            f"   Years: {band_label(j.get('yoe_band'))} ({j.get('yoe_fit')})",
+            f"   Mirror in your resume (you have these): {kw}",
+        ]
+        if j["Gaps"]:
+            lines.append(f"   JD also wants: {', '.join(j['Gaps'])}")
+        if j.get("applied_recently"):
+            lines.append(f"   Note: {j['applied_recently']}")
+        lines += [f"   -> {_action(j)}", f"   {j['url']}", ""]
 
-    lines.append(f"SECTION B - WORTH A LOOK ({len(mid)})")
-    lines.append("-" * 52)
-    for j in mid:
-        tag = " *REFERRAL*" if j.get("referral") else ""
-        lines.append(f"[{j['FitScore']}]{tag} {j['title']} - {j['company']}, "
-                     f"{j['location']} ({_age_label(j)})\n      {j['url']}")
-    if not mid:
+    lines.append(f"MORE MATCHES ({len(more)})")
+    lines.append("-" * 60)
+    for j in more:
+        note = f" [{j['applied_recently']}]" if j.get("applied_recently") else ""
+        lines.append(f"[{j['FitScore']}]{tag(j)} {j['title']} - {j['company']}, "
+                     f"{j['location'][:40]}{also(j)} | {band_label(j.get('yoe_band'))} "
+                     f"| {_age_label(j)}{note}\n      {j['FitReason']}\n      {j['url']}")
+    if not more:
         lines.append("  (none)")
     lines.append("")
 
-    lines.append(f"SECTION C - LOW FIT: {len(weak)} roles filtered out")
+    if ref_low:
+        lines.append(f"REFERRAL COMPANIES, WEAK TEXT MATCH ({len(ref_low)})")
+        lines.append("-" * 60)
+        lines.append("  Your years fit, your stack barely shows in the JD. Worth a")
+        lines.append("  glance only because a referral can carry a weaker match.")
+        for j in ref_low:
+            lines.append(f"  [{j['FitScore']}] {j['title']} - {j['company']} | "
+                         f"{band_label(j.get('yoe_band'))}\n      {j['url']}")
+        lines.append("")
+
+    lines.append(f"LOW FIT: {len(low)} roles with full JDs scored under 40, not listed")
     lines.append("")
 
-    lines.append(f"SECTION D - TITLE MATCH ONLY ({len(titleonly)})")
-    lines.append("-" * 52)
-    lines.append("  Careers pages with no job description text. Not scored on")
-    lines.append("  content - open the page to judge.")
+    lines.append(f"TITLE MATCH ONLY ({len(titleonly)})")
+    lines.append("-" * 60)
+    lines.append("  No JD text available (careers page, or the JD fetch failed).")
+    lines.append("  Not scored on content - open the page to judge.")
     for j in titleonly:
-        lines.append(f"  {j['title']} - {j['company']}, {j['location']}"
+        lines.append(f"  {j['title']}{tag(j)} - {j['company']}, {j['location'][:40]}"
                      f"\n      {j['url']}")
     if not titleonly:
         lines.append("  (none)")
 
     lines.append("")
-    lines.append(f"SECTION E - AGENCY / CONSULTANCY ({len(agency)})")
-    lines.append("-" * 52)
+    lines.append(f"AGENCY / CONSULTANCY ({len(agency)})")
+    lines.append("-" * 60)
     lines.append("  Client company NOT named. Before applying, search the JD")
     lines.append("  text to identify the employer, then check whether they")
     lines.append("  have a direct board above. Applying through an agency to")
@@ -1275,16 +1922,31 @@ def build_digest(jobs, raw_count, errors, today, max_age, too_old, undated):
     if not agency:
         lines.append("  (none)")
 
+    if followups:
+        lines += ["", f"FOLLOW-UPS DUE ({len(followups)})", "-" * 60]
+        for d, r in followups:
+            how = ("ask your referrer for the status" if (r.get("Status") or "").lower()
+                   == "referred" else "message the recruiter or hiring manager on "
+                   "LinkedIn with the req link")
+            lines.append(f"  {d}d: {r.get('Title') or '?'} - {r.get('Company') or '?'}: "
+                         f"{how}\n      {r.get('URL')}")
+        lines.append("  Update the status: Actions > jobscan > Run workflow > applied.")
+
     lines += [
         "",
-        "=" * 52,
+        "=" * 60,
         f"Raw roles polled: {raw_count}",
         f"New after filters: {len(jobs)}",
-        f"Skipped as older than {max_age} days: {too_old}",
-        f"No posting date from board: {undated} (kept, dated by first sighting)",
+        f"Skipped as older than {max_age} days: {stats.get('too_old', 0)}",
+        f"Dropped, asks more than {MY_YOE + YOE_STRETCH} years: {stats.get('over_yoe', 0)}",
+        f"Dropped, senior title without a band you fit: {stats.get('senior_unproven', 0)}",
+        f"Dropped, graduation-year gated: {stats.get('batch_gated', 0)}",
+        f"JDs fetched: {stats.get('enriched', 0)} (failed: {stats.get('enrich_failed', 0)})",
+        f"No posting date from board: {stats.get('undated', 0)} (kept, dated by first sighting)",
         f"Fetch errors: {errors} (see fetch_errors.log)",
     ]
-    return "\n".join(lines)
+    return "\n".join(lines), {"first": first, "more": more, "ref_low": ref_low,
+                              "low": low, "titleonly": titleonly, "agency": agency}
 
 
 def send_email(subject, body):
@@ -1400,23 +2062,47 @@ def prune():
     print(f"Commented out {removed} dead rows in companies.csv")
 
 
+# Before 2026-09-25, Workday and Oracle roles were scored on their title alone
+# and anything under 40 went into the Section C head count, never shown; and
+# every SmartRecruiters link 404ed. Those rows are "found", not "seen".
+LEGACY_TITLE_SCORED = re.compile(r"myworkdayjobs\.com|oraclecloud\.com")
+
+
+def _settled(row):
+    """True if this pipeline row was judged on real information and either
+    shown to you or deliberately filtered - i.e. belongs in seen.json."""
+    if (row.get("Section") or "").strip():
+        return True
+    url = row.get("URL") or ""
+    if "jobs.smartrecruiters.com" in url:
+        return False
+    try:
+        s = int(row.get("FitScore") or 0)
+    except ValueError:
+        s = 0
+    return not (LEGACY_TITLE_SCORED.search(url) and s < 40)
+
+
 def repair_seen():
     """Rebuild seen.json from pipeline.csv.
 
     seen.json is meant to record "already emailed to you". A bug in run() also
     wrote every role that was merely older than --max-age into it, so hundreds
     of open roles were marked read without ever being reported. pipeline.csv is
-    the real record of what was sent, so rebuild from that.
+    the real record of what was sent, so rebuild from that - minus the rows
+    that were never really shown (see _settled), so the next backlog run
+    re-checks them with their full JD.
     """
     if not PIPELINE_CSV.exists():
         print("No pipeline.csv; nothing to repair.")
         return
-    with open(PIPELINE_CSV, newline="", encoding="utf-8") as f:
-        reported = {r["URL"] for r in csv.DictReader(f) if r.get("URL")}
+    rows = read_pipeline()[0]
+    reported = {canon_url(r["URL"]) for r in rows if r.get("URL") and _settled(r)}
+    released = sum(1 for r in rows if r.get("URL") and not _settled(r))
     before = len(load_seen())
     save_seen(reported)
     print(f"seen.json rebuilt from pipeline.csv: {before} -> {len(reported)} "
-          f"({before - len(reported)} never-reported URLs released).")
+          f"({released} hidden or broken-link roles released for a re-check).")
 
 
 if __name__ == "__main__":
@@ -1438,8 +2124,15 @@ if __name__ == "__main__":
                     help="report why each board failed, then exit")
     ap.add_argument("--prune", action="store_true",
                     help="comment out http-404 rows found by the last --diagnose")
+    ap.add_argument("--applied", metavar="URL",
+                    help="record an application for this posting URL")
+    ap.add_argument("--status", default="applied", choices=APPLIED_STATUSES,
+                    help="with --applied: applied, referred, interview, ...")
+    ap.add_argument("--note", default="", help="with --applied: free text")
     a = ap.parse_args()
-    if a.prune:
+    if a.applied:
+        mark_applied(a.applied, a.status, a.note)
+    elif a.prune:
         prune()
     elif a.diagnose:
         diagnose()

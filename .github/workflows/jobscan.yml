@@ -21,14 +21,37 @@ on:
           - diagnose
           - prune
           - dry-run
+          - applied
       max_age:
         description: "Only roles posted within N days (scan/dry-run only)"
         type: string
         required: false
         default: "2"
+      url:
+        description: "applied mode: the posting URL you applied to"
+        type: string
+        required: false
+      status:
+        description: "applied mode: where it stands"
+        type: choice
+        required: false
+        default: applied
+        options:
+          - applied
+          - referred
+          - interview
+          - rejected
+          - offer
+          - withdrawn
 
 permissions:
   contents: write
+
+# One run at a time. Two overlapping runs (a manual dispatch landing on the
+# cron) each rewrite seen.json from the same base, and the loser's push fails.
+concurrency:
+  group: jobscan
+  cancel-in-progress: false
 
 jobs:
   scan:
@@ -52,6 +75,8 @@ jobs:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
           MODE: ${{ github.event.inputs.mode || 'scan' }}
           MAX_AGE: ${{ github.event.inputs.max_age || '2' }}
+          URL: ${{ github.event.inputs.url }}
+          STATUS: ${{ github.event.inputs.status || 'applied' }}
         run: |
           case "$MODE" in
             backlog)  python jobscan.py --repair-seen && python jobscan.py --backlog ;;
@@ -59,6 +84,7 @@ jobs:
             diagnose) python jobscan.py --diagnose ;;
             prune)    python jobscan.py --prune ;;
             dry-run)  python jobscan.py --dry-run --max-age "$MAX_AGE" ;;
+            applied)  python jobscan.py --applied "$URL" --status "$STATUS" ;;
             *)        python jobscan.py --max-age "$MAX_AGE" ;;
           esac
 
@@ -71,6 +97,9 @@ jobs:
           # after a discover run, which silently cost a whole backlog's state.
           git add -A
           git diff --staged --quiet || git commit -m "$MODE $(date -u +%Y-%m-%d)"
+          # Anything you pushed while this ran (a companies.csv or applied.csv
+          # edit) would reject a bare push and lose this run's seen.json.
+          git pull --rebase origin "$GITHUB_REF_NAME"
           git push
         env:
           MODE: ${{ github.event.inputs.mode || 'scan' }}
