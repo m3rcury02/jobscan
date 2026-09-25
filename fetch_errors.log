@@ -1692,3 +1692,7 @@
 2026-09-25T19:18:32.055019+05:30	Siemens	HTTPError: 402 Client Error: Payment Required for url: https://api.firecrawl.dev/v2/scrape
 2026-09-25T19:18:32.055052+05:30	Goldman Sachs	HTTPError: 402 Client Error: Payment Required for url: https://api.firecrawl.dev/v2/scrape
 2026-09-25T19:18:32.055078+05:30	Eli Lilly	HTTPError: 402 Client Error: Payment Required for url: https://api.firecrawl.dev/v2/scrape
+2026-09-25T23:53:31.288241+05:30	Postman	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/postman/jobs?content=true
+2026-09-25T23:53:31.289445+05:30	HappyLocate	HTTPError: 500 Server Error: Internal Server Error for url: https://happylocate.freshteam.com/jobs
+2026-09-25T23:53:40.823816+05:30	Bebetta	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-09-25T23:54:20.508722+05:30	Autodesk	HTTPError: 404 Client Error: Not Found for url: https://autodesk.wd1.myworkdayjobs.com/wday/cxs/autodesk/Ext/jobs
