@@ -226,7 +226,8 @@ TITLE_KEEP = [
     "software development", "app development", "application development",
     "ai specialist", "ai/python", "cloud &", "cloud and infra", "cloud infra",
     "cloud operations", "cloud ops", "cloud support", "cloud managed", "cloud native",
-    "cloud security", "cloud dev", "cloud data", "aws", "azure", "gcp", "google cloud",
+    "cloud security", "cloud dev", "cloud data", "cloud migration", "aws", "azure", "gcp",
+    "google cloud",
     "research engineer", "python engineer", "reliability engineer",
 ]
 
