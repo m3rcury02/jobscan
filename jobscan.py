@@ -1494,6 +1494,40 @@ def fetch_selectminds(token, tenant=None):
     return out
 
 
+def fetch_jibe(token, tenant=None):
+    """iCIMS Jibe career sites (careers.publicisgroupe.com). Token = host,
+    Tenant = location filter (India). Public /api/jobs, 100 a page, with the
+    full JD and a real posted_date. Publicis Groupe spans Sapient, Epsilon and
+    the agencies; the unit (tags2) goes into the title."""
+    host = token.strip().replace("https://", "").replace("http://", "").strip("/")
+    loc = (tenant or "India").strip()
+    out, page = [], 1
+    while page <= 15:
+        d = _call(requests.get, f"https://{host}/api/jobs",
+                  params={"page": page, "limit": 100, "location": loc},
+                  headers={**HEADERS, "Accept": "application/json"}, timeout=TIMEOUT).json()
+        rows = d.get("jobs") or []
+        if not rows:
+            break
+        for x in rows:
+            j = x.get("data") or {}
+            org = _first(j.get("tags2"))        # the unit: Epsilon, Publicis Sapient ...
+            title = (j.get("title") or "").strip()
+            out.append({
+                "title": f"{title} [{org}]" if org else title,
+                "location": ", ".join(v for v in (j.get("city"), j.get("country")) if v)
+                            or j.get("full_location") or "",
+                "url": f"https://{host}/jobs/{j.get('slug') or j.get('req_id')}?lang={j.get('language') or 'en-us'}",
+                "description": strip_html(" ".join(str(j.get(k) or "") for k in
+                                                   ("description", "qualifications"))),
+                "posted": (j.get("posted_date") or "")[:10],
+            })
+        if page * 100 >= int(d.get("totalCount") or 0):
+            break
+        page += 1
+    return out
+
+
 PHENOM_DDO = re.compile(r'"refNum"\s*:\s*"([^"]+)"')
 
 
@@ -1572,6 +1606,7 @@ ADAPTERS = {
     "techmahindra": fetch_techmahindra,
     "avature": fetch_avature,
     "selectminds": fetch_selectminds,
+    "jibe": fetch_jibe,
 }
 
 # --------------------------------------------------------------------------

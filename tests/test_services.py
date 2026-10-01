@@ -244,3 +244,17 @@ def test_selectminds_parses_search_rows():
         (j,) = J.fetch_selectminds("https://v.selectminds.com")
     assert j["title"] == "Data Engineer" and j["location"] == "Chennai, Tamil Nadu, India"
     assert j["url"].endswith("data-engineer-79930") and j["_teaser"]
+
+
+def test_jibe_pages_api_and_names_the_unit():
+    body = {"totalCount": 1, "jobs": [{"data": {
+        "slug": "145047", "language": "en-us", "title": "Software Engineer",
+        "tags2": ["Epsilon"], "city": "Bengaluru", "country": "India",
+        "posted_date": "2026-09-20T12:44:00+0000", "description": "2-4 years of experience in Java.",
+        "qualifications": "Spring Boot"}}]}
+    with patch.object(J.requests, "get", return_value=resp(body)) as get:
+        (j,) = J.fetch_jibe("careers.publicisgroupe.com", "India")
+    assert get.call_args.kwargs["params"]["location"] == "India"
+    assert j["title"] == "Software Engineer [Epsilon]" and j["posted"] == "2026-09-20"
+    assert j["url"] == "https://careers.publicisgroupe.com/jobs/145047?lang=en-us"
+    assert J.yoe_band(j["title"], j["description"]) == (2, 4)
