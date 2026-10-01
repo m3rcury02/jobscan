@@ -1528,6 +1528,48 @@ def fetch_jibe(token, tenant=None):
     return out
 
 
+def fetch_rss(token, tenant=None):
+    """A careers site's own RSS feed (Cognizant publishes one per region at
+    /<region>/jobs/xml/?rss=true). Feeds exist to be syndicated, so this is
+    the politest source there is. Token = feed URL. Tenant = the location to
+    assume when an item names none (the India feed is India-only)."""
+    import xml.etree.ElementTree as ET
+    r = _call(requests.get, token.strip(), headers={**HEADERS, "Accept": "application/rss+xml, application/xml, */*"},
+              timeout=TIMEOUT)
+    root = ET.fromstring(r.content)
+    out = []
+    for item in root.iter("item"):
+        def tag(name):
+            el = item.find(name)
+            return (el.text or "").strip() if el is not None and el.text else ""
+        title, link = tag("title"), tag("link") or tag("guid")
+        desc = strip_html(tag("description"))
+        cats = [strip_html(c.text or "") for c in item.findall("category") if c.text]
+        loc = next((c for c in cats if _has_india_city(c.lower()) or _word("india", c.lower())), "")
+        if not loc:
+            low = f"{title} {desc}".lower()
+            loc = next((c.title() for c in INDIA_CITIES if _word(c, low)), "")
+        posted = ""
+        if tag("pubDate"):
+            try:
+                posted = datetime.strptime(tag("pubDate")[:25].strip(), "%a, %d %b %Y %H:%M:%S").strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+        if not (title and link):
+            continue
+        out.append({
+            "title": title,
+            "location": (loc if (not tenant or tenant.lower() in loc.lower())
+                         else ", ".join(x for x in (loc, tenant) if x)),
+            "url": link,
+            "description": desc,
+            "posted": posted,
+            "_teaser": True,
+            "_detail": ("html", link),
+        })
+    return out
+
+
 PHENOM_DDO = re.compile(r'"refNum"\s*:\s*"([^"]+)"')
 
 
@@ -1607,6 +1649,7 @@ ADAPTERS = {
     "avature": fetch_avature,
     "selectminds": fetch_selectminds,
     "jibe": fetch_jibe,
+    "rss": fetch_rss,
 }
 
 # --------------------------------------------------------------------------

@@ -258,3 +258,23 @@ def test_jibe_pages_api_and_names_the_unit():
     assert j["title"] == "Software Engineer [Epsilon]" and j["posted"] == "2026-09-20"
     assert j["url"] == "https://careers.publicisgroupe.com/jobs/145047?lang=en-us"
     assert J.yoe_band(j["title"], j["description"]) == (2, 4)
+
+
+RSS = b"""<?xml version="1.0"?><rss version="2.0"><channel><title>Jobs</title>
+<item><title>Software Engineer</title>
+<link>https://careers.cognizant.com/india-en/jobs/00070622251/software-engineer/</link>
+<description>&lt;p&gt;Chennai - 2-4 years of experience&lt;/p&gt;</description>
+<pubDate>Tue, 30 Sep 2026 10:00:00 GMT</pubDate></item>
+<item><title>Sr Developer</title><link>https://careers.cognizant.com/india-en/jobs/1/sr-developer/</link>
+<category>Hyderabad, Telangana, India</category></item>
+</channel></rss>"""
+
+
+def test_rss_feed_items_dates_and_locations():
+    r = resp()
+    r.content = RSS
+    with patch.object(J.requests, "get", return_value=r):
+        a, b = J.fetch_rss("https://careers.cognizant.com/india-en/jobs/xml/?rss=true", "India")
+    assert a["location"] == "Chennai, India" and a["posted"] == "2026-09-30"
+    assert b["location"] == "Hyderabad, Telangana, India"      # no second ", India"
+    assert a["_detail"] == ("html", a["url"]) and a["_teaser"]
