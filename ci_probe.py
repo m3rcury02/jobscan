@@ -9,70 +9,56 @@ import requests
 import jobscan as J
 
 H = {**J.HEADERS, "Accept": "text/html,application/xhtml+xml,*/*;q=0.8"}
-API = re.compile(r"https?://[a-zA-Z0-9.-]+/[a-zA-Z0-9_/.-]*(?:api|search|jobs?|career|widgets|ajax)"
-                 r"[a-zA-Z0-9_/.?=&%-]*")
 
 
 def text_of(page):
     return re.sub(r"\s+", " ", J.strip_html(re.sub(r"<(script|style)\b.*?</\1>", " ", page, flags=re.S)))
 
 
-print("=== plain requests ===")
+print("=== cognizant, plain requests ===")
+s = requests.Session()
+s.headers.update(H)
 for u in ["https://careers.cognizant.com/global-en/jobs/",
-          "https://careers.cognizant.com/global-en/jobs/?location=India",
-          "https://careers.cognizant.com/global-en/search-results",
-          "https://www.mastek.com/careers/",
-          "https://careers.happiestminds.com/"]:
+          "https://careers.cognizant.com/india-en/jobs/",
+          "https://careers.cognizant.com/global-en/jobs/?keyword=&location=India&page=2"]:
     try:
-        r = requests.get(u, headers=H, timeout=30)
+        r = s.get(u, timeout=30)
         t = r.text
-        print(f"\n## PLAIN {r.status_code} {len(t)} {r.url[:100]}")
-        print("   title:", re.findall(r"<title>([^<]*)", t)[:1])
-        print("   text:", text_of(t)[:700])
-        print("   scripts:", re.findall(r'<script[^>]+src="([^"]+)"', t)[:12])
-        print("   apis:", sorted(set(API.findall(t)))[:20])
-        print("   job links:", sorted(set(re.findall(r'href="([^"]*(?:/job/|/jobs/|JobDetail|jobid|job-id)[^"]*)"', t, re.I)))[:8])
+        print(f"\n## {r.status_code} {len(t)} {r.url[:100]} title={re.findall(r'<title>([^<]*)', t)[:1]}")
+        hrefs = sorted(set(re.findall(r'href="([^"#]+)"', t)))
+        print("   job-ish hrefs:", [h for h in hrefs if re.search(r"job|search|page=", h, re.I)][:25])
+        print("   forms:", re.findall(r"<form[^>]*>", t)[:4])
+        print("   data attrs:", sorted(set(re.findall(r"data-[a-z-]*(?:job|total|count|page)[a-z-]*=\"[^\"]{0,40}\"", t)))[:10])
+        i = t.lower().find("results")
+        print("   near 'results':", text_of(t[max(0, i - 400):i + 1200])[:700] if i > 0 else "-")
     except Exception as e:
-        print("PLAIN ERR", u, type(e).__name__, str(e)[:100])
+        print("ERR", u, type(e).__name__, str(e)[:100])
+try:
+    app = s.get("https://careers.cognizant.com/phb/app.js.v0b621e2581d05d0b89f0e8acac710efbe2d0fa7d", timeout=30).text
+    print("\n## app.js", len(app))
+    print("   paths:", sorted(set(re.findall(r"[\"'`](/[a-zA-Z0-9_/-]*(?:api|search|jobs?|ajax|results)[a-zA-Z0-9_/?=&.-]*)[\"'`]", app)))[:30])
+    print("   fetch:", re.findall(r"fetch\([^)]{0,140}\)", app)[:8])
+except Exception as e:
+    print("app.js ERR", e)
 
-print("\n=== real headless chromium ===")
+print("\n=== kpit, real browser ===")
 from playwright.sync_api import sync_playwright  # noqa: E402
 
 with sync_playwright() as p:
     b = p.chromium.launch(headless=True)
-    for url in ["https://www.globallogic.com/career-search-page/?country=india",
-                "https://www.kpit.com/job-listing/",
-                "https://www.mastek.com/careers/",
-                "https://careers.happiestminds.com/"]:
-        ctx = b.new_context(user_agent=J.HEADERS["User-Agent"], locale="en-US")
-        pg = ctx.new_page()
-        calls = []
-
-        def on_resp(r, c=calls):
-            if r.request.resource_type in ("xhr", "fetch"):
-                snippet = ""
-                try:
-                    if "json" in (r.headers.get("content-type") or ""):
-                        snippet = r.text()[:200].replace("\n", " ")
-                except Exception:
-                    pass
-                c.append((r.status, r.request.method, r.url[:140], snippet))
-        pg.on("response", on_resp)
-        try:
-            pg.goto(url, wait_until="domcontentloaded", timeout=60000)
-        except Exception as e:
-            print("BROWSER goto err", url, str(e)[:90])
-        t = ""
-        for _ in range(10):
-            pg.wait_for_timeout(3000)
-            try:
-                t = pg.content()
-            except Exception:
-                continue
-        print(f"\n## BROWSER {url[:70]} -> {pg.url[:80]} title={pg.title()[:60]!r} len={len(t)}")
-        print("   text:", text_of(t)[:600])
-        print("   job links:", sorted(set(re.findall(r'href="([^"]*(?:/job/|/jobs/|job-detail|jobid|job-id)[^"]*)"', t, re.I)))[:8])
-        for c in calls[:25]:
-            print("   xhr", c)
-        ctx.close()
+    ctx = b.new_context(user_agent=J.HEADERS["User-Agent"], locale="en-US")
+    pg = ctx.new_page()
+    calls = []
+    pg.on("response", lambda r: calls.append((r.status, r.request.method, r.url[:150]))
+          if r.request.resource_type in ("xhr", "fetch", "document") else None)
+    pg.goto("https://www.kpit.com/job-listing/", wait_until="domcontentloaded", timeout=60000)
+    pg.wait_for_timeout(20000)
+    t = pg.content()
+    anchors = pg.eval_on_selector_all("a", "els => els.map(e => [e.innerText.trim().slice(0,60), e.href])")
+    print("anchors with job/apply/career:", [a for a in anchors if re.search(r"job|apply|career|opening", (a[0] or "") + (a[1] or ""), re.I)][:30])
+    print("iframes:", pg.eval_on_selector_all("iframe", "els => els.map(e => e.src)"))
+    i = t.find("Experience")
+    print("near Experience:", text_of(t[max(0, i - 600):i + 900])[:800] if i > 0 else "-")
+    for c in calls[:30]:
+        print("   net", c)
     b.close()
