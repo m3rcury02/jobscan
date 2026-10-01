@@ -146,3 +146,45 @@ Shipthis | https://shipthis.freshteam.com/jobs
 # ===== zohorecruit: Zoho Recruit - no adapter.
 # Tricon Infotech | https://triconinfotech.zohorecruit.com/jobs/Careers
 
+
+# ================= 2026-10-01 IT SERVICES FIRMS =================
+# Sources read out of each careers app's JavaScript and verified live. The
+# WORKING ones are in companies.csv under "2026-10-01: IT services firms".
+#
+# WORKING
+#   TCS            ibegin.tcsapps.com (ibegin.tcs.com no longer resolves);
+#                  POST /candidate/api/v1/jobs/searchJ after PUT
+#                  /api/v1/current/country/IN/EN/1 - the feed is US-only otherwise
+#   Infosys        intapgateway.infosysapps.com/careersci/search/intapjbsrch/
+#                  getCareerSearchJobs?sourceId=1,21&searchText=ALL (from
+#                  assets/environments/environment.json, JobsUnAuthUrl)
+#   Wipro, HCLTech SuccessFactors CSB: POST /services/recruiting/v1/jobs with the
+#                  page's CSRFToken. HCLTech filters by facet custCountryRegion.
+#   Persistent, Coforge, Cyient   Zwayam: POST public.zwayam.com/jobs/search,
+#                  companyId = COMPANYID from the site's main.js, TenantGroupId G1
+#   LTIMindtree, Mphasis, Altimetrik, Tata Technologies   RippleHire:
+#                  POST /candidate/candidatejobsearch, careerSiteUrlParams JSON
+#   Capgemini      cg-jobstream-api.azurewebsites.net/api/job-search?country_code=in-en
+#   Hexaware, Zensar, EXL, KPMG   Oracle HCM (tenants in companies.csv)
+#   Birlasoft, EY, Atos           SuccessFactors classic
+#   NTT DATA       Phenom front end; the apply links name Workday nttlimited.wd3
+#   DXC            Workday dxctechnology.wd1 / DXCJobs
+#   Quest Global, Eli Lilly       Phenom /widgets
+#
+# NOT COVERED
+#   Cognizant       careers.cognizant.com: Cloudflare "Just a moment" on the page
+#                   and on /widgets. cognizant.wd1 answers 422 (not that shard).
+#   EPAM            careers.epam.com API works but lists no India roles;
+#                   careers.epam.in returns 403.
+#   Tech Mahindra   careers.techmahindra.com/CurrentOpportunity.aspx - ASP.NET
+#                   WebForms postbacks (__VIEWSTATE); no JSON behind it.
+#   Deloitte India  usijobs.deloitte.com - Avature, server-rendered; needs a
+#                   per-site HTML parser.
+#   Publicis Sapient careers.publicisgroupe.com/jobs - custom front end on iCIMS.
+#   UST             ust.wd5 exists (401 for site UST_Careers); site name unknown.
+#   Virtusa, Mastek, Unisys, GlobalLogic   403 to plain requests.
+#   KPIT, Brillio   refuse this sandbox's egress (502 at CONNECT); untested from CI.
+#   Happiest Minds  Darwinbox, Cloudflare-gated like the other Darwinbox tenants.
+#   Sasken (HireWand), ValueLabs (AiDE Recruit), Cybage (own pages), CGI (njoyn),
+#   Movate, Mu Sigma, Sonata, LTTS, Tata Elxsi, Hitachi Vantara - not attempted
+#   past the careers page; each would be one-off work.

@@ -13,6 +13,7 @@ Usage:
 """
 
 import argparse
+import base64
 import csv
 import html
 import json
@@ -56,6 +57,16 @@ WORKERS = 8
 BACKLOG_MAX_AGE = 90
 # How deep to page a single Workday board. Only the largest tenants reach it.
 WORKDAY_MAX = 600
+# The same ceiling for the other paged boards. All of them are fetched newest
+# first, so the cap trims the old tail, never a fresh role. TCS and Zwayam
+# have no date sort that works; their order is newest-first by id/modified.
+ORACLE_MAX = 600
+SF_MAX = 500
+SFCSB_MAX = 500       # Wipro 4,380 / HCLTech 10,871 India roles, 10 per call
+TCS_MAX = 400
+ZWAYAM_MAX = 400
+RIPPLEHIRE_MAX = 600
+PHENOM_MAX = 1500
 
 # --------------------------------------------------------------------------
 # PROFILE - edit this when your stack changes
@@ -209,13 +220,21 @@ TITLE_KEEP = [
 ]
 
 TITLE_DROP = [
-    "staff", "principal", "lead", "leader", "manager", "director", "architect",
+    "principal", "lead", "leader", "manager", "director", "architect",
     "head of", "vp ", "vice president", "avp", "assistant vice president",
     "intern", "internship", "president", "chief", "fellow", "distinguished",
-    "senior staff",
     # new-grad programmes: at 2 years you are outside their eligibility
     "graduate", "new grad", "trainee", "apprentice", "fresher", "freshers",
 ]
+
+# "Staff Engineer" is a senior IC grade at product companies; at EY, Deloitte
+# and other consultancies a bare "Staff" is the entry grade (0-3 years). Drop
+# only the first: "staff" followed by a role noun.
+STAFF_IC = re.compile(
+    r"\bstaff\s+(?:software|engineer|data|machine|ml|ai|backend|back-end|front|full|"
+    r"site|security|product|research|developer|scientist|platform|infrastructure|"
+    r"systems?|sre|cloud|devops|mobile|applied|technical|member|analytics|solutions?)\b",
+    re.I)
 
 # Campus hiring drives: "IIT Jammu 2026 || TravClan || SDE-1" and similar.
 CAMPUS_DRIVE = re.compile(r"\d{4}\s*\|\||\|\|\s*\d{4}|campus\s+(drive|hiring)", re.I)
@@ -238,12 +257,13 @@ BATCH_GATE_RE = re.compile(
     rf"|\b(?:batch|pass(?:ed)?[- ]?out|graduation year)\s*[:\-]?\s*(?:{_GATED_YEARS})\b",
     re.I)
 
+# Staffing agencies only. IT services firms (TCS, Infosys, Wipro, HCLTech,
+# LTIMindtree, Persistent, Coforge ...) were dropped here until 2026-10-01;
+# they are now scanned on purpose - at 0-3 years they hire in the largest
+# volume of any employer group in India - and judged like everyone else.
 COMPANY_DROP = [
-    "accenture", "tcs", "tata consultancy", "infosys", "wipro",
-    "cognizant", "capgemini", "hcl", "tech mahindra", "ltimindtree",
-    "mindtree", "mphasis", "birlasoft", "hexaware", "zensar",
     "randstad", "adecco", "manpower", "michael page", "robert half",
-    "staffing", "recruitment", "consultancy services", "talent solutions",
+    "staffing", "recruitment", "talent solutions",
 ]
 
 # Years-of-experience mentions: "2-4 years", "3+ yrs", "7 + to 10 years",
@@ -456,26 +476,38 @@ def fetch_oracle(token, tenant=None):
     if not tenant:
         raise ValueError("oracle rows need a Tenant value")
     site = token or "CX_1"
-    url = (f"https://{tenant}/hcmRestApi/resources/latest/"
-           f"recruitingCEJobRequisitions?onlyData=true&expand=requisitionList"
-           f"&finder=findReqs;siteNumber={site},limit=200,location=India")
-    data = get_json(url)
+    # Newest first, then page: one unsorted limit=200 call silently cut
+    # Zensar, EXL and KPMG off at exactly 200 roles.
+    reqs, offset, total = [], 0, None
+    while offset < ORACLE_MAX:
+        url = (f"https://{tenant}/hcmRestApi/resources/latest/"
+               f"recruitingCEJobRequisitions?onlyData=true&expand=requisitionList"
+               f"&finder=findReqs;siteNumber={site},limit=200,offset={offset},"
+               f"location=India,sortBy=POSTING_DATES_DESC")
+        items = get_json(url).get("items", [])
+        page = [j for block in items for j in block.get("requisitionList", [])]
+        if items and total is None:
+            total = items[0].get("TotalJobsCount")
+        reqs += page
+        offset += 200
+        if len(page) < 200 or (total and offset >= total):
+            break
     out = []
-    for block in data.get("items", []):
-        for j in block.get("requisitionList", []):
-            rid = j.get("Id", "")
-            out.append({
-                "title": j.get("Title", ""),
-                "location": j.get("PrimaryLocation", "") or "",
-                "url": f"https://{tenant}/hcmUI/CandidateExperience/en/sites/{site}/job/{rid}",
-                # a one-line summary; enrich() swaps in the full JD
-                "description": strip_html(j.get("ShortDescriptionStr", "")),
-                "posted": (j.get("PostedDate") or "")[:10],
-                "_detail": ("oracle",
-                            f"https://{tenant}/hcmRestApi/resources/latest/"
-                            f"recruitingCEJobRequisitionDetails?expand=all&onlyData=true"
-                            f"&finder=ById;Id=%22{rid}%22,siteNumber={site}"),
-            })
+    for j in reqs:
+        rid = j.get("Id", "")
+        out.append({
+            "title": j.get("Title", ""),
+            "location": j.get("PrimaryLocation", "") or "",
+            "url": f"https://{tenant}/hcmUI/CandidateExperience/en/sites/{site}/job/{rid}",
+            # a one-line summary; enrich() swaps in the full JD
+            "description": strip_html(j.get("ShortDescriptionStr", "")),
+            "posted": (j.get("PostedDate") or "")[:10],
+            "_teaser": True,
+            "_detail": ("oracle",
+                        f"https://{tenant}/hcmRestApi/resources/latest/"
+                        f"recruitingCEJobRequisitionDetails?expand=all&onlyData=true"
+                        f"&finder=ById;Id=%22{rid}%22,siteNumber={site}"),
+        })
     return out
 
 
@@ -820,7 +852,10 @@ SF_LINK = re.compile(
     r'|href="([^"]+)"[^>]*?class="[^"]*\bjobTitle-link\b[^"]*"[^>]*>(.*?)</a>', re.S)
 SF_LOC = re.compile(r'class="[^"]*jobLocation[^"]*"[^>]*>(.*?)</span>', re.S)
 SF_DATE = re.compile(r'class="[^"]*jobDate[^"]*"[^>]*>(.*?)</span>', re.S)
-SF_TOTAL = re.compile(r'aria-label="Results \d+\s*[\u2013-]\s*(\d+)"'
+# "Results <b>1 – 25</b> of <b>2242</b>". The aria-label carries only the
+# page range, and reading it as the total stopped every board after page 1:
+# AMETEK has 71 India roles and this scanner had only ever seen 25.
+SF_TOTAL = re.compile(r'Results\s*<b>\s*\d+\s*[\u2013-]\s*\d+\s*</b>\s*of\s*<b>\s*([\d,]+)\s*</b>'
                       r'|data-record-returned="(\d+)"')
 
 
@@ -838,8 +873,9 @@ def fetch_successfactors(token, tenant=None):
     host = token.strip().replace("https://", "").replace("http://", "").strip("/")
     base = f"https://{host}"
     out, startrow, seen_urls = [], 0, set()
-    while startrow < 400:
-        url = f"{base}/search/?q=&locationsearch=India&startrow={startrow}"
+    while startrow < SF_MAX:
+        url = (f"{base}/search/?q=&locationsearch=India&sortColumn=referencedate"
+               f"&sortDirection=desc&startrow={startrow}")
         r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
         r.raise_for_status()
         chunks = SF_ROW.findall(r.text) or SF_TILE.findall(r.text)
@@ -873,12 +909,13 @@ def fetch_successfactors(token, tenant=None):
                 "url": base + href,
                 "description": "",
                 "posted": posted,
+                "_detail": ("html", base + href),
             })
         if len(out) == before:
             break
         startrow += len(chunks)
         t = SF_TOTAL.search(r.text)
-        if t and startrow >= int(t.group(1) or t.group(2)):
+        if t and startrow >= int((t.group(1) or t.group(2)).replace(",", "")):
             break
     return out
 
@@ -1004,6 +1041,354 @@ def fetch_firecrawl(token, tenant=None):
     return jobs
 
 
+# --------------------------------------------------------------------------
+# IT SERVICES - bespoke careers sites, each with a public JSON API behind it
+# --------------------------------------------------------------------------
+# Found 2026-10-01 by reading each careers app's own JavaScript; none of these
+# are reachable by guessing ATS slugs, which is why discover.py never found
+# them. Most store the experience band as fields rather than prose, so it is
+# written into the description as an "Experience: a-b years" line and
+# yoe_band() reads it like any JD.
+
+
+def _call(fn, *args, tries=3, **kwargs):
+    """fn(*args) with raise_for_status, retried on network errors. These
+    adapters make dozens of sequential calls per board, and one reset
+    connection (HCLTech does this) otherwise loses the whole board."""
+    for attempt in range(tries):
+        try:
+            r = fn(*args, **kwargs)
+            r.raise_for_status()
+            return r
+        except (requests.ConnectionError, requests.Timeout):
+            if attempt == tries - 1:
+                raise
+            time.sleep(2 * (attempt + 1))
+
+
+def _exp_line(lo, hi=None):
+    def num(x):
+        try:
+            return f"{float(x):g}"
+        except (TypeError, ValueError):
+            return None
+    lo, hi = num(lo), num(hi)
+    if lo is None:
+        return ""
+    return f"Experience: {lo}-{hi} years\n" if hi is not None else f"Experience: {lo}+ years\n"
+
+
+def _first(v):
+    """SuccessFactors CSB fields arrive as ["Hyderabad"] or "Hyderabad"."""
+    if isinstance(v, list):
+        v = v[0] if v else ""
+    return strip_html(str(v or "")).strip()
+
+
+INFOSYS_API = ("https://intapgateway.infosysapps.com/careersci/search/intapjbsrch/"
+               "getCareerSearchJobs?sourceId=1,21&searchText=ALL")
+
+
+def fetch_infosys(token="", tenant=None):
+    """Infosys careers (career.infosys.com). One unauthenticated call returns
+    every open India role with its full JD and min/max experience."""
+    r = _call(requests.get, INFOSYS_API, headers={**HEADERS,
+                                                  "Origin": "https://career.infosys.com",
+                                                  "Referer": "https://career.infosys.com/"},
+              timeout=60)
+    out = []
+    for j in r.json() or []:
+        desc = strip_html("\n".join(str(j.get(k) or "") for k in (
+            "postingDescription", "technicalRequirement", "rolesResponsibilities",
+            "additionalResponsibility")))
+        city = (j.get("location") or "").title()
+        out.append({
+            "title": (j.get("postingTitle") or "").strip(),
+            "location": ", ".join(x for x in (city, j.get("country") or "India") if x),
+            "url": f"https://career.infosys.com/jobdesc?jobReferenceCode={j.get('referenceCode')}",
+            "description": _exp_line(j.get("minExperienceLevel"), j.get("maxExperienceLevel")) + desc,
+            "posted": (j.get("createdOn") or "")[:10],
+        })
+    return out
+
+
+TCS_BASE = "https://ibegin.tcsapps.com/candidate/"
+TCS_HDRS = {"Content-Type": "application/json", "Origin": "https://ibegin.tcsapps.com",
+            "Referer": TCS_BASE + "jobs/search"}
+
+
+def fetch_tcs(token="", tenant=None):
+    """TCS iBegin (ibegin.tcsapps.com; the old ibegin.tcs.com no longer
+    resolves). The feed is localised per session and defaults to the US from
+    a US runner, so switch the session to India first. Results come newest
+    first by job id; there is no posting date, so these are first-sighting."""
+    s = requests.Session()
+    s.headers.update(HEADERS)
+    _call(s.put, TCS_BASE + "api/v1/current/country/IN/EN/1", headers=TCS_HDRS,
+          timeout=TIMEOUT)
+    body = {"jobCity": None, "jobSkill": None, "userText": "", "jobTitleOrder": None,
+            "jobCityOrder": None, "jobFunctionOrder": None, "jobExperienceOrder": None,
+            "applyByOrder": None, "regular": True, "walkin": True}
+    out, page, read = [], 1, 0
+    while read < TCS_MAX:
+        r = _call(s.post, TCS_BASE + "api/v1/jobs/searchJ",
+                  json={**body, "pageNumber": str(page)}, headers=TCS_HDRS, timeout=TIMEOUT)
+        data = (r.json() or {}).get("data") or {}
+        jobs = data.get("jobs") or []
+        if not jobs:
+            break
+        read += len(jobs)
+        for j in jobs:
+            jid = str(j.get("id") or "")
+            exp = (j.get("experience") or "").strip()
+            out.append({
+                "title": (j.get("jobTitle") or "").strip(),
+                "location": f"{j.get('location') or ''}, India".strip(", "),
+                "url": f"{TCS_BASE}jobs/{jid}",
+                "description": (f"Experience: {exp} years\n" if exp else "")
+                               + f"Skills: {j.get('skills') or ''}",
+                "posted": "",
+                "_detail": ("tcs", jid),
+            })
+        if read >= int(data.get("totalJobs") or 0):
+            break
+        page += 1
+    return out
+
+
+def fetch_sfcsb(token, tenant=None):
+    """SuccessFactors Career Site Builder (careers.wipro.com, careers.hcltech.com).
+
+    The newer CSB sites render search results client-side from a JSON endpoint
+    that wants the page's CSRF token, so the classic successfactors adapter
+    finds no rows on them. Token = host. Tenant = an optional facet filter,
+    "field=value" (HCLTech's country lives in custCountryRegion, and its
+    location box filters nothing); without one the location filter is India.
+    """
+    host = token.strip().replace("https://", "").replace("http://", "").strip("/")
+    s = requests.Session()
+    s.headers.update({**HEADERS, "Accept": "text/html"})
+    page = _call(s.get, f"https://{host}/search/?q=&locationsearch=India", timeout=TIMEOUT)
+    tok = re.search(r'CSRFToken\s*=\s*"([^"]+)"', page.text)
+    if not tok:
+        raise ValueError("no CSRFToken - not a Career Site Builder site")
+    facet, location = {}, "India"
+    if tenant and "=" in tenant:
+        k, v = tenant.split("=", 1)
+        facet, location = {k.strip(): [v.strip()]}, ""
+    hdrs = {"X-CSRF-Token": tok.group(1), "Content-Type": "application/json",
+            "Accept": "application/json"}
+    out, pn, read = [], 0, 0
+    while read < SFCSB_MAX:
+        body = {"locale": "en_US", "pageNumber": pn, "sortBy": "date", "keywords": "",
+                "location": location, "facetFilters": facet, "brand": "", "skills": [],
+                "categoryId": 0, "alertId": "", "rcmCandidateId": ""}
+        r = _call(s.post, f"https://{host}/services/recruiting/v1/jobs", json=body,
+                  headers=hdrs, timeout=TIMEOUT)
+        d = r.json()
+        rows = d.get("jobSearchResult") or []
+        if not rows:
+            break
+        read += len(rows)
+        for x in rows:
+            j = x.get("response") or {}
+            posted = ""
+            try:
+                posted = datetime.strptime(_first(j.get("unifiedStandardStart")),
+                                           "%m/%d/%y").strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+            city = (_first(j.get("sfstd_jobLocation_obj")) or _first(j.get("custprimecity"))
+                    or _first(j.get("jobLocationShort")).split(",")[0])
+            country = _first(j.get("jobLocationCountry")) or _first(j.get("custCountryRegion"))
+            url = f"https://{host}/job/{j.get('urlTitle')}/{j.get('id')}-en_US/"
+            out.append({
+                "title": _first(j.get("unifiedStandardTitle")),
+                "location": ", ".join(x for x in (city, country or "India") if x and x != "Others"),
+                "url": url,
+                "description": "",
+                "posted": posted,
+                "_detail": ("html", url),
+            })
+        pn += 1
+        if read >= int(d.get("totalJobs") or 0):
+            break
+    return out
+
+
+ZWAYAM_SEARCH = "https://public.zwayam.com/jobs/search"
+
+
+def fetch_zwayam(token, tenant=None):
+    """Zwayam careers sites (Persistent, Coforge, Cyient). Token = the careers
+    site base URL, e.g. https://careers.coforge.com/coforge/. Tenant = the
+    Zwayam company id (COMPANYID in the site's main.js, numeric or base64).
+    Every record carries the full JD and min/max years."""
+    base = token.strip().rstrip("/") + "/"
+    host = re.sub(r"^https?://", "", base).split("/")[0]
+    cid = (tenant or "").strip()
+    if cid.isdigit():
+        cid = base64.b64encode(cid.encode()).decode()
+    out, offset = [], 0
+    while offset < ZWAYAM_MAX:
+        crit = {"paginationStartNo": offset, "selectedCall": "sort",
+                "sortCriteria": {"name": "modifiedDate", "isAscending": False},
+                "anyOfTheseWords": ""}
+        r = _call(requests.post, ZWAYAM_SEARCH,
+                  files={"filterCri": (None, json.dumps(crit)), "domain": (None, host),
+                         "companyId": (None, cid)},
+                  headers={**HEADERS, "TenantGroupId": "G1"}, timeout=TIMEOUT)
+        data = (r.json() or {}).get("data") or {}
+        rows = data.get("data") or []
+        if not rows:
+            break
+        for row in rows:
+            j = row.get("_source") or {}
+            posted = ""
+            if j.get("createdDate"):
+                try:
+                    posted = datetime.fromtimestamp(int(j["createdDate"]) / 1000,
+                                                    tz=timezone.utc).strftime("%Y-%m-%d")
+                except (ValueError, OSError):
+                    pass
+            out.append({
+                "title": (j.get("jobTitle") or "").strip(),
+                "location": j.get("location") or j.get("city") or "",
+                "url": f"{base}jobview/{j.get('jobUrl')}",
+                "description": _exp_line(j.get("minYrsOfExperience"), j.get("maxYrsOfExperience"))
+                               + strip_html(j.get("mediumDescriptionWithoutHtml") or ""),
+                "posted": posted,
+            })
+        # the offset is a row offset, not a page number
+        offset += len(rows)
+        if not data.get("hasMoreData") or offset >= int(data.get("totalCount") or 0):
+            break
+    return out
+
+
+def fetch_ripplehire(token, tenant=None):
+    """RippleHire (LTIMindtree, Mphasis, Altimetrik, Tata Technologies).
+    Token = subdomain. Tenant = the careers-site token from the company's
+    "view jobs" link, optionally "|geo=India" (LTIMindtree publishes one token
+    per region). No posting dates; JD comes from the per-job detail call."""
+    sub = token.strip()
+    parts = [p.strip() for p in (tenant or "").split("|")]
+    tok, extra = parts[0], dict(p.split("=", 1) for p in parts[1:] if "=" in p)
+    base = f"https://{sub}.ripplehire.com/candidate/"
+    s = requests.Session()
+    s.headers.update(HEADERS)
+    s.get(f"{base}?token={tok}&lang=en&source=CAREERSITE", timeout=TIMEOUT)
+    out, page = [], 0
+    while len(out) < RIPPLEHIRE_MAX:
+        params = {"page": page, "search": "*:*", "token": tok, "source": "CAREERSITE",
+                  "pagesize": 50, **extra}
+        r = _call(s.post, base + "candidatejobsearch",
+                  data={"careerSiteUrlParams": json.dumps(params), "lang": "en"},
+                  headers={"X-Requested-With": "XMLHttpRequest",
+                           "Accept": "application/json"}, timeout=TIMEOUT)
+        d = r.json() or {}
+        rows = d.get("jobVoList") or []
+        if not rows:
+            break
+        for j in rows:
+            seq = j.get("jobSeq") or j.get("jobId")
+            loc = ", ".join(x for x in (j.get("locations"), j.get("jobLocation")) if x)
+            exp = (_exp_line(j.get("jobMinExp"), j.get("jobMaxExp"))
+                   or (f"Experience: {j['jobReqExp']}\n" if j.get("jobReqExp") else ""))
+            out.append({
+                "title": (j.get("jobTitle") or "").strip(),
+                "location": loc,
+                "url": f"{base}?token={tok}&source=CAREERSITE#detail/job/{seq}",
+                "description": exp,
+                "posted": "",
+                "_detail": ("ripplehire", f"{base}|{tok}|{seq}"),
+            })
+        page += 1
+        if page * 50 >= int(d.get("totalJobCount") or 0):
+            break
+    return out
+
+
+CAPGEMINI_API = "https://cg-jobstream-api.azurewebsites.net/api/job-search"
+
+
+def fetch_capgemini(token="in-en", tenant=None):
+    """Capgemini's job-search microservice. Token = country_code (in-en).
+    Its updated_at is touched on every re-index, so it is not a posting date:
+    these roles are dated by first sighting."""
+    out, page = [], 1
+    while page <= 20:
+        d = get_json(f"{CAPGEMINI_API}?country_code={token or 'in-en'}&page={page}&size=100")
+        rows = d.get("data") or []
+        if not rows:
+            break
+        for j in rows:
+            url = (j.get("apply_job_url") or j.get("wp_url") or "").split("?")[0]
+            out.append({
+                "title": (j.get("title") or "").strip(),
+                "location": f"{j.get('location') or ''}, India".strip(", "),
+                "url": url,
+                "description": strip_html(j.get("description") or j.get("description_stripped") or ""),
+                "posted": "",
+            })
+        if page * 100 >= int(d.get("count") or 0):
+            break
+        page += 1
+    return out
+
+
+PHENOM_DDO = re.compile(r'"refNum"\s*:\s*"([^"]+)"')
+
+
+def fetch_phenom(token, tenant=None):
+    """Phenom People career sites (Quest Global). Token = the site's
+    search-results URL. The page names the site (refNum, pageId, locale); the
+    /widgets endpoint then pages India results 100 at a time. Its sortBy is
+    ignored, so the whole India list is read; postedDate is real."""
+    page = _call(requests.get, token, headers={**HEADERS, "Accept": "text/html"},
+                 timeout=TIMEOUT)
+    t = page.text
+    ref = PHENOM_DDO.search(t)
+    if not ref:
+        raise ValueError("no refNum - not a Phenom site")
+    pid = re.search(r'"pageId"\s*:\s*"([^"]+)"', t)
+    lang = re.search(r'"locale"\s*:\s*"([a-z]{2}_[a-z]+)"', t)
+    ctry = re.search(r'"country"\s*:\s*"([a-z]+)"', t)
+    prefix = token.split("/search-results")[0].rstrip("/")
+    host = re.sub(r"^https?://", "", prefix).split("/")[0]
+    out, frm = [], 0
+    while frm < PHENOM_MAX:
+        body = {"lang": lang.group(1) if lang else "en_global", "deviceType": "desktop",
+                "country": ctry.group(1) if ctry else "global", "pageName": "search-results",
+                "ddoKey": "refineSearch", "from": frm, "jobs": True, "counts": False,
+                "all_fields": ["country"], "size": 100, "clearAll": False,
+                "jdsource": "facets", "isSliderEnable": False,
+                "pageId": pid.group(1) if pid else "page1", "siteType": "external",
+                "keywords": "", "global": True, "selected_fields": {"country": ["India"]},
+                "locationData": {}, "refNum": ref.group(1)}
+        r = _call(requests.post, f"https://{host}/widgets", json=body,
+                  headers={**HEADERS, "Content-Type": "application/json"}, timeout=TIMEOUT)
+        rs = (r.json() or {}).get("refineSearch") or {}
+        jobs = (rs.get("data") or {}).get("jobs") or []
+        if not jobs:
+            break
+        for j in jobs:
+            url = f"{prefix}/job/{j.get('jobId')}"
+            out.append({
+                "title": (j.get("title") or "").strip(),
+                "location": j.get("location") or j.get("city") or "",
+                "url": url,
+                "description": strip_html(j.get("descriptionTeaser") or ""),
+                "posted": (j.get("postedDate") or "")[:10],
+                "_teaser": True,
+                "_detail": ("phenom", url),
+            })
+        frm += len(jobs)
+        if frm >= int(rs.get("totalHits") or 0):
+            break
+    return out
+
+
 ADAPTERS = {
     "amazon": fetch_amazon,
     "eightfold": fetch_eightfold,
@@ -1020,6 +1405,13 @@ ADAPTERS = {
     "agency": fetch_agency,
     "workday": fetch_workday,
     "firecrawl": fetch_firecrawl,
+    "infosys": fetch_infosys,
+    "tcs": fetch_tcs,
+    "sfcsb": fetch_sfcsb,
+    "zwayam": fetch_zwayam,
+    "ripplehire": fetch_ripplehire,
+    "capgemini": fetch_capgemini,
+    "phenom": fetch_phenom,
 }
 
 # --------------------------------------------------------------------------
@@ -1043,6 +1435,62 @@ def has_jd(job):
     return len(job.get("description") or "") >= JD_MIN_CHARS
 
 
+HTML_NOISE = re.compile(r"<(script|style|noscript|header|footer|nav|svg)\b.*?</\1>", re.S | re.I)
+
+
+def _detail_html(url):
+    """Server-rendered job page (SuccessFactors). Chrome is stripped; what is
+    left is mostly the JD, which is all yoe_band() and skill_hits() need."""
+    r = requests.get(url, headers={**HEADERS, "Accept": "text/html"}, timeout=TIMEOUT)
+    r.raise_for_status()
+    return strip_html(HTML_NOISE.sub(" ", r.text))
+
+
+def _detail_tcs(jid):
+    # an India job 404s outside a session switched to India, as the list does
+    s = requests.Session()
+    s.headers.update(HEADERS)
+    s.put(TCS_BASE + "api/v1/current/country/IN/EN/1", headers=TCS_HDRS, timeout=TIMEOUT)
+    path = "api/v1/job/desc/walkin" if jid.upper().endswith("W") else "api/v1/job/desc"
+    r = s.post(TCS_BASE + path, json={"jobId": jid[:-1]}, headers=TCS_HDRS, timeout=TIMEOUT)
+    r.raise_for_status()
+    d = (r.json() or {}).get("data") or {}
+    return strip_html("\n".join(str(d.get(k) or "") for k in (
+        "description", "qualifications", "skilldetail", "additionalInfo")))
+
+
+def _detail_ripplehire(ref):
+    base, tok, seq = ref.split("|")
+    s = requests.Session()
+    s.headers.update(HEADERS)
+    s.get(f"{base}?token={tok}&lang=en&source=CAREERSITE", timeout=TIMEOUT)
+    r = s.get(base + "candidatejobdetail",
+              params={"token": tok, "jobSeq": seq, "source": "CAREERSITE", "lang": "en"},
+              headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+              timeout=TIMEOUT)
+    r.raise_for_status()
+    vo = (r.json() or {}).get("jobVO") or {}
+    return strip_html("\n".join(str(vo.get(k) or "") for k in ("jobDesc", "jobSkills", "otherDetails")))
+
+
+JSON_STRING = re.compile(r'"description"\s*:\s*"((?:[^"\\]|\\.)*)"')
+
+
+def _detail_phenom(url):
+    """Phenom embeds the job as JSON in the page; the longest "description"
+    string in it is the JD."""
+    r = requests.get(url, headers={**HEADERS, "Accept": "text/html"}, timeout=TIMEOUT)
+    r.raise_for_status()
+    found = JSON_STRING.findall(r.text)
+    if not found:
+        return ""
+    return strip_html(json.loads('"' + max(found, key=len) + '"'))
+
+
+DETAIL_TEXT = {"html": _detail_html, "tcs": _detail_tcs,
+               "ripplehire": _detail_ripplehire, "phenom": _detail_phenom}
+
+
 def enrich(job):
     """Fetch the full JD in place. Returns True on success. Never raises: a
     failed detail call leaves the list-level data, and the role is shown as
@@ -1051,6 +1499,13 @@ def enrich(job):
     if not kind:
         return False
     try:
+        if kind in DETAIL_TEXT:
+            # the list call's "Experience: ..." line stays in front of the JD
+            head = "" if job.get("_teaser") else (job.get("description") or "")
+            desc = (head + "\n" if head else "") + DETAIL_TEXT[kind](url)
+            if len(desc) > len(head):
+                job["description"] = desc
+            return True
         data = get_json(url, retries=1)
         if kind == "workday":
             info = data.get("jobPostingInfo") or {}
@@ -1101,7 +1556,9 @@ def _interleave_by_company(jobs):
 def enrich_all(jobs):
     """Enrich every thin-JD role that has a detail endpoint. Returns
     (attempted, failed)."""
-    todo = [j for j in jobs if j.get("_detail") and not has_jd(j)]
+    # _teaser: the list text is a summary that can pass JD_MIN_CHARS on
+    # length alone (Phenom, Oracle) - fetch the real JD regardless
+    todo = [j for j in jobs if j.get("_detail") and (j.get("_teaser") or not has_jd(j))]
     todo = _interleave_by_company(todo)[:ENRICH_MAX]
     if not todo:
         return 0, 0
@@ -1168,7 +1625,7 @@ def title_ok(title):
     t = (title or "").lower()
     if CAMPUS_DRIVE.search(title or ""):
         return False
-    if any(_word(bad.strip(), t) for bad in TITLE_DROP):
+    if any(_word(bad.strip(), t) for bad in TITLE_DROP) or STAFF_IC.search(t):
         return False
     return any(good in t for good in TITLE_KEEP)
 
@@ -1178,9 +1635,9 @@ def is_senior_title(title):
 
 
 def company_ok(company, referral=False):
-    """COMPANY_DROP exists to keep mass-market service firms out of the digest.
-    A referral changes that calculus entirely - a role you can be walked into
-    is worth seeing whoever posted it - so a Referral row skips the check.
+    """COMPANY_DROP keeps staffing agencies out of the digest. A referral
+    changes that calculus entirely - a role you can be walked into is worth
+    seeing whoever posted it - so a Referral row skips the check.
     """
     if referral:
         return True
@@ -1759,6 +2216,10 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
 APPLY_FIRST_MAX = 8
 APPLY_FIRST_MIN_SCORE = 55
 PER_COMPANY_CAP = 2
+# MORE MATCHES lists this many per company, then one "+N more" line. A TCS or
+# Wipro batch can run to dozens of roles; without a cap they bury the rest.
+# Every role is still in pipeline.csv.
+MORE_PER_COMPANY = 4
 # A referral is the biggest single lever on getting shortlisted, so a
 # referral role outranks a slightly better text match without one.
 REFERRAL_BONUS = 12
@@ -1797,6 +2258,23 @@ def _dedupe_postings(jobs):
             continue
         by_key[key] = j
         out.append(j)
+    return out
+
+
+def _per_company(jobs, render, cap=None):
+    """Render up to `cap` (MORE_PER_COMPANY) roles per company, then one
+    "+N more at X" line per company that ran over."""
+    cap = cap or MORE_PER_COMPANY
+    out, shown, hidden = [], {}, {}
+    for j in jobs:
+        co = j["company"]
+        if shown.get(co, 0) >= cap:
+            hidden[co] = hidden.get(co, 0) + 1
+            continue
+        shown[co] = shown.get(co, 0) + 1
+        out.append(render(j))
+    for co, n in sorted(hidden.items(), key=lambda kv: -kv[1]):
+        out.append(f"  +{n} more at {co} (all in pipeline.csv)")
     return out
 
 
@@ -1877,11 +2355,12 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
 
     lines.append(f"MORE MATCHES ({len(more)})")
     lines.append("-" * 60)
-    for j in more:
+    def more_line(j):
         note = f" [{j['applied_recently']}]" if j.get("applied_recently") else ""
-        lines.append(f"[{j['FitScore']}]{tag(j)} {j['title']} - {j['company']}, "
-                     f"{j['location'][:40]}{also(j)} | {band_label(j.get('yoe_band'))} "
-                     f"| {_age_label(j)}{note}\n      {j['FitReason']}\n      {j['url']}")
+        return (f"[{j['FitScore']}]{tag(j)} {j['title']} - {j['company']}, "
+                f"{j['location'][:40]}{also(j)} | {band_label(j.get('yoe_band'))} "
+                f"| {_age_label(j)}{note}\n      {j['FitReason']}\n      {j['url']}")
+    lines += _per_company(more, more_line)
     if not more:
         lines.append("  (none)")
     lines.append("")
@@ -1891,9 +2370,9 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
         lines.append("-" * 60)
         lines.append("  Your years fit, your stack barely shows in the JD. Worth a")
         lines.append("  glance only because a referral can carry a weaker match.")
-        for j in ref_low:
-            lines.append(f"  [{j['FitScore']}] {j['title']} - {j['company']} | "
-                         f"{band_label(j.get('yoe_band'))}\n      {j['url']}")
+        lines += _per_company(ref_low, lambda j: (
+            f"  [{j['FitScore']}] {j['title']} - {j['company']} | "
+            f"{band_label(j.get('yoe_band'))}\n      {j['url']}"))
         lines.append("")
 
     lines.append(f"LOW FIT: {len(low)} roles with full JDs scored under 40, not listed")
@@ -1903,9 +2382,9 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
     lines.append("-" * 60)
     lines.append("  No JD text available (careers page, or the JD fetch failed).")
     lines.append("  Not scored on content - open the page to judge.")
-    for j in titleonly:
-        lines.append(f"  {j['title']}{tag(j)} - {j['company']}, {j['location'][:40]}"
-                     f"\n      {j['url']}")
+    lines += _per_company(titleonly, lambda j: (
+        f"  {j['title']}{tag(j)} - {j['company']}, {j['location'][:40]}"
+        f"\n      {j['url']}"))
     if not titleonly:
         lines.append("  (none)")
 

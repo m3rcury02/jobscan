@@ -5,8 +5,9 @@ cloud roles whose stated experience band includes yours (`MY_YOE`, default 2), f
 full job description, scores it against your stack, and emails a digest that opens with
 the handful of roles to apply to first.
 
-310 boards across 14 adapters. Roles at companies where you have a referral bypass the
-service-firm filter and are tagged *REFERRAL* in the digest.
+About 340 boards across 22 adapters, including 22 IT services firms (TCS, Infosys, Wipro,
+HCLTech, LTIMindtree, Persistent, Coforge ...). Roles at companies where you have a referral
+are tagged *REFERRAL* and ranked up.
 
 No API keys for the job boards. All endpoints are public.
 
@@ -90,13 +91,10 @@ Actions > jobscan > Run workflow > mode:
 
 ## The Referral column
 
-`COMPANY_DROP` keeps mass-market service firms out of the digest. A referral inverts that
-tradeoff - a role someone can walk you into is worth seeing whoever posted it - so a row
-with `Referral = yes` skips the check entirely and its roles are tagged `*REFERRAL*` in
-the digest and in `pipeline.csv`.
-
-Without it, adding Accenture, Infosys, TCS, Wipro, Cognizant, Capgemini, HCLTech,
-LTIMindtree or Tech Mahindra achieves nothing: every job they return is discarded.
+A row with `Referral = yes` has its roles tagged `*REFERRAL*` in the digest and in
+`pipeline.csv`, ranked above a slightly better match without one, and given the
+referral-first instruction. It also skips `COMPANY_DROP`, which since 2026-10-01 holds only
+staffing agencies: a role someone can walk you into is worth seeing whoever posted it.
 
 ## seen.json is "already emailed", nothing else
 
@@ -124,12 +122,15 @@ Edit the constants at the top of `jobscan.py`:
   whole words. Add a skill as you gain it (and remove it from `GAP_SKILLS`). Weights 1-3.
 - `TITLE_KEEP` / `TITLE_DROP` - if you see junk, add the offending word to `TITLE_DROP`
   rather than raising the score threshold.
-- `COMPANY_DROP` - service firms and staffing agencies.
+- `COMPANY_DROP` - staffing agencies.
+- `MORE_PER_COMPANY` - roles listed per company in the longer digest sections before a
+  "+N more at X" line. Service firms post in bulk; this keeps one of them from burying the
+  rest. Every role is in `pipeline.csv` regardless.
 - `APPLY_FIRST_MAX` / `PER_COMPANY_CAP` / `REFERRAL_BONUS` - the shape of the top list.
 
 ### How a role is judged
 
-1. Cheap filters on the list data: new, not a service firm, engineering title, India,
+1. Cheap filters on the list data: new, not a staffing agency, engineering title, India,
    posted within `--max-age` days.
 2. One detail call per survivor fetches the full JD (Workday, SmartRecruiters, Oracle,
    Eightfold; the other boards include it already). A failed fetch is logged and the role
@@ -176,9 +177,40 @@ you have), what else the JD wants, and the next step.
 | `amazon` | no token needed. Filters on `normalized_country_code`, not the fuzzy loc_query. |
 | `custom` `agency` | plain GET plus text heuristics. See below. |
 | `firecrawl` | Token = full search URL, Tenant = waitFor ms. Real browser via Firecrawl; once a day. See below. |
+| `phenom` | Token = the site's search-results URL. Reads refNum/pageId from the page, then pages `/widgets`. Real dates. |
+| `sfcsb` | SuccessFactors Career Site Builder (newer template). Token = host; Tenant = optional `field=value` facet. |
+| `infosys` `tcs` `capgemini` | single-company APIs. TCS: session switched to India first; no dates. |
+| `zwayam` | Token = careers base URL, Tenant = Zwayam company id (COMPANYID in the site's main.js). |
+| `ripplehire` | Token = subdomain, Tenant = careers token, optionally `\|geo=India`. No dates. |
+
+`successfactors` reads the real result count ("of 2,242") and sorts newest first. Before
+2026-10-01 it read the page range as the total and stopped after 25 roles on every board.
+`oracle` likewise sorts newest first and pages past 200.
 
 Naukri is deliberately absent: it needs a headless browser and its listings skew heavily
 toward IT services bulk hiring.
+
+## IT services firms
+
+Added 2026-10-01. None has a board on the ATS platforms `discover.py` probes, so each
+source was read out of the careers site's own JavaScript: TCS iBegin, the Infosys careers
+API, SuccessFactors CSB (Wipro, HCLTech), Zwayam (Persistent, Coforge, Cyient), RippleHire
+(LTIMindtree, Mphasis, Altimetrik, Tata Technologies), Capgemini's job-search API, Oracle
+HCM (Hexaware, Zensar, EXL, KPMG), SuccessFactors (Birlasoft, EY, Atos), Workday (NTT DATA,
+DXC) and Phenom (Quest Global). Most publish the experience band as data, so the years
+filter works on them even where the JD prose does not state it.
+
+What to expect: bands at these firms are wide ("4-14 years") and often start above 3, so
+the years filter drops a large share. TCS, LTIMindtree, Capgemini, EY and the RippleHire
+boards publish no posting date; their first scan after being added reports every open role
+once, then only new ones.
+
+Not covered, and why (details in `careers_urls.txt`): Cognizant (Cloudflare challenge on
+both the site and its API), EPAM India (careers.epam.in returns 403; the global API lists no
+India roles), Tech Mahindra (ASP.NET postback forms), Deloitte India (Avature), Publicis
+Sapient (iCIMS front end), and UST, Virtusa, GlobalLogic, Mastek, Unisys (403 to plain
+requests, or a Workday site name not yet found). KPIT and Brillio refuse this sandbox's
+network; try them from CI with `discover` mode.
 
 ## Companies with no ATS (custom careers pages)
 

@@ -659,6 +659,34 @@ Texas Instruments,oracle,CX,edbz.fa.us2.oraclecloud.com,"moved off Radancy; 38 I
 Tesco,firecrawl,https://careers.tesco.com/en_GB/careers/SearchJobs/software%20engineer%20bengaluru,5000,"Avature; 18 results 2026-09-15",yes
 Siemens,firecrawl,https://jobs.siemens.com/en_US/externaljobs/SearchJobs/software%20engineer%20bangalore,5000,"Avature; 89 results 2026-09-15",yes
 Goldman Sachs,firecrawl,https://higher.gs.com/results?LOCATION=Bengaluru&page=1&search=engineer&sort=POSTED_DATE,8000,"left tal.net for higher.gs.com (Next.js); 18 Bengaluru roles",yes
-Eli Lilly,firecrawl,https://careers.lilly.com/us/en/india,5000,"Phenom; page already scopes to India (44 results); verified parse_markdown_jobs extracts title+location+url correctly - see tests/fx_lilly.md",yes
+Eli Lilly,phenom,https://careers.lilly.com/us/en/search-results,,"Phenom via its own /widgets API (was firecrawl, which is out of credits); 38 India roles 2026-10-01",yes
 Newspace,keka,newspace,,"on Keka's newer 2026 template (no GUID identifier); fetch_keka now falls back to /careers/api/jobs/<portal>/active. Aerospace; many stale postings. Verify with --dry-run",yes
 Testsigma,keka,testsigma,,"remaining_companies.md said lever - wrong; real board is testsigma.keka.com, verified 2 India roles",yes
+# --- 2026-10-01: IT services firms (COMPANY_DROP no longer excludes them) ---
+#   None of these are reachable by slug guessing; each source was read out of
+#   the careers site's own JavaScript and verified live on 2026-10-01. Counts
+#   are India roles that day. Cognizant (Cloudflare challenge on site and API),
+#   EPAM India (careers.epam.in 403s; the global API lists no India roles) and
+#   Tech Mahindra (ASP.NET postback forms) are not covered - see careers_urls.txt.
+TCS,tcs,ibegin.tcsapps.com,,"iBegin API, session switched to India; ~1,780 roles, newest 400 read; no posting dates",yes
+Infosys,infosys,career.infosys.com,,"careers search API; ~840 roles with full JD and min/max years",yes
+Wipro,sfcsb,careers.wipro.com,,"SuccessFactors Career Site Builder; ~4,380 roles, newest 500 read",yes
+HCLTech,sfcsb,careers.hcltech.com,custCountryRegion=India,"SuccessFactors CSB; country is a facet, not a location; ~10,870 roles, newest 500 read",yes
+LTIMindtree,ripplehire,ltimindtree,xviyQvbnyYZdGtozXoNm|geo=India,"RippleHire India token; ~540 roles; no posting dates",yes
+Capgemini,capgemini,in-en,,"job-search API; ~670 roles; updated_at is a re-index time, so dated by first sighting",yes
+NTT DATA,workday,NTT_Careers,nttlimited.wd3,"Phenom front end over this Workday tenant; ~214 roles",yes
+EY,successfactors,careers.ey.com,,"GDS; ~2,240 roles, newest 500 read; no dates. EY 'Staff' is the entry grade",yes
+KPMG India,oracle,CX_3,ejgk.fa.em2.oraclecloud.com,"Oracle HCM; ~200 roles",yes
+Persistent,zwayam,https://careers.persistent.com/,16344,"Zwayam; ~690 roles incl. US/Mexico, ~380 India; newest 400 read",
+Coforge,zwayam,https://careers.coforge.com/coforge/,15173,"Zwayam; ~110 roles, ~65 India",
+Cyient,zwayam,https://careers.cyient.com/cyient/,15486,"Zwayam; ~140 roles, ~105 India",
+Hexaware,oracle,CX_1,fa-etqo-saasfaprod1.fa.ocs.oraclecloud.com,"Oracle HCM; ~100 roles",
+Zensar,oracle,CX_1,fa-etvl-saasfaprod1.fa.ocs.oraclecloud.com,"Oracle HCM; ~220 roles",
+EXL,oracle,CX_2,fa-ewjt-saasfaprod1.fa.ocs.oraclecloud.com,"Oracle HCM; analytics and engineering",
+Birlasoft,successfactors,jobs.birlasoft.com,,"SuccessFactors; 500+ roles, newest 500 read",
+Atos,successfactors,jobs.atos.net,,"SuccessFactors (Atos / Eviden); ~30 roles",
+Mphasis,ripplehire,mphasis,ty4DfyWddnOrtpclQeia,"RippleHire; ~210 roles, ~95 India",
+Altimetrik,ripplehire,altimetrik,SWCslMw2ct8eSm7LyqVb,"RippleHire; ~210 roles, nearly all India",
+Tata Technologies,ripplehire,tatatechnologies,jjZIWXgr7fPCCF6T5yk4,"RippleHire; ~310 roles, ~150 India; automotive-engineering heavy",
+DXC Technology,workday,DXCJobs,dxctechnology.wd1,"~125 roles",
+Quest Global,phenom,https://careers.quest-global.com/global/en/search-results,,"Phenom; ~1,050 roles; engineering services",
