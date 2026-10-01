@@ -1768,3 +1768,6 @@
 2026-10-01T05:05:54.229779+05:30	Postman	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/postman/jobs?content=true
 2026-10-01T05:06:02.338277+05:30	Bebetta	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 2026-10-01T05:06:38.752975+05:30	Amplitude	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/amplitude/jobs?content=true
+2026-10-01T10:42:33.819547+05:30	Postman	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/postman/jobs?content=true
+2026-10-01T10:42:43.192723+05:30	Bebetta	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-01T10:43:20.026114+05:30	Amplitude	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/amplitude/jobs?content=true
