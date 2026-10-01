@@ -182,6 +182,9 @@ you have), what else the JD wants, and the next step.
 | `infosys` `tcs` `capgemini` | single-company APIs. TCS: session switched to India first; no dates. |
 | `zwayam` | Token = careers base URL, Tenant = Zwayam company id (COMPANYID in the site's main.js). |
 | `ripplehire` | Token = subdomain, Tenant = careers token, optionally `\|geo=India`. No dates. |
+| `avature` | Token = the portal's SearchJobs URL (keywords may sit in the path). Tenant = location to assume for "Multiple Locations". |
+| `selectminds` | Oracle SelectMinds. Token = site root. No dates. |
+| `techmahindra` | ASP.NET form postbacks. Title, band and skills only; the link names the Job Reference ID to search. |
 
 `successfactors` reads the real result count ("of 2,242") and sorts newest first. Before
 2026-10-01 it read the page range as the total and stopped after 25 roles on every board.
@@ -205,12 +208,9 @@ the years filter drops a large share. TCS, LTIMindtree, Capgemini, EY and the Ri
 boards publish no posting date; their first scan after being added reports every open role
 once, then only new ones.
 
-Not covered, and why (details in `careers_urls.txt`): Cognizant (Cloudflare challenge on
-both the site and its API), EPAM India (careers.epam.in returns 403; the global API lists no
-India roles), Tech Mahindra (ASP.NET postback forms), Deloitte India (Avature), Publicis
-Sapient (iCIMS front end), and UST, Virtusa, GlobalLogic, Mastek, Unisys (403 to plain
-requests, or a Workday site name not yet found). KPIT and Brillio refuse this sandbox's
-network; try them from CI with `discover` mode.
+Also reached, in a second pass: Tech Mahindra (form postbacks), Deloitte India (Avature),
+Virtusa (SelectMinds), Unisys (Workday) and UST (RippleHire). Tesco and Siemens moved off
+Firecrawl onto the Avature adapter.
 
 ## Companies with no ATS (custom careers pages)
 
