@@ -67,6 +67,7 @@ TCS_MAX = 400
 ZWAYAM_MAX = 400
 RIPPLEHIRE_MAX = 600
 PHENOM_MAX = 1500
+SELECTMINDS_MAX = 700
 
 # --------------------------------------------------------------------------
 # PROFILE - edit this when your stack changes
@@ -272,7 +273,7 @@ COMPANY_DROP = [
 _NUMWORD = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
             "seven": 7, "eight": 8, "nine": 9, "ten": 10, "twelve": 12,
             "fifteen": 15}
-_N = r"(\d{1,2}(?:\.\d)?|" + "|".join(_NUMWORD) + r")"
+_N = r"(\d{1,2}(?:\.\d{1,2})?|" + "|".join(_NUMWORD) + r")"
 YOE_RE = re.compile(
     rf"\b{_N}\s*(\+)?\s*(?:(?:-|–|—|to)\s*\+?\s*{_N}\s*)?\+?\s*"
     r"(?:years?|yrs?)(?![a-z])['’]?\s*\+?", re.I)
@@ -1337,6 +1338,162 @@ def fetch_capgemini(token="in-en", tenant=None):
     return out
 
 
+TECHM_URL = "https://careers.techmahindra.com/CurrentOpportunity.aspx"
+TECHM_MAX_PAGES = 40
+TECHM_CARD = re.compile(
+    r'HdnJobCode"\s+value="(\d+)".*?<div[^>]*>\s*([^<]+?)\s*</div>\s*<p[^>]*>(.*?)</p>', re.S)
+
+
+def _aspnet_state(page):
+    """Every hidden input (__VIEWSTATE, __EVENTVALIDATION, ...) a WebForms
+    postback has to send back."""
+    return {m.group(1): html.unescape(m.group(2)) for m in re.finditer(
+        r'<input type="hidden" name="([^"]+)" id="[^"]*" value="([^"]*)"', page)}
+
+
+def fetch_techmahindra(token="IND", tenant=None):
+    """Tech Mahindra (careers.techmahindra.com). An ASP.NET WebForms page with
+    no JSON behind it: search is a form postback and paging is __doPostBack
+    on a sliding 1-5 pager. Cards carry title, skill set, experience band and
+    city; the full JD is behind another postback, so these are title-only.
+    There is no per-job URL - the link names the job ref, which the site's
+    "Job Reference ID" box finds."""
+    s = requests.Session()
+    s.headers.update({**HEADERS, "Accept": "text/html"})
+    page = _call(s.get, TECHM_URL, timeout=60).text
+    fields = {"ctl00$ContentPlaceHolder1$ddlCountry": token or "IND",
+              "ctl00$ContentPlaceHolder1$ddlMinExp": "0",
+              "ctl00$ContentPlaceHolder1$ddlTotExpYears": "0"}
+    form = {**_aspnet_state(page), **fields,
+            "ctl00$ContentPlaceHolder1$btnSearchJobs": "Search"}
+    page = _call(s.post, TECHM_URL, data=form, headers={"Referer": TECHM_URL}, timeout=60).text
+    out, seen_codes, pn = [], set(), 1
+    while pn <= TECHM_MAX_PAGES:
+        new = 0
+        for code, title, body in TECHM_CARD.findall(page):
+            if code in seen_codes:
+                continue
+            seen_codes.add(code)
+            new += 1
+            info = dict((k.strip().lower(), strip_html(v).strip()) for k, v in re.findall(
+                r"<b>\s*([^<]+?)\s*</b>\s*:\s*(.*?)(?:<br\s*/?>|$)", body, re.S))
+            exp = info.get("experience", "")
+            out.append({
+                "title": strip_html(title).strip(),
+                "location": f"{info.get('location', '').title()}, India".strip(", "),
+                "url": f"{TECHM_URL}#job-ref-{code}",
+                "description": (f"Experience: {exp}\n" if exp else "")
+                               + f"Skills: {info.get('skill set', '')}",
+                "posted": "",
+            })
+        if not new:
+            break
+        # next page: the link labelled pn+1, else ">>" to slide the window
+        links = {re.sub(r"<[^>]+>", "", label).strip(): target for target, label in re.findall(
+            r"__doPostBack\(&#39;([^&]+lnkPage)&#39;,&#39;&#39;\)\"[^>]*>(.*?)</a>", page, re.S)}
+        target = links.get(str(pn + 1)) or links.get(">>")
+        if not target:
+            break
+        form = {**_aspnet_state(page), **fields, "__EVENTTARGET": target, "__EVENTARGUMENT": ""}
+        page = _call(s.post, TECHM_URL, data=form, headers={"Referer": TECHM_URL}, timeout=60).text
+        pn += 1
+    return out
+
+
+AVATURE_MAX = 600
+# the title link sits in the card's <h3>; class and href come in either order
+AVATURE_CARD = re.compile(
+    r'<h3[^>]*>\s*<a [^>]*?href="(https?://[^"]+/JobDetail/[^"]+)"[^>]*>\s*(.*?)\s*</a>\s*</h3>'
+    r'(.*?)</article>', re.S)
+
+
+def fetch_avature(token, tenant=None):
+    """Avature career portals (Deloitte India, Tesco, Siemens). Token = the
+    portal's SearchJobs URL, optionally with a keyword path or query already
+    in it. Server-rendered, newest first, 10 a page via jobOffset; the
+    result count is the data-total attribute on each card. Tenant = the
+    location to assume when a card says "Multiple Locations" (Deloitte's
+    India-offices portal)."""
+    base = token.strip()
+    sep = "&" if "?" in base else "?"
+    s = requests.Session()
+    s.headers.update({**HEADERS, "Accept": "text/html"})
+    out, seen_urls, offset = [], set(), 0
+    while offset < AVATURE_MAX:
+        page = _call(s.get, f"{base}{sep}jobRecordsPerPage=10&jobOffset={offset}",
+                     timeout=TIMEOUT).text
+        cards = AVATURE_CARD.findall(page)
+        if not cards:
+            break
+        for url, title, rest in cards:
+            url = html.unescape(url)
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
+            # location: the card line that names an Indian city or India
+            parts = [p.strip() for p in re.split(r"\s*[|\n]\s*", strip_html(rest)) if p.strip()]
+            loc = (next((p for p in parts if _has_india_city(p.lower())), "")
+                   or next((p for p in parts if _word("india", p.lower())), "")
+                   or (tenant or ""))
+            out.append({
+                "title": strip_html(title).strip(),
+                "location": loc,
+                "url": url,
+                "description": "",
+                "posted": "",
+                "_detail": ("html", url),
+            })
+        offset += len(cards)
+        total = re.search(r'data-total="(\d+)"', page)
+        if total and offset >= int(total.group(1)):
+            break
+    return out
+
+
+SELECTMINDS_ROW = re.compile(r'id="job_list_(\d+)"(.*?)(?=id="job_list_\d+"|$)', re.S)
+
+
+def fetch_selectminds(token, tenant=None):
+    """Oracle Taleo SelectMinds career sites (Virtusa). Token = the site root.
+    GET /jobs/search opens a search and redirects to /jobs/search/<id>;
+    pages are /page2, /page3 ... newest first by job id, 10 a page. No dates."""
+    root = token.strip().rstrip("/")
+    s = requests.Session()
+    s.headers.update({**HEADERS, "Accept": "text/html"})
+    first = _call(s.get, f"{root}/jobs/search", timeout=TIMEOUT)
+    search_url = first.url.rstrip("/")
+    out, seen_ids, pn, page = [], set(), 1, first.text
+    while pn * 10 <= SELECTMINDS_MAX:
+        rows = SELECTMINDS_ROW.findall(page)
+        new = 0
+        for jid, body in rows:
+            if jid in seen_ids:
+                continue
+            seen_ids.add(jid)
+            new += 1
+            link = re.search(r'<a href="([^"]+)" class="job_link[^"]*">(.*?)</a>', body, re.S)
+            # the home page wraps it in a link with an icon span, search pages don't
+            loc = re.search(r'class="location">\s*(?:<span[^>]*>.*?</span>)?\s*([^<]+?)\s*<', body, re.S)
+            snippet = re.search(r'class="jlr_description">(.*?)</p>', body, re.S)
+            if not link:
+                continue
+            out.append({
+                "title": strip_html(link.group(2)).strip(),
+                "location": (loc.group(1).strip() if loc else ""),
+                "url": html.unescape(link.group(1)),
+                "description": strip_html(snippet.group(1)) if snippet else "",
+                "posted": "",
+                "_teaser": True,
+                "_detail": ("html", html.unescape(link.group(1))),
+            })
+        total = re.search(r'class="total_results">\s*(\d+)', page)
+        if not new or (total and len(seen_ids) >= int(total.group(1))):
+            break
+        pn += 1
+        page = _call(s.get, f"{search_url}/page{pn}", timeout=TIMEOUT).text
+    return out
+
+
 PHENOM_DDO = re.compile(r'"refNum"\s*:\s*"([^"]+)"')
 
 
@@ -1412,6 +1569,9 @@ ADAPTERS = {
     "ripplehire": fetch_ripplehire,
     "capgemini": fetch_capgemini,
     "phenom": fetch_phenom,
+    "techmahindra": fetch_techmahindra,
+    "avature": fetch_avature,
+    "selectminds": fetch_selectminds,
 }
 
 # --------------------------------------------------------------------------

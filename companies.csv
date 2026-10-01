@@ -656,8 +656,8 @@ Dell Technologies,oracle,CX_1001,iawmqy.fa.ocs.oraclecloud.com,"moved off Radanc
 Texas Instruments,oracle,CX,edbz.fa.us2.oraclecloud.com,"moved off Radancy; 38 India 'software' reqs, mostly silicon",yes
 #   firecrawl rows: Tenant = waitFor ms. Needs FIRECRAWL_API_KEY secret.
 #   Tesco and Siemens are Avature; the keyword lives in the URL path.
-Tesco,firecrawl,https://careers.tesco.com/en_GB/careers/SearchJobs/software%20engineer%20bengaluru,5000,"Avature; 18 results 2026-09-15",yes
-Siemens,firecrawl,https://jobs.siemens.com/en_US/externaljobs/SearchJobs/software%20engineer%20bangalore,5000,"Avature; 89 results 2026-09-15",yes
+Tesco,avature,https://careers.tesco.com/en_GB/careers/SearchJobs/software%20engineer%20bengaluru,,"Avature, read directly (was firecrawl, out of credits); 11 India roles 2026-10-01",yes
+Siemens,avature,https://jobs.siemens.com/en_US/externaljobs/SearchJobs/software%20engineer%20bangalore,,"Avature, read directly (was firecrawl, out of credits)",yes
 Goldman Sachs,firecrawl,https://higher.gs.com/results?LOCATION=Bengaluru&page=1&search=engineer&sort=POSTED_DATE,8000,"left tal.net for higher.gs.com (Next.js); 18 Bengaluru roles",yes
 Eli Lilly,phenom,https://careers.lilly.com/us/en/search-results,,"Phenom via its own /widgets API (was firecrawl, which is out of credits); 38 India roles 2026-10-01",yes
 Newspace,keka,newspace,,"on Keka's newer 2026 template (no GUID identifier); fetch_keka now falls back to /careers/api/jobs/<portal>/active. Aerospace; many stale postings. Verify with --dry-run",yes
@@ -690,3 +690,12 @@ Altimetrik,ripplehire,altimetrik,SWCslMw2ct8eSm7LyqVb,"RippleHire; ~210 roles, n
 Tata Technologies,ripplehire,tatatechnologies,jjZIWXgr7fPCCF6T5yk4,"RippleHire; ~310 roles, ~150 India; automotive-engineering heavy",
 DXC Technology,workday,DXCJobs,dxctechnology.wd1,"~125 roles",
 Quest Global,phenom,https://careers.quest-global.com/global/en/search-results,,"Phenom; ~1,050 roles; engineering services",
+# --- 2026-10-01 (2): firms first listed as blocked, reached another way ---
+#   Unisys and UST were never blocked - their real boards were just not the
+#   ones on their corporate sites. Tech Mahindra is form postbacks, Deloitte
+#   India is Avature, Virtusa is Oracle SelectMinds.
+Tech Mahindra,techmahindra,IND,,"ASP.NET form postbacks; ~80 India roles, title + band + skills only, no per-job URL (link names the Job Reference ID)",yes
+Deloitte India,avature,https://usijobs.deloitte.com/en_US/careersUSI/SearchJobs,India,"Avature (USI offices); ~560 roles, newest 600 read",yes
+Virtusa,selectminds,https://virtusapolaris.referrals.selectminds.com,,"Oracle SelectMinds; ~690 roles, ~520 India",
+Unisys,workday,External,unisys.wd5,"~85 India roles",
+UST,ripplehire,usource,tW9pDapUrdIauOK07Wzb,"RippleHire (usource.ripplehire.com); ~600+ roles, ~410 India",

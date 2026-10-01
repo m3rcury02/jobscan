@@ -177,3 +177,70 @@ def test_call_retries_a_reset_connection_then_succeeds():
     with patch.object(J.time, "sleep"):
         assert J._call(flaky, "https://x") is ok
     assert flaky.call_count == 2
+
+
+TECHM_PAGE = '''
+<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="vs1" />
+<input type="hidden" name="ctl00$ContentPlaceHolder1$DataListRecommended$ctl00$HdnJobCode"
+ id="ctl00_ContentPlaceHolder1_DataListRecommended_ctl00_HdnJobCode" value="87316" /> <span>IT </span>
+<div style="margin-bottom: 5px;"> Sr. Software Engineer </div>
+<p style="font-size: 12px;"> <b>Skill Set </b>: Java <br /> <b>Experience</b> : 2.00-4.00 Years
+ <br /> <b>Location</b> : HYDERABAD </p>
+<a href="javascript:__doPostBack(&#39;ctl00$ContentPlaceHolder1$rptPager$ctl01$lnkPage&#39;,&#39;&#39;)" id="p">2</a>
+'''
+
+
+def test_techmahindra_posts_the_form_and_parses_cards():
+    s = MagicMock()
+    s.get.return_value = resp(text=TECHM_PAGE)
+    s.post.side_effect = [resp(text=TECHM_PAGE), resp(text=TECHM_PAGE)]  # page 2 repeats
+    with patch.object(J.requests, "Session", return_value=s):
+        jobs = J.fetch_techmahindra("IND")
+    assert len(jobs) == 1                       # a repeated page ends the walk
+    j = jobs[0]
+    assert j["title"] == "Sr. Software Engineer" and j["location"] == "Hyderabad, India"
+    assert j["url"].endswith("#job-ref-87316")
+    assert J.yoe_band(j["title"], j["description"]) == (2, 4)
+    second = s.post.call_args_list[1].kwargs["data"]
+    assert second["__EVENTTARGET"].endswith("rptPager$ctl01$lnkPage")
+    assert second["__VIEWSTATE"] == "vs1"
+
+
+AVATURE_PAGE = '''
+<article class="article--result " data-total="1">
+ <h3 class="article__header__text__title"> <a class="link"
+  href="https://usijobs.deloitte.com/en_US/careersUSI/JobDetail/X-Engineer/369235"> Software Engineer </a> </h3>
+ <div class="article__header__text__subtitle"> <span> Deloitte US – India Offices </span> |
+  <span>Hyderabad, Telangana, India</span> </div>
+ <a href="https://usijobs.deloitte.com/en_US/careersUSI/JobDetail/X-Engineer/369235">Read more</a>
+</article>
+'''
+
+
+def test_avature_reads_cards_prefers_the_city_line_and_stops_at_total():
+    with patch.object(J.requests, "Session") as S:
+        S.return_value.get.return_value = resp(text=AVATURE_PAGE)
+        (j,) = J.fetch_avature("https://usijobs.deloitte.com/en_US/careersUSI/SearchJobs", "India")
+    assert j["title"] == "Software Engineer"
+    assert j["location"] == "Hyderabad, Telangana, India"
+    assert j["_detail"][0] == "html"
+    assert S.return_value.get.call_count == 1
+
+
+SM_PAGE = '''<span class="total_results">1</span>
+<div id="job_list_79930" class="job_list_row">
+ <p><a href="https://v.selectminds.com/jobs/data-engineer-79930" class="job_link font_bold">Data Engineer</a></p>
+ <span class="font_bold">Location:</span> <span class="location">
+   Chennai, Tamil Nadu, India </span>
+ <p class="jlr_description">Owns the data pipelines</p>
+</div>'''
+
+
+def test_selectminds_parses_search_rows():
+    with patch.object(J.requests, "Session") as S:
+        first = resp(text=SM_PAGE)
+        first.url = "https://v.selectminds.com/jobs/search/2311639"
+        S.return_value.get.return_value = first
+        (j,) = J.fetch_selectminds("https://v.selectminds.com")
+    assert j["title"] == "Data Engineer" and j["location"] == "Chennai, Tamil Nadu, India"
+    assert j["url"].endswith("data-engineer-79930") and j["_teaser"]
