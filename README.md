@@ -114,8 +114,9 @@ the `backlog` run that follows re-checks them with their full JD.
 Edit the constants at the top of `jobscan.py`:
 
 - `MY_YOE` - your years of experience (2). A role is kept when the band its JD states
-  includes this ("1-3", "2-4", "2+"), marked *stretch* when it asks for up to
-  `MY_YOE + YOE_STRETCH` (3), and dropped above that. Bump it as you gain experience.
+  includes this ("0-2", "1-3", "2-4", "2+"), marked *stretch* when it asks for up to
+  `MY_YOE + YOE_STRETCH` (3), and dropped above that. A band you are past ("0-1",
+  "freshers only") is kept but ranked lower. Bump it as you gain experience.
 - `HAS_MASTERS` - "Bachelor's + 7 years OR Master's + 4 years" is read on the Bachelor's
   route unless this is True.
 - `CORE_SKILLS` / `SECONDARY_SKILLS` / `AI_SKILLS` - weighted keyword banks, matched as
@@ -138,10 +139,16 @@ Edit the constants at the top of `jobscan.py`:
 3. Years: a band in the title wins ("Exp: 4-8 Yrs"); otherwise the highest minimum across
    the required lines - "3+ years of development, 2+ of design" asks for 3. Preferred /
    nice-to-have lines, Master's/PhD routes and company history ("for 40 years") are
-   ignored. Graduation-year-gated roles ("2026 batch") are dropped.
-4. Seniority: "Senior", "Sr", "III" titles are kept only when the JD states a band you are
-   in or one year short of. Indian product companies do post "Senior (2-4 yrs)"; without
-   that evidence a senior title reads as 4-6+ years.
+   ignored. Graduation-year-gated roles ("2026 batch") are dropped. Junior phrasings are
+   read as bands: "up to 2 years" and "less than 2 years" as 0-2 (not 2+), "Freshers to
+   2 years", "Min 0 Max 2", "Experience Required: 0-2 Yrs", "6 months to 2 years",
+   "0-24 months".
+4. Seniority: "Senior", "Sr", "III" and "Staff Engineer" titles are kept only when the JD
+   states a band you are in or one year short of. Indian product companies do post
+   "Senior (2-4 yrs)", and Altimetrik's "Staff Engineer" is 2-5; without that evidence a
+   senior title reads as 4-6+ years. Fresher / trainee / graduate / new-grad titles work
+   the other way: kept only when the JD's band includes your years ("Trainee Software
+   Engineer, 0-2 yrs"); the rest are campus programmes you have aged out of.
 5. Score: 50% weighted skill overlap, 30% years fit (in-band 30, unstated 18, below 15,
    stretch 12), 20% role type. Deterministic and cheap. If it disagrees with your
    judgement, the keyword bank is wrong, not the formula.
@@ -214,7 +221,10 @@ Also reached, in a second pass: Cognizant (its own XML job feed - the careers pa
 behind Cloudflare for browsers, the feed is not), Tech Mahindra (form postbacks), Deloitte
 India (Avature), Virtusa (SelectMinds), Publicis Groupe incl. Sapient and Epsilon (iCIMS
 Jibe), Unisys (Workday), UST (RippleHire), Brillio (Lever) and Mastek (SuccessFactors).
-Tesco and Siemens moved off Firecrawl onto the Avature adapter.
+Tesco and Siemens moved off Firecrawl onto the Avature adapter, and Goldman Sachs onto
+the Oracle adapter (higher.gs.com is a front end over its Oracle site `LateralHiring`), so
+no row needs Firecrawl any more. Postman moved to Workday and Amplitude to Ashby in
+2026-10.
 
 Still not covered: EPAM India (Cloudflare WAF block even for a real browser, from any
 datacenter IP), GlobalLogic (its job search call returns 403 to datacenter IPs, browser
@@ -331,8 +341,10 @@ anything where `custom` finds zero roles. Add the repo secret
 `FIRECRAWL_API_KEY`. Rows without it log an error and are skipped.
 
 ```
-Goldman Sachs,firecrawl,https://higher.gs.com/results?LOCATION=Bengaluru&search=engineer,8000,,yes
+Example Co,firecrawl,https://careers.example.com/search?q=engineer&location=India,8000,,
 ```
+
+No row uses it at present (the last, Goldman Sachs, moved to the `oracle` adapter).
 
 It requests markdown (1 credit a page) and reads `[title](url)` links, so
 every role keeps its real URL, unlike `custom`'s `page#slug`. Dates are rarely

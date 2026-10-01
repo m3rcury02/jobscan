@@ -97,7 +97,7 @@ PayPay India,greenhouse,pay2dc,
 # DEAD-404 Perfios,greenhouse,perfios,
 Pinterest,greenhouse,pinterest,
 # DEAD-404 Portea Medical,greenhouse,portea,
-Postman,greenhouse,postman,
+Postman,workday,careers,postman.wd108,"left Greenhouse for Workday (2026-10); 12 India roles",yes
 # DEAD-404 Practo,greenhouse,practo,
 # DEAD-404 Progcap,greenhouse,progcap,
 project44,greenhouse,project44,
@@ -372,7 +372,7 @@ Acceleration Robotics,custom,https://accelerationrobotics.freshteam.com/jobs,,ro
 # ===== SMALL COMPANIES: KEKA =====
 # These DO publish "N days ago", which the adapter converts to a real date,
 # so the 2-day window applies to them normally.
-Bebetta,keka,bebetta,,"was custom scraper, returned 0 - keka API adapter"
+# GONE 2026-10: Keka tenant deleted (TenantNotFound) -> Bebetta,keka,bebetta,,"11-50 person startup; only junior role was batch-gated"
 GoKwik,keka,gokwik,,"was custom scraper, returned 0 - keka API adapter",yes
 # no published jobs, keka embed widget absent -> Valeo Health,keka,valeohealth,,"was custom scraper, returned 0 - keka API adapter"
 # no published jobs, keka embed widget absent -> India Health Link,keka,ihl,,"was custom scraper, returned 0 - keka API adapter"
@@ -527,7 +527,7 @@ Proximity Works,workable,proximity-works,,
 # ===== AGENCY (batch 2) =====
 Weekday AI,agency,https://apply.workable.com/weekday-1/,,
 # --- 29 boards added 2026-09-14: every slug probed against the live API and confirmed to carry India-located roles. ---
-Amplitude,greenhouse,amplitude,,"verified: 2 India roles, 0 matching filters"
+Amplitude,ashby,amplitude,,"left Greenhouse for Ashby (2026-10); 2 India roles, both non-engineering"
 Anyscale,ashby,anyscale,,"verified: 3 India roles, 3 matching filters"
 Astronomer,ashby,astronomer,,"verified: 1 India roles, 1 matching filters"
 Atlan,ashby,atlan,,"verified: 6 India roles, 1 matching filters"
@@ -658,7 +658,7 @@ Texas Instruments,oracle,CX,edbz.fa.us2.oraclecloud.com,"moved off Radancy; 38 I
 #   Tesco and Siemens are Avature; the keyword lives in the URL path.
 Tesco,avature,https://careers.tesco.com/en_GB/careers/SearchJobs/software%20engineer%20bengaluru,,"Avature, read directly (was firecrawl, out of credits); 11 India roles 2026-10-01",yes
 Siemens,avature,https://jobs.siemens.com/en_US/externaljobs/SearchJobs/software%20engineer%20bangalore,,"Avature, read directly (was firecrawl, out of credits)",yes
-Goldman Sachs,firecrawl,https://higher.gs.com/results?LOCATION=Bengaluru&page=1&search=engineer&sort=POSTED_DATE,8000,"left tal.net for higher.gs.com (Next.js); 18 Bengaluru roles",yes
+Goldman Sachs,oracle,LateralHiring,hdpc.fa.us2.oraclecloud.com,"higher.gs.com is a front end over this Oracle site (was firecrawl, out of credits); 129 India roles 2026-10-01",yes
 Eli Lilly,phenom,https://careers.lilly.com/us/en/search-results,,"Phenom via its own /widgets API (was firecrawl, which is out of credits); 38 India roles 2026-10-01",yes
 Newspace,keka,newspace,,"on Keka's newer 2026 template (no GUID identifier); fetch_keka now falls back to /careers/api/jobs/<portal>/active. Aerospace; many stale postings. Verify with --dry-run",yes
 Testsigma,keka,testsigma,,"remaining_companies.md said lever - wrong; real board is testsigma.keka.com, verified 2 India roles",yes

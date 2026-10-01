@@ -127,7 +127,10 @@ def test_senior_title(title, senior):
     ("LLM Engineer", True), ("Forward Deployed Engineer", True),
     ("Product Engineer", True), ("MLOps Engineer", True),
     ("Software Engineering Technical Leader", False),
-    ("Graduate Software Engineer", False), ("Graduate Engineer Trainee", False),
+    # an entry title passes here and is judged on its JD band in select()
+    ("Graduate Software Engineer", True), ("Graduate Engineer Trainee", False),
+    ("Senior System Engineer", True), ("Data Scientist", True),
+    ("Specialist - Cloud & Infra Management", True),
     ("Java Developer - AVP", False), ("Sales Manager II", False),
 ])
 def test_title_ok(title, ok):
@@ -155,3 +158,36 @@ def test_smartrecruiters_legacy_url_is_canonicalised():
     assert J.canon_url(old) == "https://jobs.smartrecruiters.com/SWIGGY/6000000001394755"
     ok = "https://job-boards.greenhouse.io/x/jobs/1"
     assert J.canon_url(ok) == ok
+
+
+@pytest.mark.parametrize("text, band", [
+    ("Experience: 0-2 years", (0, 2)),
+    ("up to 2 years of experience", (0, 2)),         # was read as 2+
+    ("less than 2 years of experience", (0, 2)),
+    ("Upto 2 yrs of experience", (0, 2)),
+    ("Freshers to 2 years of experience", (0, 2)),
+    ("Experience: Fresher - 2 yrs", (0, 2)),
+    ("Freshers/Experienced (0-3 years)", (0, 3)),
+    ("Experience Required: 0-2 Yrs", (0, 2)),
+    ("Experience Range: 0 to 2 years", (0, 2)),
+    ("Experience: Min 0 Max 2 years", (0, 2)),
+    ("Minimum 1 year and maximum 3 years of experience", (1, 3)),
+    ("6 months to 2 years of experience", (0.5, 2)),
+    ("Experience: 0 - 24 months", (0, 2)),
+    ("6+ months of experience", (0.5, None)),
+    ("Experience: Fresher", (0, 0)),
+    # untouched
+    ("more than 4 years of experience", (4, None)),
+    ("3-5 years of experience", (3, 5)),
+    ("You will undergo 6 months of training", None),
+    ("within 6 months of joining you will own a service", None),
+])
+def test_junior_band_phrasings(text, band):
+    assert J.yoe_band("Software Engineer", text) == band
+
+
+def test_junior_bands_fit_two_years():
+    assert J.band_fit((0, 2)) == "in-band"
+    assert J.band_fit((0, 1)) == "below"       # kept, ranked lower
+    assert J.band_fit((0, 0)) == "below"
+    assert J.band_label((0, 0)) == "freshers only"

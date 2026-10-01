@@ -151,3 +151,21 @@ def test_mark_applied_and_followups(isolated):
     assert "cisco" in J.recent_by_company(applied)
     applied[0]["Status"] = "rejected"
     assert J.followups_due(applied) == []
+
+
+def test_entry_titles_are_kept_only_with_a_band_you_fit():
+    jobs = [wd_job("Trainee Software Engineer", n=1),        # 0-2 yrs: keep
+            wd_job("Graduate Software Engineer", n=2),       # no band: drop
+            wd_job("Software Engineer - Freshers", n=3),     # freshers only: drop
+            wd_job("Associate Software Engineer", n=4)]      # 0-1, not entry title: keep
+    details = {
+        "1": workday_detail("Experience: Freshers to 2 years. " + JD_OK),
+        "2": workday_detail(JD_OK),
+        "3": workday_detail("Experience: Fresher. " + JD_OK),
+        "4": workday_detail("Experience: 0-1 year. " + JD_OK),
+    }
+    with patch.object(J, "get_json", side_effect=lambda url, retries=2: details[url[-1]]):
+        kept, drops, stats = J.select(jobs, seen=set(), max_age=2)
+    assert sorted(j["url"][-1] for j in kept) == ["1", "4"]
+    assert stats["entry_unproven"] == 2
+    assert {j["url"][-1]: j["yoe_fit"] for j in kept} == {"1": "in-band", "4": "below"}

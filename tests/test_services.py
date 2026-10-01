@@ -25,13 +25,15 @@ def test_service_firms_pass_the_company_filter_but_agencies_do_not():
     assert not J.company_ok("Randstad India")
 
 
-@pytest.mark.parametrize("title, ok", [
-    ("Staff Software Engineer", False), ("Senior Staff Engineer", False),
-    ("Staff ML Engineer", False),
-    ("EY - GDS Consulting - AI and DATA - Python Developer - Staff", True),
+@pytest.mark.parametrize("title, senior", [
+    ("Staff Software Engineer", True), ("Senior Staff Software Engineer", True),
+    ("Staff ML Engineer", True),
+    ("EY - GDS Consulting - AI and DATA - Python Developer - Staff", False),
 ])
-def test_staff_is_a_senior_grade_only_before_a_role_noun(title, ok):
-    assert J.title_ok(title) is ok
+def test_staff_is_a_senior_grade_only_before_a_role_noun(title, senior):
+    # judged on the JD's band like "Senior", not dropped on the title
+    assert J.title_ok(title)
+    assert J.is_senior_title(title) is senior
 
 
 def test_successfactors_total_reads_the_of_n_count():

@@ -217,6 +217,12 @@ TITLE_KEEP = [
     # AI and cloud titles the list above missed entirely
     "llm", "genai", "gen ai", "generative ai", "mlops", "ml ops", "ai/ml",
     "forward deployed", "product engineer", "founding engineer",
+    # IT-services grade titles, measured on 2026-10-01 against ~10,500 India
+    # roles: Infosys hires 2-3 year engineers as "Senior System Engineer",
+    # Accenture/Birlasoft say "App Development", LTIMindtree/UST "Cloud & Infra"
+    "system engineer", "data scientist", "data science", "cloud",
+    "software development", "app development", "application development",
+    "ai specialist", "ai/python",
     "research engineer", "python engineer", "reliability engineer",
 ]
 
@@ -224,13 +230,19 @@ TITLE_DROP = [
     "principal", "lead", "leader", "manager", "director", "architect",
     "head of", "vp ", "vice president", "avp", "assistant vice president",
     "intern", "internship", "president", "chief", "fellow", "distinguished",
-    # new-grad programmes: at 2 years you are outside their eligibility
-    "graduate", "new grad", "trainee", "apprentice", "fresher", "freshers",
 ]
 
+# Fresher/new-grad/trainee titles are not dropped outright: Indian employers
+# post "Trainee Software Engineer (0-2 yrs)" and "Java Developer - Freshers to
+# 2 years", which you fit. Like a senior title, one is kept only when its JD
+# states a band you fall in; the rest are campus programmes you have aged out
+# of (BATCH_GATE_RE catches the year-gated ones first).
+ENTRY_TITLE_RE = re.compile(
+    r"\b(?:graduates?|new[\s-]+grads?|trainees?|apprentice(?:ship)?s?|freshers?)\b", re.I)
+
 # "Staff Engineer" is a senior IC grade at product companies; at EY, Deloitte
-# and other consultancies a bare "Staff" is the entry grade (0-3 years). Drop
-# only the first: "staff" followed by a role noun.
+# and other consultancies a bare "Staff" is the entry grade (0-3 years). Only
+# the first - "staff" followed by a role noun - counts as a senior title.
 STAFF_IC = re.compile(
     r"\bstaff\s+(?:software|engineer|data|machine|ml|ai|backend|back-end|front|full|"
     r"site|security|product|research|developer|scientist|platform|infrastructure|"
@@ -280,14 +292,67 @@ YOE_RE = re.compile(
 # "of relevant experience", "applied experience", "of full stack experience"
 YOE_EXP_AFTER = re.compile(
     r"\s*(?:of\s+)?(?:[\w/.-]+\s+){0,6}?(?:experience|experinece|exp\b|expertise)", re.I)
-YOE_EXP_BEFORE = re.compile(r"(?:experience|exp)\s*[:\-(]?\s*(?:of\s+)?"
+YOE_EXP_BEFORE = re.compile(r"(?:experienced?|exp\.?)\s*(?:required|range|level|needed)?"
+                            r"\s*[:\-(]?\s*(?:of\s+)?"
                             r"(?:minimum\s+(?:of\s+)?|min\.?\s*)?$", re.I)
+
+# Indian JDs state junior bands in shapes YOE_RE cannot read, or reads
+# backwards ("up to 2 years" as 2+). _yoe_normalize() rewrites them to a
+# plain "lo-hi years" before parsing.
+_UNIT = r"(years?|yrs?)"
+YOE_MINMAX = re.compile(
+    rf"\bmin(?:imum)?\.?\s*(?:of\s+)?{_N}\s*(?:years?|yrs?)?\s*(?:,|and|&|-|to|/)?\s*"
+    rf"max(?:imum)?\.?\s*(?:of\s+)?{_N}\s*{_UNIT}", re.I)
+YOE_UPTO = re.compile(
+    rf"\b(?:up\s*-?\s*to|upto|less\s+than|at\s+most|(?:not|no)\s+more\s+than|"
+    rf"max(?:imum)?\.?(?:\s+of)?)\s+{_N}\s*\+?\s*{_UNIT}", re.I)
+YOE_FRESHER_RANGE = re.compile(
+    rf"\bfreshers?\s*(?:to|-|–|—|/|or|and)\s*(?:experienced\s*)?\(?\s*"
+    rf"(?:0\s*(?:-|–|—|to)\s*)?{_N}\s*\+?\s*{_UNIT}", re.I)
+YOE_FRESHER_ONLY = re.compile(
+    r"\b(?:experience|exp\.?)\s*(?:required|level)?\s*[:\-]\s*freshers?\b"
+    r"(?!\s*(?:to|-|–|—|/|or|and)\s*\w)", re.I)
+YOE_MONTHS_RANGE = re.compile(
+    r"\b(\d{1,2})\s*(?:months?\s*)?(?:-|–|—|to)\s*(\d{1,2})\s*months?\b", re.I)
+YOE_MONTHS_TO_YEARS = re.compile(
+    rf"\b(\d{{1,2}})\s*months?\s*(?:-|–|—|to)\s*(?={_N}\s*\+?\s*(?:years?|yrs?))", re.I)
+YOE_MONTHS = re.compile(r"\b(\d{1,2})\s*(\+)?\s*months?\b", re.I)
+
+
+def _months(n):
+    return f"{round(int(n) / 12, 2):g}"
+
+
+def _yoe_normalize(text):
+    """Rewrite junior-band phrasings to "lo-hi years". 0-0 marks a
+    fresher-only role."""
+    # months first, so "no more than 18 months" reaches the up-to rule as years
+    text = YOE_MONTHS_RANGE.sub(lambda m: f"{_months(m.group(1))}-{_months(m.group(2))} years", text)
+    text = YOE_MONTHS_TO_YEARS.sub(lambda m: f"{_months(m.group(1))} to ", text)
+
+    def bare_months(m):
+        # "6+ months of experience" yes; "within 6 months of joining" no
+        before = text[max(0, m.start() - 40):m.start()]
+        if YOE_EXP_AFTER.match(text[m.end():m.end() + 80]) or YOE_EXP_BEFORE.search(before):
+            return f"{_months(m.group(1))}{m.group(2) or ''} years"
+        return m.group(0)
+    text = YOE_MONTHS.sub(bare_months, text)
+
+    def upto(m):
+        # "up to 2 years" is a junior band; a Senior SRE JD's "up to 5 years"
+        # means about five, so larger figures keep their old 5+ reading
+        n = _yoe_num(m.group(1))
+        return f"0-{m.group(1)} {m.group(2)}" if n is not None and n <= 3 else m.group(0)
+    text = YOE_MINMAX.sub(lambda m: f"{m.group(1)}-{m.group(2)} {m.group(3)}", text)
+    text = YOE_UPTO.sub(upto, text)
+    text = YOE_FRESHER_RANGE.sub(lambda m: f"experience: 0-{m.group(1)} {m.group(2)}", text)
+    return YOE_FRESHER_ONLY.sub("Experience: 0-0 years", text)
 # "5+ years in ML systems", "3 years building APIs"
 YOE_CONNECTOR = re.compile(r"\s*(?:of|in|on|as|with|working|building|developing|"
                            r"designing|writing|hands|delivering|leading)\b", re.I)
 # company history, not a requirement: "for 40 years", "in the last 1 year"
 YOE_BLURB = re.compile(r"\b(?:for|over|than|past|last|since|nearly|almost|founded|"
-                       r"history)\s*(?:the\s+)?(?:last\s+|past\s+)?$", re.I)
+                       r"history|within)\s*(?:the\s+)?(?:last\s+|past\s+)?$", re.I)
 YOE_PREFERRED = re.compile(
     r"\b(?:prefer(?:red|ably)?|nice[- ]to[- ]have|good[- ]to[- ]have|a plus|"
     r"bonus|ideally|desir(?:ed|able)|advantage(?:ous)?)\b", re.I)
@@ -639,6 +704,10 @@ def fetch_keka(token, tenant=None):
 
     shell = requests.get(f"{base}/careers/", headers=HEADERS, timeout=TIMEOUT)
     shell.raise_for_status()
+    # A company that leaves Keka is redirected here with a 200, and the API
+    # calls below then fail as an unhelpful JSONDecodeError.
+    if "TenantNotFound" in shell.url:
+        raise RuntimeError(f"{sub}.keka.com no longer exists - find the new board")
     m = KEKA_INNER.search(shell.text)
     page = shell.text
     if m:
@@ -1877,13 +1946,15 @@ def title_ok(title):
     t = (title or "").lower()
     if CAMPUS_DRIVE.search(title or ""):
         return False
-    if any(_word(bad.strip(), t) for bad in TITLE_DROP) or STAFF_IC.search(t):
+    if any(_word(bad.strip(), t) for bad in TITLE_DROP):
         return False
     return any(good in t for good in TITLE_KEEP)
 
 
 def is_senior_title(title):
-    return bool(SENIOR_RE.search(title or ""))
+    # "Staff Engineer" is 8+ years at product companies but 2-5 at Altimetrik,
+    # so it is judged on the JD's band like "Senior", not dropped on sight
+    return bool(SENIOR_RE.search(title or "") or STAFF_IC.search(title or ""))
 
 
 def company_ok(company, referral=False):
@@ -1978,10 +2049,10 @@ def yoe_band(title, description=""):
     design" asks for 3, not 2, which is what the old min() got wrong.
     Preferred/nice-to-have lines and Master's/PhD routes are ignored.
     """
-    t = _yoe_mentions(title or "", is_title=True)
+    t = _yoe_mentions(_yoe_normalize(title or ""), is_title=True)
     if t:
         return max(t, key=lambda x: (x[0], x[1] is not None))
-    text = (description or "")[:10000]
+    text = _yoe_normalize((description or "")[:10000])
     if not text:
         return None
     text = YOE_OPTION.sub(lambda m: "\n" + ("" if m.group(1) == "1" else "@ALT@ "), text)
@@ -2030,6 +2101,8 @@ def band_label(band):
     if band is None:
         return "years not stated"
     lo, hi = band
+    if band == (0, 0):
+        return "freshers only"
     f = lambda x: str(int(x)) if x == int(x) else str(x)
     return f"{f(lo)}-{f(hi)} yrs" if hi is not None else f"{f(lo)}+ yrs"
 
@@ -2395,6 +2468,10 @@ def select(raw, seen, max_age):
             stats["senior_unproven"] += 1
             drops.append((j["url"], f"senior title, {band_label(band)}"))
             continue
+        if ENTRY_TITLE_RE.search(j["title"]) and fit != "in-band":
+            stats["entry_unproven"] += 1
+            drops.append((j["url"], f"fresher/graduate programme, {band_label(band)}"))
+            continue
         if age is None:
             stats["undated"] += 1
         j["yoe_band"], j["yoe_fit"] = band, fit
@@ -2672,6 +2749,7 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
         f"Dropped, asks more than {MY_YOE + YOE_STRETCH} years: {stats.get('over_yoe', 0)}",
         f"Dropped, senior title without a band you fit: {stats.get('senior_unproven', 0)}",
         f"Dropped, graduation-year gated: {stats.get('batch_gated', 0)}",
+        f"Dropped, fresher/graduate title without a band you fit: {stats.get('entry_unproven', 0)}",
         f"JDs fetched: {stats.get('enriched', 0)} (failed: {stats.get('enrich_failed', 0)})",
         f"No posting date from board: {stats.get('undated', 0)} (kept, dated by first sighting)",
         f"Fetch errors: {errors} (see fetch_errors.log)",

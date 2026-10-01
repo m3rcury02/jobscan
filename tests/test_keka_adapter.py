@@ -11,6 +11,8 @@ the network.
 """
 from unittest.mock import patch, Mock
 
+import pytest
+
 import jobscan as J
 
 OLD_SHELL = """
@@ -34,8 +36,9 @@ JOB_PAYLOAD = [{
 }]
 
 
-def _resp(text=None, json_body=None):
+def _resp(text=None, json_body=None, url="https://acme.keka.com/careers/"):
     r = Mock()
+    r.url = url                       # where requests ended up after redirects
     r.raise_for_status = Mock()
     if text is not None:
         r.text = text
@@ -80,3 +83,10 @@ def test_new_template_falls_back_to_portal_only_endpoint():
     assert len(jobs) == 1
     assert jobs[0]["location"] == "Bengaluru, India"
     assert any(u.endswith("/careers/api/jobs/default/active") for u in calls)
+
+
+def test_deleted_tenant_raises_a_readable_error():
+    gone = "https://bebetta.keka.com/careers/Content/TenantNotFound.html"
+    with patch.object(J.requests, "get", return_value=_resp(text="<title>Invalid Tenant</title>", url=gone)):
+        with pytest.raises(RuntimeError, match="no longer exists"):
+            J.fetch_keka("bebetta")
