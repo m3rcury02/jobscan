@@ -1529,44 +1529,58 @@ def fetch_jibe(token, tenant=None):
 
 
 def fetch_rss(token, tenant=None):
-    """A careers site's own RSS feed (Cognizant publishes one per region at
-    /<region>/jobs/xml/?rss=true). Feeds exist to be syndicated, so this is
-    the politest source there is. Token = feed URL. Tenant = the location to
-    assume when an item names none (the India feed is India-only)."""
+    """A careers site's own job feed. Feeds exist to be syndicated, so this is
+    the politest source there is. Reads both shapes in the wild:
+      - RSS <item> (title, link, description, pubDate, category)
+      - Indeed-style <job> (title, url, city, state, country, description,
+        date) - Cognizant's /<region>/jobs/xml/?rss=true is this: ~2,000 jobs
+        worldwide with full JDs, despite the rss=true in its URL.
+    Token = feed URL. Tenant = country to keep (and to assume when an item
+    names no location)."""
     import xml.etree.ElementTree as ET
-    r = _call(requests.get, token.strip(), headers={**HEADERS, "Accept": "application/rss+xml, application/xml, */*"},
-              timeout=TIMEOUT)
+    r = _call(requests.get, token.strip(),
+              headers={**HEADERS, "Accept": "application/rss+xml, application/xml, */*"},
+              timeout=60)
     root = ET.fromstring(r.content)
+    want = (tenant or "").strip()
     out = []
-    for item in root.iter("item"):
-        def tag(name):
-            el = item.find(name)
-            return (el.text or "").strip() if el is not None and el.text else ""
-        title, link = tag("title"), tag("link") or tag("guid")
-        desc = strip_html(tag("description"))
-        cats = [strip_html(c.text or "") for c in item.findall("category") if c.text]
-        loc = next((c for c in cats if _has_india_city(c.lower()) or _word("india", c.lower())), "")
-        if not loc:
-            low = f"{title} {desc}".lower()
-            loc = next((c.title() for c in INDIA_CITIES if _word(c, low)), "")
-        posted = ""
-        if tag("pubDate"):
-            try:
-                posted = datetime.strptime(tag("pubDate")[:25].strip(), "%a, %d %b %Y %H:%M:%S").strftime("%Y-%m-%d")
-            except ValueError:
-                pass
+    for item in (el for el in root.iter() if el.tag in ("item", "job")):
+        def tag(*names):
+            for name in names:
+                el = item.find(name)
+                if el is not None and el.text and el.text.strip():
+                    return el.text.strip()
+            return ""
+        title, link = tag("title"), tag("link", "url", "guid")
         if not (title and link):
             continue
-        out.append({
-            "title": title,
-            "location": (loc if (not tenant or tenant.lower() in loc.lower())
-                         else ", ".join(x for x in (loc, tenant) if x)),
-            "url": link,
-            "description": desc,
-            "posted": posted,
-            "_teaser": True,
-            "_detail": ("html", link),
-        })
+        country = tag("country")
+        if want and country and country.lower() != want.lower():
+            continue
+        desc = strip_html(tag("description"))
+        if item.tag == "job":
+            loc = ", ".join(dict.fromkeys(x for x in (tag("city").split(",")[0], tag("state"),
+                                                      country) if x))
+        else:
+            cats = [strip_html(c.text or "") for c in item.findall("category") if c.text]
+            loc = next((c for c in cats if _has_india_city(c.lower()) or _word("india", c.lower())), "")
+            if not loc:
+                low = f"{title} {desc}".lower()
+                loc = next((c.title() for c in INDIA_CITIES if _word(c, low)), "")
+        if want and want.lower() not in loc.lower():
+            loc = ", ".join(x for x in (loc, want) if x)
+        posted = ""
+        when = tag("pubDate", "date")
+        if when:
+            try:
+                posted = datetime.strptime(when[:25].strip(), "%a, %d %b %Y %H:%M:%S").strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+        job = {"title": title, "location": loc, "url": link, "description": desc,
+               "posted": posted}
+        if len(desc) < JD_MIN_CHARS:
+            job.update(_teaser=True, _detail=("html", link))
+        out.append(job)
     return out
 
 

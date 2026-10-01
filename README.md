@@ -185,6 +185,8 @@ you have), what else the JD wants, and the next step.
 | `avature` | Token = the portal's SearchJobs URL (keywords may sit in the path). Tenant = location to assume for "Multiple Locations". |
 | `selectminds` | Oracle SelectMinds. Token = site root. No dates. |
 | `techmahindra` | ASP.NET form postbacks. Title, band and skills only; the link names the Job Reference ID to search. |
+| `jibe` | iCIMS Jibe sites. Token = host, Tenant = location. Unit (e.g. Epsilon) appended to the title. |
+| `rss` | A site's own job feed: RSS `<item>` or Indeed-style `<job>`. Token = feed URL, Tenant = country to keep. |
 
 `successfactors` reads the real result count ("of 2,242") and sorts newest first. Before
 2026-10-01 it read the page range as the total and stopped after 25 roles on every board.
@@ -208,9 +210,17 @@ the years filter drops a large share. TCS, LTIMindtree, Capgemini, EY and the Ri
 boards publish no posting date; their first scan after being added reports every open role
 once, then only new ones.
 
-Also reached, in a second pass: Tech Mahindra (form postbacks), Deloitte India (Avature),
-Virtusa (SelectMinds), Unisys (Workday) and UST (RippleHire). Tesco and Siemens moved off
-Firecrawl onto the Avature adapter.
+Also reached, in a second pass: Cognizant (its own XML job feed - the careers pages are
+behind Cloudflare for browsers, the feed is not), Tech Mahindra (form postbacks), Deloitte
+India (Avature), Virtusa (SelectMinds), Publicis Groupe incl. Sapient and Epsilon (iCIMS
+Jibe), Unisys (Workday), UST (RippleHire), Brillio (Lever) and Mastek (SuccessFactors).
+Tesco and Siemens moved off Firecrawl onto the Avature adapter.
+
+Still not covered: EPAM India (Cloudflare WAF block even for a real browser, from any
+datacenter IP), GlobalLogic (its job search call returns 403 to datacenter IPs, browser
+included), Happiest Minds (Darwinbox behind a Cloudflare Turnstile check), and KPIT (needs
+a real browser to pass a JavaScript check; adding Playwright to every 2-hourly run would
+cost roughly 9 hours of Actions minutes a month on a private repo).
 
 ## Companies with no ATS (custom careers pages)
 

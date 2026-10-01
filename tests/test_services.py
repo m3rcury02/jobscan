@@ -278,3 +278,23 @@ def test_rss_feed_items_dates_and_locations():
     assert a["location"] == "Chennai, India" and a["posted"] == "2026-09-30"
     assert b["location"] == "Hyderabad, Telangana, India"      # no second ", India"
     assert a["_detail"] == ("html", a["url"]) and a["_teaser"]
+
+
+JOBFEED = b"""<?xml version="1.0" encoding="utf-8"?><source><publisher>Cognizant</publisher>
+<job><title><![CDATA[Software Engineer]]></title><date><![CDATA[Thu, 01 Oct 2026 04:09:13 GMT]]></date>
+<url><![CDATA[https://careers.cognizant.com/india-en/jobs/00070622251/software-engineer/]]></url>
+<city><![CDATA[Chennai]]></city><state><![CDATA[Tamil Nadu]]></state><country><![CDATA[India]]></country>
+<description><![CDATA[<p>""" + b"Build Java microservices. 2-4 years of experience. " * 8 + b"""</p>]]></description></job>
+<job><title><![CDATA[Frontier Engineer]]></title><url><![CDATA[https://x/uk]]></url>
+<city><![CDATA[London,UK]]></city><country><![CDATA[United Kingdom]]></country></job>
+</source>"""
+
+
+def test_indeed_style_job_feed_filters_country_and_keeps_full_jd():
+    r = resp()
+    r.content = JOBFEED
+    with patch.object(J.requests, "get", return_value=r):
+        (j,) = J.fetch_rss("https://careers.cognizant.com/india-en/jobs/xml/?rss=true", "India")
+    assert j["location"] == "Chennai, Tamil Nadu, India" and j["posted"] == "2026-10-01"
+    assert J.has_jd(j) and "_detail" not in j        # the feed carries the whole JD
+    assert J.yoe_band(j["title"], j["description"]) == (2, 4)

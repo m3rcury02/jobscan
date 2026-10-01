@@ -171,20 +171,29 @@ Shipthis | https://shipthis.freshteam.com/jobs
 #   DXC            Workday dxctechnology.wd1 / DXCJobs
 #   Quest Global, Eli Lilly       Phenom /widgets
 #
-# NOT COVERED
-#   Cognizant       careers.cognizant.com: Cloudflare "Just a moment" on the page
-#                   and on /widgets. cognizant.wd1 answers 422 (not that shard).
-#   EPAM            careers.epam.com API works but lists no India roles;
-#                   careers.epam.in returns 403.
-#   Tech Mahindra   careers.techmahindra.com/CurrentOpportunity.aspx - ASP.NET
-#                   WebForms postbacks (__VIEWSTATE); no JSON behind it.
-#   Deloitte India  usijobs.deloitte.com - Avature, server-rendered; needs a
-#                   per-site HTML parser.
-#   Publicis Sapient careers.publicisgroupe.com/jobs - custom front end on iCIMS.
-#   UST             ust.wd5 exists (401 for site UST_Careers); site name unknown.
-#   Virtusa, Mastek, Unisys, GlobalLogic   403 to plain requests.
-#   KPIT, Brillio   refuse this sandbox's egress (502 at CONNECT); untested from CI.
-#   Happiest Minds  Darwinbox, Cloudflare-gated like the other Darwinbox tenants.
+# RESOLVED 2026-10-01 (second pass) - see companies.csv
+#   Cognizant       /india-en/jobs/xml/?rss=true: Indeed-style feed of all jobs.
+#                   Plain requests from Actions get it; only headless browsers
+#                   and this sandbox are challenged.
+#   Tech Mahindra   WebForms postbacks (techmahindra adapter)
+#   Deloitte India  Avature usijobs.deloitte.com (avature adapter)
+#   Publicis        iCIMS Jibe careers.publicisgroupe.com/api/jobs (jibe adapter)
+#   UST             RippleHire usource.ripplehire.com
+#   Virtusa         Oracle SelectMinds virtusapolaris.referrals.selectminds.com
+#   Unisys          Workday unisys.wd5 / External
+#   Mastek          SuccessFactors careers.mastek.com
+#   Brillio         jobs.brillio.com no longer resolves; Lever brillio-2
+#
+# NOT COVERED (as of the second pass)
+#   EPAM India      careers.epam.in: "Cloudflare: WAF block" from Actions too,
+#                   real browser included - a network policy, not a bot check.
+#                   (careers.epam.com's API works but lists no India roles.)
+#   GlobalLogic     the page's own admin-ajax job search 403s from Actions,
+#                   in a real browser too.
+#   Happiest Minds  smileshrms.darwinbox.com behind Cloudflare Turnstile.
+#   KPIT            kpit.com/job-listing/?show_all=1 renders in a real browser
+#                   (TalentOjo ATS behind it, no public list API found); needs
+#                   Playwright in CI.
 #   Sasken (HireWand), ValueLabs (AiDE Recruit), Cybage (own pages), CGI (njoyn),
 #   Movate, Mu Sigma, Sonata, LTTS, Tata Elxsi, Hitachi Vantara - not attempted
 #   past the careers page; each would be one-off work.

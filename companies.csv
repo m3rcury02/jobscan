@@ -702,3 +702,7 @@ UST,ripplehire,usource,tW9pDapUrdIauOK07Wzb,"RippleHire (usource.ripplehire.com)
 Publicis Groupe,jibe,careers.publicisgroupe.com,India,"iCIMS Jibe /api/jobs; ~150 India roles: Epsilon, Publicis Sapient, MSL, Digitas - unit shown in the title",yes
 Brillio,lever,brillio-2,,"Lever (careers.brillio.com links here; jobs.brillio.com no longer resolves); ~170 India roles",yes
 Mastek,successfactors,careers.mastek.com,,"SuccessFactors; ~12 India roles",
+# Cognizant's careers pages are behind Cloudflare for browsers, but it publishes
+# an Indeed-style XML feed of every open job (~2,000, ~530 India) with full JDs.
+# Reachable from GitHub Actions; this repo's dev sandbox gets a 403.
+Cognizant,rss,https://careers.cognizant.com/india-en/jobs/xml/?rss=true,India,"Indeed-style job feed; ~530 India roles with full JD and dates",yes
