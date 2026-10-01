@@ -219,10 +219,14 @@ TITLE_KEEP = [
     "forward deployed", "product engineer", "founding engineer",
     # IT-services grade titles, measured on 2026-10-01 against ~10,500 India
     # roles: Infosys hires 2-3 year engineers as "Senior System Engineer",
-    # Accenture/Birlasoft say "App Development", LTIMindtree/UST "Cloud & Infra"
-    "system engineer", "data scientist", "data science", "cloud",
+    # Accenture/Birlasoft say "App Development", LTIMindtree/UST "Cloud & Infra".
+    # Not a bare "cloud": that pulls in "Salesforce Marketing Cloud" and "SAP
+    # Cloud Platform" functional consultants.
+    "system engineer", "data scientist", "data science",
     "software development", "app development", "application development",
-    "ai specialist", "ai/python",
+    "ai specialist", "ai/python", "cloud &", "cloud and infra", "cloud infra",
+    "cloud operations", "cloud ops", "cloud support", "cloud managed", "cloud native",
+    "cloud security", "cloud dev", "cloud data", "aws", "azure", "gcp", "google cloud",
     "research engineer", "python engineer", "reliability engineer",
 ]
 
