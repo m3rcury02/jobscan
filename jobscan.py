@@ -2102,6 +2102,47 @@ def band_fit(band):
     return "in-band"
 
 
+# Your order, best first: 0-2, then 1-3, then 2+, then 0-1, then the rest.
+# The digest sorts on this before the fit score, inside each section (a role
+# still needs the section's fit score to be listed at all). Written relative
+# to MY_YOE so it moves with you; the labels below are for MY_YOE = 2.
+BAND_RANKS = {             # rank: (short label, what lands there)
+    1: ("0-2", "tops out at your years: 0-2, 1-2"),
+    2: ("1-3", "one year above you: 1-3, 0-3, 2-3, or open from 1 (1+)"),
+    3: ("2+", "open from your years, or wider: 2+, 2-4, 2-5"),
+    4: ("0-1", "you are past it: 0-1, freshers only"),
+    5: ("other", "asks 3 (stretch), or years not stated"),
+}
+
+
+def band_rank(band):
+    """1 (most wanted) to 5. See BAND_RANKS."""
+    fit = band_fit(band)
+    if fit == "below":
+        return 4
+    if fit != "in-band":
+        return 5
+    lo, hi = band
+    if hi is None:
+        return 3 if lo >= MY_YOE else 2
+    if hi < MY_YOE + 1:
+        return 1
+    if hi < MY_YOE + 2:
+        return 2
+    return 3
+
+
+def _band_from_label(s):
+    """Inverse of band_label(), for rows already in pipeline.csv."""
+    s = (s or "").strip()
+    if s == "freshers only":
+        return (0.0, 0.0)
+    m = re.fullmatch(r"([\d.]+)(?:-([\d.]+)|\+) yrs", s)
+    if not m:
+        return None
+    return (float(m.group(1)), float(m.group(2)) if m.group(2) else None)
+
+
 def band_label(band):
     if band is None:
         return "years not stated"
@@ -2222,8 +2263,9 @@ def save_seen(seen):
 
 
 PIPELINE_COLS = ["DateSeen", "Company", "Title", "Location", "MinYOE", "YOEBand",
-                 "YOEFit", "Referral", "URL", "Posted", "FitScore", "FitReason",
-                 "GapNote", "Section", "Status", "AppliedDate", "FollowUpDate"]
+                 "YOEFit", "BandRank", "Referral", "URL", "Posted", "FitScore",
+                 "FitReason", "GapNote", "Section", "Status", "AppliedDate",
+                 "FollowUpDate"]
 # Yours. A role that is rescored keeps whatever you put in these.
 USER_COLS = ("Status", "AppliedDate", "FollowUpDate")
 
@@ -2266,6 +2308,10 @@ def upsert_pipeline(rows, drops=(), user=False):
         if url in index:
             index[url]["Section"] = "X"
             index[url]["GapNote"] = f"Rechecked with full JD: {reason}"
+    for r in index.values():
+        # sort the sheet by BandRank, then FitScore descending, for your order
+        if r.get("YOEFit"):
+            r["BandRank"] = band_rank(_band_from_label(r.get("YOEBand")))
     with open(PIPELINE_CSV, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=cols, extrasaction="ignore")
         w.writeheader()
@@ -2519,7 +2565,7 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
         "Location": j["location"],
         "MinYOE": "" if not j.get("yoe_band") else f"{j['yoe_band'][0]:g}",
         "YOEBand": band_label(j.get("yoe_band")) if j.get("yoe_band") else "",
-        "YOEFit": j.get("yoe_fit", ""),
+        "YOEFit": j.get("yoe_fit", ""), "BandRank": band_rank(j.get("yoe_band")),
         "URL": j["url"], "Posted": j.get("posted", ""),
         "FitScore": j["FitScore"], "FitReason": j["FitReason"],
         "GapNote": j["GapNote"], "Section": j.get("Section", ""), "Status": "New",
@@ -2548,7 +2594,11 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
 # --------------------------------------------------------------------------
 
 APPLY_FIRST_MAX = 8
-APPLY_FIRST_MIN_SCORE = 55
+# 70, not 55: with your band order deciding first, this floor is the only
+# quality gate on the top list. At 55, replaying 2026-09-30/10-01 put a 59 and
+# a 63 above Expedia and JPMorgan referrals at 92-94. Roles under it still
+# lead MORE MATCHES under their band's header.
+APPLY_FIRST_MIN_SCORE = 70
 PER_COMPANY_CAP = 2
 # MORE MATCHES lists this many per company, then one "+N more" line. A TCS or
 # Wipro batch can run to dozens of roles; without a cap they bury the rest.
@@ -2595,17 +2645,23 @@ def _dedupe_postings(jobs):
     return out
 
 
-def _per_company(jobs, render, cap=None):
+def _per_company(jobs, render, cap=None, ranked=False):
     """Render up to `cap` (MORE_PER_COMPANY) roles per company, then one
-    "+N more at X" line per company that ran over."""
+    "+N more at X" line per company that ran over. `ranked`: the jobs are in
+    band-rank order; print a header where the rank changes."""
     cap = cap or MORE_PER_COMPANY
-    out, shown, hidden = [], {}, {}
+    out, shown, hidden, last = [], {}, {}, None
     for j in jobs:
         co = j["company"]
         if shown.get(co, 0) >= cap:
             hidden[co] = hidden.get(co, 0) + 1
             continue
         shown[co] = shown.get(co, 0) + 1
+        rank = band_rank(j.get("yoe_band"))
+        if ranked and rank != last:
+            short, what = BAND_RANKS[rank]
+            out.append(f"  -- {short} yrs --" if rank < 5 else f"  -- other ({what}) --")
+            last = rank
         out.append(render(j))
     for co, n in sorted(hidden.items(), key=lambda kv: -kv[1]):
         out.append(f"  +{n} more at {co} (all in pipeline.csv)")
@@ -2627,8 +2683,10 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
     agency = [j for j in jobs if j.get("agency")]
     direct = [j for j in jobs if not j.get("agency")]
     titleonly = [j for j in direct if not has_jd(j)]
+    # your band order first, then fit + referral + freshness inside a band
     described = _dedupe_postings(
-        sorted([j for j in direct if has_jd(j)], key=lambda x: -priority(x)))
+        sorted([j for j in direct if has_jd(j)],
+               key=lambda x: (band_rank(x.get("yoe_band")), -priority(x))))
 
     first, per_co = [], {}
     for j in described:
@@ -2666,9 +2724,14 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
              if max_age > 0 else f"New roles for a {MY_YOE}-year engineer"]
     if refs:
         lines.append(f"{refs} at companies where you have a referral (marked *REFERRAL*)")
+    listed = first + more
+    if listed:
+        per = [sum(1 for j in listed if band_rank(j.get("yoe_band")) == r) for r in BAND_RANKS]
+        lines.append("Listed, in your band order: " + " | ".join(
+            f"{BAND_RANKS[r][0]}: {n}" for r, n in zip(BAND_RANKS, per)))
     lines += ["=" * 60, ""]
 
-    lines.append(f"APPLY FIRST ({len(first)}) - best odds in this batch, "
+    lines.append(f"APPLY FIRST ({len(first)}) - your band order, then best odds; "
                  f"max {PER_COMPANY_CAP} per company")
     lines.append("-" * 60)
     if not first:
@@ -2678,7 +2741,8 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
         lines += [
             f"{n}. [{j['FitScore']}]{tag(j)} {j['title']}",
             f"   {j['company']} | {j['location'][:60]}{also(j)} | {_age_label(j)}",
-            f"   Years: {band_label(j.get('yoe_band'))} ({j.get('yoe_fit')})",
+            f"   Years: {band_label(j.get('yoe_band'))} ({j.get('yoe_fit')}) - "
+            f"band rank {band_rank(j.get('yoe_band'))} of {len(BAND_RANKS)}",
             f"   Mirror in your resume (you have these): {kw}",
         ]
         if j["Gaps"]:
@@ -2694,7 +2758,7 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
         return (f"[{j['FitScore']}]{tag(j)} {j['title']} - {j['company']}, "
                 f"{j['location'][:40]}{also(j)} | {band_label(j.get('yoe_band'))} "
                 f"| {_age_label(j)}{note}\n      {j['FitReason']}\n      {j['url']}")
-    lines += _per_company(more, more_line)
+    lines += _per_company(more, more_line, ranked=True)
     if not more:
         lines.append("  (none)")
     lines.append("")
@@ -2706,7 +2770,7 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
         lines.append("  glance only because a referral can carry a weaker match.")
         lines += _per_company(ref_low, lambda j: (
             f"  [{j['FitScore']}] {j['title']} - {j['company']} | "
-            f"{band_label(j.get('yoe_band'))}\n      {j['url']}"))
+            f"{band_label(j.get('yoe_band'))}\n      {j['url']}"), ranked=True)
         lines.append("")
 
     lines.append(f"LOW FIT: {len(low)} roles with full JDs scored under 40, not listed")

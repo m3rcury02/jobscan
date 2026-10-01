@@ -191,3 +191,20 @@ def test_junior_bands_fit_two_years():
     assert J.band_fit((0, 1)) == "below"       # kept, ranked lower
     assert J.band_fit((0, 0)) == "below"
     assert J.band_label((0, 0)) == "freshers only"
+
+
+@pytest.mark.parametrize("band, rank", [
+    ((0, 2), 1), ((1, 2), 1), ((0.5, 2), 1),
+    ((1, 3), 2), ((0, 3), 2), ((2, 3), 2), ((1, None), 2), ((0, None), 2),
+    ((2, None), 3), ((2, 4), 3), ((2, 5), 3), ((1, 5), 3),
+    ((0, 1), 4), ((0, 0), 4),
+    ((3, 5), 5), ((3, None), 5), (None, 5),
+])
+def test_band_rank_follows_your_order(band, rank):
+    # 0-2, then 1-3, then 2+, then 0-1, then everything else
+    assert J.band_rank(band) == rank
+
+
+@pytest.mark.parametrize("label", ["0-2 yrs", "1.5-3 yrs", "2+ yrs", "freshers only"])
+def test_band_label_round_trips(label):
+    assert J.band_label(J._band_from_label(label)) == label

@@ -169,3 +169,48 @@ def test_entry_titles_are_kept_only_with_a_band_you_fit():
     assert sorted(j["url"][-1] for j in kept) == ["1", "4"]
     assert stats["entry_unproven"] == 2
     assert {j["url"][-1]: j["yoe_fit"] for j in kept} == {"1": "in-band", "4": "below"}
+
+
+def test_digest_orders_by_your_band_order_before_score():
+    def k(title, band, score, n):
+        j = _kept(title, f"Co{n}", score, n=n)
+        j["yoe_band"], j["yoe_fit"] = band, J.band_fit(band)
+        return j
+    jobs = [k("A", (3, 5), 95, 1), k("B", (0, 1), 90, 2), k("C", (2, None), 85, 3),
+            k("D", (1, 3), 80, 4), k("E", (0, 2), 75, 5), k("F", None, 99, 6)]
+    text, sec = J.build_digest(jobs, {}, 10, 0, "2026-10-01", 2)
+    # inside a band, fit still decides: F (99) before A (95)
+    assert [j["title"] for j in sec["first"]] == ["E", "D", "C", "B", "F", "A"]
+    assert "Listed, in your band order: 0-2: 1 | 1-3: 1 | 2+: 1 | 0-1: 1 | other: 2" in text
+
+
+def test_more_matches_get_a_header_per_band():
+    def k(title, band, n):
+        j = _kept(title, f"Co{n}", 45, n=n)      # under APPLY FIRST's bar
+        j["yoe_band"], j["yoe_fit"] = band, J.band_fit(band)
+        return j
+    text, _ = J.build_digest([k("X", (1, 3), 1), k("Y", (0, 2), 2)], {}, 10, 0,
+                             "2026-10-01", 2)
+    more = text.split("MORE MATCHES")[1]
+    assert more.index("-- 0-2 yrs --") < more.index("Y -") < more.index("-- 1-3 yrs --") \
+        < more.index("X -")
+
+
+def test_pipeline_band_rank_is_written_and_backfilled(isolated):
+    J.upsert_pipeline([{"URL": "old", "YOEBand": "1-3 yrs", "YOEFit": "in-band"}])
+    J.upsert_pipeline([{"URL": "new", "YOEBand": "0-2 yrs", "YOEFit": "in-band",
+                        "BandRank": 1}])
+    rows = {r["URL"]: r for r in csv.DictReader(open(isolated / "pipeline.csv"))}
+    assert rows["old"]["BandRank"] == "2" and rows["new"]["BandRank"] == "1"
+
+
+def test_a_weak_band_one_role_leads_more_matches_not_apply_first():
+    def k(title, band, score, n, ref=False):
+        j = _kept(title, f"Co{n}", score, referral=ref, n=n)
+        j["yoe_band"], j["yoe_fit"] = band, J.band_fit(band)
+        return j
+    weak_02 = k("Developer I", (0, 2), 59, 1)
+    strong_ref = k("SDE II", (2, None), 94, 2, ref=True)
+    text, sec = J.build_digest([weak_02, strong_ref], {}, 10, 0, "2026-10-01", 2)
+    assert sec["first"] == [strong_ref]
+    assert sec["more"] == [weak_02]

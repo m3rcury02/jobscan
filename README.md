@@ -127,7 +127,15 @@ Edit the constants at the top of `jobscan.py`:
 - `MORE_PER_COMPANY` - roles listed per company in the longer digest sections before a
   "+N more at X" line. Service firms post in bulk; this keeps one of them from burying the
   rest. Every role is in `pipeline.csv` regardless.
-- `APPLY_FIRST_MAX` / `PER_COMPANY_CAP` / `REFERRAL_BONUS` - the shape of the top list.
+- `APPLY_FIRST_MAX` / `APPLY_FIRST_MIN_SCORE` / `PER_COMPANY_CAP` / `REFERRAL_BONUS` - the
+  shape of the top list.
+- `BAND_RANKS` / `band_rank()` - your years-band order, which every listed section sorts
+  on before the fit score: **1** tops out at your years (0-2, 1-2), **2** one year above
+  (1-3, 0-3, 2-3, 1+), **3** open from your years or wider (2+, 2-4, 2-5), **4** bands you
+  are past (0-1, freshers only), **5** the rest (asks 3, or not stated). MORE MATCHES
+  prints a header per band, and `pipeline.csv` carries a `BandRank` column: sort the sheet
+  by BandRank, then FitScore descending, to see the whole backlog in this order. It is
+  written relative to `MY_YOE`, so it moves with you.
 
 ### How a role is judged
 
@@ -155,8 +163,9 @@ Edit the constants at the top of `jobscan.py`:
 
 ## Workflow
 
-The digest opens with **APPLY FIRST**: at most 8 roles, at most 2 per company, ranked by
-fit score plus a referral bonus plus freshness. Each one carries its years band, the
+The digest opens with **APPLY FIRST**: at most 8 roles scoring 70+, at most 2 per company,
+in your years-band order (below), then by fit score plus a referral bonus plus freshness
+inside a band. Each one carries its years band and band rank, the
 skills from your stack the JD asks for (mirror those in the tailored resume - only ones
 you have), what else the JD wants, and the next step.
 
