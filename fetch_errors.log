@@ -1781,3 +1781,4 @@
 2026-10-01T18:23:49.006376+05:30	TCS	HTTPError: 403 Client Error: Forbidden for url: https://ibegin.tcsapps.com/candidate/api/v1/current/country/IN/EN/1
 2026-10-02T00:55:26.654094+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 2026-10-02T05:21:31.306728+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-02T10:34:00.018171+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
