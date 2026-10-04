@@ -1807,3 +1807,5 @@
 2026-10-04T05:59:23.895720+05:30	UST	JD fetch failed (JSONDecodeError: Expecting value: line 1 column 1 (char 0)); shown as title-only
 2026-10-04T13:44:17.714402+05:30	Atomicwork	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/atomicwork/jobs?content=true
 2026-10-04T13:47:17.330680+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-04T20:42:19.810721+05:30	Atomicwork	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/atomicwork/jobs?content=true
+2026-10-04T20:45:27.056716+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
