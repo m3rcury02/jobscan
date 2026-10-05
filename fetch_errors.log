@@ -1818,3 +1818,10 @@
 2026-10-05T10:33:55.147506+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 2026-10-05T19:40:02.459679+05:30	Atomicwork	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/atomicwork/jobs?content=true
 2026-10-05T19:43:31.794864+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-06T03:55:58.150425+05:30	Atomicwork	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/atomicwork/jobs?content=true
+2026-10-06T03:58:55.532754+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-06T03:58:55.533068+05:30	Mphasis	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-06T03:59:53.795871+05:30	LTIMindtree	JD fetch failed (JSONDecodeError: Expecting value: line 1 column 1 (char 0)); shown as title-only
+2026-10-06T03:59:53.796044+05:30	Tata Technologies	JD fetch failed (JSONDecodeError: Expecting value: line 1 column 1 (char 0)); shown as title-only
+2026-10-06T03:59:53.796090+05:30	UST	JD fetch failed (JSONDecodeError: Expecting value: line 1 column 1 (char 0)); shown as title-only
+2026-10-06T03:59:53.796127+05:30	Altimetrik	JD fetch failed (JSONDecodeError: Expecting value: line 1 column 1 (char 0)); shown as title-only
