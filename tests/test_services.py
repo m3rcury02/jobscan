@@ -78,23 +78,45 @@ def test_zwayam_pages_by_row_offset():
     assert J.yoe_band(jobs[0]["title"], jobs[0]["description"]) == (2, 4)
 
 
-def test_tcs_switches_session_to_india_and_pages_newest_first():
+def test_tcs_echoes_xsrf_token_and_pages_until_last():
+    # /candidate/next API (2026-10-06 shape): the session GET hands back the
+    # XSRF token in a header; search pages are Spring "content" pages
     s = MagicMock()
-    s.put.return_value = resp({"result": "Y"})
+    s.headers = {}
+    hello = resp({"result": True})
+    hello.headers = {"x-next-xsrf-token": "tok-1"}
+    s.get.return_value = hello
     s.post.side_effect = [
-        resp({"data": {"totalJobs": "11", "jobs": [
-            {"id": f"43{i}J", "jobTitle": "Java Developer", "location": "Chennai",
-             "experience": "2-6", "skills": "Java"} for i in range(10)]}}),
-        resp({"data": {"totalJobs": "11", "jobs": [
-            {"id": "420J", "jobTitle": "Python Developer", "location": "Pune",
-             "experience": "1-3", "skills": "Python"}]}}),
+        resp({"payload": {"last": False, "content": [
+            {"id": f"43{i}J", "title": "Java Developer", "location": "Chennai",
+             "minimumExperienceInYears": 2, "maximumExperienceInYears": 6,
+             "skills": ["Java"], "walkIn": False} for i in range(50)]}}),
+        resp({"payload": {"last": True, "content": [
+            {"id": "420J", "title": "Python Developer", "location": "Pune",
+             "minimumExperienceInYears": 1, "maximumExperienceInYears": 3,
+             "skills": ["Python", "Django"], "walkIn": False}]}}),
     ]
     with patch.object(J.requests, "Session", return_value=s):
         jobs = J.fetch_tcs()
-    assert "/current/country/IN/" in s.put.call_args.args[0]
-    assert len(jobs) == 11 and jobs[0]["location"] == "Chennai, India"
+    assert s.headers["next-xsrf-token"] == "tok-1"
+    assert s.post.call_args.args[0].endswith("/api/en-IN/search/jobs")
+    assert [c.kwargs["json"]["page"] for c in s.post.call_args_list] == [1, 2]
+    assert s.post.call_args.kwargs["json"]["resultsPerPage"] in (10, 25, 50)
+    assert len(jobs) == 51 and jobs[0]["location"] == "Chennai, India"
+    assert jobs[0]["url"] == "https://ibegin.tcsapps.com/candidate/next/en-IN/jobs/430J"
     assert jobs[0]["_detail"] == ("tcs", "430J")
+    assert "Django" in jobs[-1]["description"]
     assert J.yoe_band(jobs[-1]["title"], jobs[-1]["description"]) == (1, 3)
+
+
+def test_tcs_detail_drops_the_suffix_and_routes_walk_ins():
+    r = resp({"payload": {"description": "<p>Build APIs</p>", "skilldetail": "Java"}})
+    with patch.object(J.requests, "get", return_value=r) as get:
+        assert "Build APIs" in J._detail_tcs("434103J")
+        J._detail_tcs("5120W")
+    urls = [c.args[0] for c in get.call_args_list]
+    assert urls[0].endswith("/api/en-IN/job/desc/434103")
+    assert urls[1].endswith("/api/en-IN/job/desc/walkin/5120")
 
 
 def test_sfcsb_uses_csrf_token_and_facet_filter():
@@ -300,3 +322,101 @@ def test_indeed_style_job_feed_filters_country_and_keeps_full_jd():
     assert j["location"] == "Chennai, Tamil Nadu, India" and j["posted"] == "2026-10-01"
     assert J.has_jd(j) and "_detail" not in j        # the feed carries the whole JD
     assert J.yoe_band(j["title"], j["description"]) == (2, 4)
+
+
+def test_ripplehire_renews_a_session_that_returns_empty_bodies():
+    # 2026-10-04: a session without JSESSIONID gets 200 + "" on every call
+    empty = resp()
+    empty.json.side_effect = ValueError("Expecting value: line 1 column 1 (char 0)")
+    good = resp({"totalJobCount": 1, "jobVoList": [{
+        "jobSeq": "1", "jobTitle": "Backend Engineer", "locations": "Pune"}]})
+    broken, fresh = MagicMock(), MagicMock()
+    broken.post.return_value = empty
+    fresh.post.return_value = good
+    with patch.object(J.requests, "Session", side_effect=[broken, fresh]):
+        (j,) = J.fetch_ripplehire("altimetrik", "TOKEN")
+    assert j["title"] == "Backend Engineer"
+
+
+def test_ripplehire_gives_up_after_two_renewals():
+    empty = resp()
+    empty.json.side_effect = ValueError("Expecting value")
+    s = MagicMock()
+    s.post.return_value = empty
+    with patch.object(J.requests, "Session", return_value=s), pytest.raises(ValueError):
+        J.fetch_ripplehire("altimetrik", "TOKEN")
+
+
+@pytest.mark.parametrize("bullets, loc", [
+    (["R00336753", "Bengaluru, Bdc4C"], "Bengaluru, Bdc4C"),          # Accenture
+    (["Bangalore", "Karnataka", "JREQ203723"], "Bangalore, Karnataka"),  # Thomson Reuters
+    (["SR-15059"], ""),                                                # Fractal
+    (None, ""),
+])
+def test_workday_bullet_location_skips_requisition_ids(bullets, loc):
+    assert J._wd_bullet_location(bullets) == loc
+
+
+def test_workday_role_without_a_location_waits_for_the_detail_call():
+    job = {"title": "Software Engineer", "location": "", "url": "https://x.wd1/job/1",
+           "company": "Fractal Analytics", "posted": "", "description": "",
+           "_detail": ("workday", "https://x.wd1/api/job/1")}
+
+    def enrich(jobs):
+        for j in jobs:
+            j["location"] = "Bengaluru, India"
+            j["description"] = "Python APIs. 2-4 years of experience." * 10
+        return len(jobs), 0
+    with patch.object(J, "enrich_all", side_effect=enrich):
+        kept, _, _ = J.select([job], set(), 2)
+    assert [j["location"] for j in kept] == ["Bengaluru, India"]
+
+
+def test_freshteam_reads_the_widget_feed_with_branch_and_date():
+    body = {"branches": [{"id": 7, "city": "Bengaluru", "state": None, "country_code": "IN"}],
+            "jobs": [
+                {"title": " Software Engineer - Backend ", "branch_id": 7, "remote": False,
+                 "created_at": "2026-10-05T09:00:00.000Z", "deleted": False,
+                 "url": "https://haptik.freshteam.com/jobs/abc/software-engineer-backend",
+                 "description": "<p>Python, Django, 2-4 years</p>"},
+                {"title": "Old", "branch_id": 7, "deleted": True, "created_at": "2024-01-01"}]}
+    with patch.object(J.requests, "get", return_value=resp(body)) as get:
+        (j,) = J.fetch_freshteam("https://haptik.freshteam.com/jobs")
+    assert get.call_args.args[0] == "https://haptik.freshteam.com/hire/widgets/jobs.json"
+    assert j["title"] == "Software Engineer - Backend" and j["location"] == "Bengaluru, India"
+    assert j["posted"] == "2026-10-05" and "Django" in j["description"]
+    assert j["url"].endswith("/software-engineer-backend")
+
+
+def test_freshteam_names_a_closed_account():
+    gone = resp()
+    gone.json.side_effect = ValueError("Expecting value")
+    with patch.object(J.requests, "get", return_value=gone), \
+            pytest.raises(ValueError, match="no Freshteam account 'vida'"):
+        J.fetch_freshteam("vida")
+
+
+def test_get_json_waits_out_a_429():
+    limited = MagicMock(status_code=429, headers={"Retry-After": "7"})
+    err = J.requests.HTTPError("429 Client Error: Too Many Requests", response=limited)
+    first = resp()
+    first.raise_for_status.side_effect = err
+    ok = resp({"jobs": []})
+    with patch.object(J.requests, "get", side_effect=[first, ok]), \
+            patch.object(J.time, "sleep") as sleep:
+        assert J.get_json("https://apply.workable.com/api/v1/widget/accounts/x") == {"jobs": []}
+    sleep.assert_called_once_with(7)
+
+
+def test_pcsx_pages_newest_first_and_points_detail_at_position_details():
+    page = lambda n, count: resp({"data": {"count": count, "positions": [
+        {"id": 100 + i, "name": "Software Engineer II", "locations": ["India, Karnataka, Bangalore"],
+         "postedTs": 1791222098, "positionUrl": f"/careers/job/{100 + i}"} for i in range(n)]}})
+    with patch.object(J.requests, "get", side_effect=[page(10, 11), page(1, 11)]) as get:
+        jobs = J.fetch_pcsx("apply.careers.microsoft.com", "microsoft.com")
+    starts = [c.kwargs["params"]["start"] for c in get.call_args_list]
+    assert starts == [0, 10] and get.call_args.kwargs["params"]["sort_by"] == "timestamp"
+    assert len(jobs) == 11 and jobs[0]["posted"] == "2026-10-05"
+    assert jobs[0]["url"] == "https://apply.careers.microsoft.com/careers/job/100"
+    kind, url = jobs[0]["_detail"]
+    assert kind == "pcsx" and "position_details?position_id=100&domain=microsoft.com" in url

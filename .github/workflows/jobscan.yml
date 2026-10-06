@@ -2,11 +2,10 @@ name: jobscan
 
 on:
   schedule:
-    # Every 2 hours. A role posted at 10am IST reaches you by noon at worst.
-    # Repo is private, so Actions minutes are capped at 2000/month on the free
-    # tier; at ~3 billed minutes a run this uses roughly half of that. Hourly
-    # would overrun it - make the repo public for unlimited minutes first.
-    - cron: "0 */2 * * *"
+    # Hourly, at :17. "0 */2 * * *" ran only 3-5 times a day (2026-09-27 to
+    # 10-05): GitHub delays and drops scheduled runs at the top of the hour,
+    # its busiest minute. The repo is public, so Actions minutes are free.
+    - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
       mode:
@@ -56,7 +55,10 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # 45 not 25: the first run after a big board change (TCS, UST, 2026-10-06)
+    # fetches ~1,400 JDs, and a run killed before "Commit state" repeats the
+    # same work next hour. Minutes are free on a public repo.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 

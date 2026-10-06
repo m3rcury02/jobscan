@@ -1,6 +1,6 @@
 # jobscan
 
-Polls company ATS boards every two hours, filters to India-based backend / full-stack / AI /
+Polls company ATS boards every hour, filters to India-based backend / full-stack / AI /
 cloud roles whose stated experience band includes yours (`MY_YOE`, default 2), fetches the
 full job description, scores it against your stack, and emails a digest that opens with
 the handful of roles to apply to first.
@@ -46,12 +46,13 @@ No API keys for the job boards. All endpoints are public.
    ```
    Check `fetch_errors.log` for any board returning 404 (wrong token) or 403.
 
-6. Push. The workflow runs every two hours. Trigger a manual run from the Actions tab
+6. Push. The workflow runs hourly at :17. Trigger a manual run from the Actions tab
    to confirm the email lands.
 
-   Cadence is every two hours rather than hourly because the repo is private, so Actions
-   bills against the 2000 minute free tier. A ~3 billed minute run every hour needs about
-   2160 of them. Make the repo public for unlimited minutes if you want hourly.
+   Not at :00: GitHub delays and drops scheduled runs at the top of the hour. The old
+   `0 */2 * * *` schedule ran 3-5 times a day instead of 12 (2026-09-27 to 10-05).
+   Hourly needs a public repo (unlimited minutes); on a private one, ~4.5 minute runs
+   every hour would need ~3,300 of the 2,000 free minutes - use `17 */2 * * *` there.
 
 ## After updating to the JD-enrichment version: run `backlog` once
 
@@ -86,6 +87,8 @@ Actions > jobscan > Run workflow > mode:
 - `pipeline.csv` - one row per role found, with years band, score and digest section. The
   scanner owns it; `Status`/`AppliedDate` are the only columns it will not overwrite.
 - `fetch_errors.log` - boards that failed, with reason.
+- `board_health.json` - last good poll per board; drives BOARDS DOWN. Committed by CI.
+- `daily_sent.txt` - IST date of the last once-a-day email (follow-ups, boards down).
 - `dead_rows.txt` - written by `diagnose`, consumed by `prune`.
 - `discover.py` - board discovery. Separate from the scanner; only runs in `discover` mode.
 
@@ -95,6 +98,16 @@ A row with `Referral = yes` has its roles tagged `*REFERRAL*` in the digest and 
 `pipeline.csv`, ranked above a slightly better match without one, and given the
 referral-first instruction. It also skips `COMPANY_DROP`, which since 2026-10-01 holds only
 staffing agencies: a role someone can walk you into is worth seeing whoever posted it.
+
+## Boards down
+
+`board_health.json` records each board's last good poll and how many roles it returned.
+A board that has failed for 6 hours, or come back with 0 roles after having 5 or more,
+is listed under **BOARDS DOWN** at the top of the digest, referral companies first, and
+gets one email a day even when nothing new turned up. Before this, TCS returned nothing
+for five days (its careers site moved to a new API) and five RippleHire boards failed on
+a third of runs, and the only sign was a count in the digest footer. If a board is still
+listed after you have checked it really has no openings, comment its row out.
 
 ## seen.json is "already emailed", nothing else
 
@@ -166,8 +179,9 @@ you have), what else the JD wants, and the next step.
    ideally within 48 hours of posting.
 3. Record it: Actions > jobscan > Run workflow > mode `applied`, paste the URL, pick a
    status (`referred` if a referrer submitted you). Update the status the same way.
-4. The 07:30 IST digest lists applications 7-21 days old that still read `applied` or
-   `referred`, with the follow-up to send. New roles at a company you applied to in the
+4. The first digest at or after 07:30 IST each day lists applications 7-21 days old
+   that still read `applied` or `referred`, with the follow-up to send.
+   (`daily_sent.txt` records the day it went out.) New roles at a company you applied to in the
    last 30 days are flagged and demoted: one strong application per company beats five.
 
 ## Adapters
@@ -186,9 +200,9 @@ you have), what else the JD wants, and the next step.
 | `firecrawl` | Token = full search URL, Tenant = waitFor ms. Real browser via Firecrawl; once a day. See below. |
 | `phenom` | Token = the site's search-results URL. Reads refNum/pageId from the page, then pages `/widgets`. Real dates. |
 | `sfcsb` | SuccessFactors Career Site Builder (newer template). Token = host; Tenant = optional `field=value` facet. |
-| `infosys` `tcs` `capgemini` | single-company APIs. TCS: session switched to India first; no dates. |
+| `infosys` `tcs` `capgemini` | single-company APIs. TCS: `/candidate/next` API (moved 2026-10-01), XSRF token from the session call; no dates, so all ~1,800 India roles are read. |
 | `zwayam` | Token = careers base URL, Tenant = Zwayam company id (COMPANYID in the site's main.js). |
-| `ripplehire` | Token = subdomain, Tenant = careers token, optionally `\|geo=India`. No dates. |
+| `ripplehire` | Token = subdomain, Tenant = careers token, optionally `\|geo=India` (LTIMindtree only; other tenants return 0 with it). No dates, so every role is read. Sessions without a JSESSIONID get empty replies and are renewed. |
 | `avature` | Token = the portal's SearchJobs URL (keywords may sit in the path). Tenant = location to assume for "Multiple Locations". |
 | `selectminds` | Oracle SelectMinds. Token = site root. No dates. |
 | `techmahindra` | ASP.NET form postbacks. Title, band and skills only; the link names the Job Reference ID to search. |

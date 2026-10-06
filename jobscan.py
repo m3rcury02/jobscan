@@ -21,6 +21,7 @@ import os
 import re
 import smtplib
 import sys
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
@@ -34,6 +35,8 @@ COMPANIES_CSV = ROOT / "companies.csv"
 SEEN_JSON = ROOT / "seen.json"
 PIPELINE_CSV = ROOT / "pipeline.csv"
 ERRORS_LOG = ROOT / "fetch_errors.log"
+BOARD_HEALTH_JSON = ROOT / "board_health.json"
+DAILY_SENT = ROOT / "daily_sent.txt"
 
 IST = timezone(timedelta(hours=5, minutes=30))
 TIMEOUT = 25
@@ -63,9 +66,9 @@ WORKDAY_MAX = 600
 ORACLE_MAX = 600
 SF_MAX = 500
 SFCSB_MAX = 500       # Wipro 4,380 / HCLTech 10,871 India roles, 10 per call
-TCS_MAX = 400
-ZWAYAM_MAX = 400
-RIPPLEHIRE_MAX = 600
+TCS_MAX = 2000      # ~1,800 India roles; undated, so read them all
+ZWAYAM_MAX = 1500    # sorted by modifiedDate, not creation: Persistent (~690) must be read whole
+RIPPLEHIRE_MAX = 3000  # UST lists ~2,650 worldwide (2026-10-06); undated, so read them all
 PHENOM_MAX = 1500
 SELECTMINDS_MAX = 700
 
@@ -422,6 +425,16 @@ def age_days(posted):
     return max(delta, 0)
 
 
+def _backoff(e, attempt):
+    """Seconds to wait before retrying after e. A 429 - Workable rate-limits a
+    burst of boards from one IP - waits for Retry-After, else 10s, 20s, ..."""
+    resp = getattr(e, "response", None)
+    if resp is not None and resp.status_code == 429:
+        ra = (resp.headers.get("Retry-After") or "").strip()
+        return min(int(ra) if ra.isdigit() else 10 * (attempt + 1), 30)
+    return 2 * (attempt + 1)
+
+
 def get_json(url, retries=2):
     last = None
     for attempt in range(retries + 1):
@@ -432,7 +445,7 @@ def get_json(url, retries=2):
         except Exception as e:
             last = e
             if attempt < retries:
-                time.sleep(2 * (attempt + 1))
+                time.sleep(_backoff(e, attempt))
     raise last
 
 
@@ -527,7 +540,7 @@ def fetch_smartrecruiters(token, tenant=None):
 
 def fetch_workable(token, tenant=None):
     url = f"https://apply.workable.com/api/v1/widget/accounts/{token}?details=true"
-    data = get_json(url)
+    data = get_json(url, retries=3)
     out = []
     for j in data.get("jobs", []):
         loc = ", ".join(x for x in [j.get("city"), j.get("state"), j.get("country")] if x)
@@ -753,13 +766,17 @@ def fetch_keka(token, tenant=None):
     return out
 
 
+WD_REQ_ID = re.compile(r"[A-Z]{0,6}[-_]?\d{4,}[-_A-Z0-9]*")
+
+
 def _wd_bullet_location(bullets):
-    """Last bulletField is the location when locationsText is missing. The
-    first is a requisition id like R00356610, so never take a lone bullet."""
-    if not bullets or len(bullets) < 2:
-        return ""
-    tail = str(bullets[-1]).strip()
-    return "" if re.fullmatch(r"[A-Z]{1,3}\d{4,}", tail) else tail
+    """The location when locationsText is missing: every bulletField that is
+    not a requisition id. Tenants order them differently - Accenture sends
+    [R00336753, "Bengaluru, Bdc4C"], Thomson Reuters [Bangalore, Karnataka,
+    JREQ203723] - and taking the last one read TR's req id as the location,
+    which dropped every TR role at the India filter."""
+    parts = [str(b).strip() for b in bullets or []]
+    return ", ".join(b for b in parts if b and not WD_REQ_ID.fullmatch(b))
 
 
 def fetch_workday(token, tenant=None):
@@ -917,6 +934,51 @@ def fetch_eightfold(token, tenant=None):
     return out
 
 
+PCSX_MAX = 1000
+
+
+def fetch_pcsx(token, tenant=None):
+    """Eightfold's newer career-site API ("PCSX"), as on apply.careers.microsoft.com.
+    Token = host, Tenant = the domain= param. Newest first, 10 a page, with a
+    real posted timestamp. The older /api/apply/v2 path that `eightfold` uses
+    403s on these sites."""
+    host = token.strip().replace("https://", "").replace("http://", "").strip("/")
+    dom = (tenant or "").strip()
+    base = f"https://{host}/api/pcsx/"
+    hdrs = {**HEADERS, "Accept": "application/json"}
+    out, start = [], 0
+    while start < PCSX_MAX:
+        r = _call(requests.get, base + "search", headers=hdrs, timeout=TIMEOUT,
+                  params={"domain": dom, "query": "", "location": "India",
+                          "start": start, "sort_by": "timestamp"})
+        data = (r.json() or {}).get("data") or {}
+        pos = data.get("positions") or []
+        if not pos:
+            break
+        for j in pos:
+            ts = j.get("postedTs") or j.get("creationTs")
+            posted = ""
+            if ts:
+                try:
+                    posted = datetime.fromtimestamp(int(ts), tz=timezone.utc).strftime("%Y-%m-%d")
+                except (ValueError, OSError):
+                    pass
+            path = j.get("positionUrl") or f"/careers/job/{j.get('id')}"
+            out.append({
+                "title": (j.get("name") or "").strip(),
+                "location": "; ".join(str(x) for x in j.get("locations") or []),
+                "url": f"https://{host}{path}",
+                "description": "",
+                "posted": posted,
+                "_detail": ("pcsx", f"{base}position_details?position_id={j.get('id')}"
+                                    f"&domain={dom}&hl=en"),
+            })
+        start += len(pos)
+        if start >= (data.get("count") or 0):
+            break
+    return out
+
+
 SF_ROW = re.compile(r'class="data-row"(.*?)(?=class="data-row"|</tbody>)', re.S)
 SF_TILE = re.compile(r'<li class="job-tile\b(.*?)</li>', re.S)
 # jobTitle-link is rarely the whole class attribute: CommScope serves
@@ -1022,11 +1084,51 @@ def fetch_pinpoint(token, tenant=None):
     return out
 
 
+FRESHTEAM_HOST = re.compile(r"https?://([a-z0-9-]+)\.freshteam\.com", re.I)
+
+
+def fetch_freshteam(token, tenant=None):
+    """Freshteam (Freshworks). Token = subdomain, or any URL on it. The public
+    widget feed lists every published job with its JD, branch and creation
+    date; the /jobs page that `custom` scraped showed a fraction of them
+    (Credit Saison 8 of 59, ECS ME 50 of 158, Haptik 5 of 16 on 2026-10-06)."""
+    m = FRESHTEAM_HOST.match(token.strip())
+    sub = m.group(1) if m else token.strip()
+    r = requests.get(f"https://{sub}.freshteam.com/hire/widgets/jobs.json",
+                     headers={**HEADERS, "Accept": "application/json"}, timeout=TIMEOUT)
+    r.raise_for_status()
+    try:
+        data = r.json()
+    except ValueError:
+        # a closed account answers 200 with Freshteam's HTML 404 page
+        raise ValueError(f"no Freshteam account '{sub}' any more - find the new board")
+    branches = {b.get("id"): b for b in data.get("branches") or []}
+    out = []
+    for j in data.get("jobs") or []:
+        if j.get("deleted"):
+            continue
+        b = branches.get(j.get("branch_id")) or {}
+        cc = (b.get("country_code") or "").upper()
+        loc = ", ".join(x for x in (b.get("city"), b.get("state"),
+                                    "India" if cc == "IN" else cc) if x)
+        if j.get("remote"):
+            loc = f"{loc} (Remote)" if loc else "Remote"
+        out.append({
+            "title": (j.get("title") or "").strip(),
+            "location": loc,
+            "url": j.get("url") or f"https://{sub}.freshteam.com/jobs",
+            "description": strip_html(j.get("description") or ""),
+            "posted": (j.get("created_at") or "")[:10],
+        })
+    return out
+
+
 def fetch_agency(token, tenant=None):
     """Recruitment consultancies and staffing firms. Same scrape as custom, but
     flagged: the hiring company is not named, so these cannot be scored or
     researched and must never be treated as employer postings."""
-    jobs = fetch_custom(token, tenant)
+    jobs = (fetch_freshteam(token) if FRESHTEAM_HOST.match(token.strip())
+            else fetch_custom(token, tenant))
     for j in jobs:
         j["agency"] = True
     return jobs
@@ -1139,6 +1241,11 @@ def _call(fn, *args, tries=3, **kwargs):
             if attempt == tries - 1:
                 raise
             time.sleep(2 * (attempt + 1))
+        except requests.HTTPError as e:
+            # a 429 is the board asking us to slow down, not a dead board
+            if e.response is None or e.response.status_code != 429 or attempt == tries - 1:
+                raise
+            time.sleep(_backoff(e, attempt))
 
 
 def _exp_line(lo, hi=None):
@@ -1187,45 +1294,54 @@ def fetch_infosys(token="", tenant=None):
     return out
 
 
-TCS_BASE = "https://ibegin.tcsapps.com/candidate/"
-TCS_HDRS = {"Content-Type": "application/json", "Origin": "https://ibegin.tcsapps.com",
-            "Referer": TCS_BASE + "jobs/search"}
+TCS_BASE = "https://ibegin.tcsapps.com/candidate/next/"
+TCS_API = TCS_BASE + "api/"
+TCS_HDRS = {"Accept": "application/json, text/plain, */*",
+            "Origin": "https://ibegin.tcsapps.com", "Referer": TCS_BASE + "en-IN/jobs/search"}
+TCS_PAGE = 50   # the API accepts 10, 25 or 50 and 400s anything else
+
+
+def _tcs_session():
+    """iBegin moved to /candidate/next/ on 2026-10-01; the old /candidate/api/v1
+    paths now return the app's HTML shell. GET api/candidate sets the session
+    cookie and hands back an XSRF token that every POST must echo. India is in
+    the path (en-IN), so no country switch is needed."""
+    s = requests.Session()
+    s.headers.update(HEADERS)
+    r = _call(s.get, TCS_API + "candidate", headers=TCS_HDRS, timeout=TIMEOUT)
+    s.headers.update({**TCS_HDRS, "next-xsrf-token": r.headers.get("x-next-xsrf-token", "")})
+    return s
 
 
 def fetch_tcs(token="", tenant=None):
-    """TCS iBegin (ibegin.tcsapps.com; the old ibegin.tcs.com no longer
-    resolves). The feed is localised per session and defaults to the US from
-    a US runner, so switch the session to India first. Results come newest
-    first by job id; there is no posting date, so these are first-sighting."""
-    s = requests.Session()
-    s.headers.update(HEADERS)
-    _call(s.put, TCS_BASE + "api/v1/current/country/IN/EN/1", headers=TCS_HDRS,
-          timeout=TIMEOUT)
-    body = {"jobCity": None, "jobSkill": None, "userText": "", "jobTitleOrder": None,
-            "jobCityOrder": None, "jobFunctionOrder": None, "jobExperienceOrder": None,
-            "applyByOrder": None, "regular": True, "walkin": True}
-    out, page, read = [], 1, 0
-    while read < TCS_MAX:
-        r = _call(s.post, TCS_BASE + "api/v1/jobs/searchJ",
-                  json={**body, "pageNumber": str(page)}, headers=TCS_HDRS, timeout=TIMEOUT)
-        data = (r.json() or {}).get("data") or {}
-        jobs = data.get("jobs") or []
-        if not jobs:
-            break
-        read += len(jobs)
+    """TCS iBegin (ibegin.tcsapps.com). Newest first; there is no posting date,
+    so these are first-sighting. ~1,800 India roles, all read."""
+    s = _tcs_session()
+    body = {"includeRegularJob": True, "includeWalkIn": True, "searchTerms": [],
+            "jobLocationFilters": [], "jobDomainFilters": [], "experienceLevelFilters": [],
+            "skillFilters": [], "relevancySortOrder": None, "recentSortOrder": "desc",
+            "lastDateToApplySortOrder": None, "resultsPerPage": TCS_PAGE}
+    out, page = [], 1
+    while len(out) < TCS_MAX:
+        r = _call(s.post, TCS_API + "en-IN/search/jobs", json={**body, "page": page},
+                  timeout=TIMEOUT)
+        data = (r.json() or {}).get("payload") or {}
+        jobs = data.get("content") or []
         for j in jobs:
             jid = str(j.get("id") or "")
-            exp = (j.get("experience") or "").strip()
+            skills = j.get("skills") or []
             out.append({
-                "title": (j.get("jobTitle") or "").strip(),
+                "title": (j.get("title") or "").strip(),
                 "location": f"{j.get('location') or ''}, India".strip(", "),
-                "url": f"{TCS_BASE}jobs/{jid}",
-                "description": (f"Experience: {exp} years\n" if exp else "")
-                               + f"Skills: {j.get('skills') or ''}",
+                "url": f"{TCS_BASE}en-IN/jobs/{jid}",
+                "description": _exp_line(j.get("minimumExperienceInYears"),
+                                         j.get("maximumExperienceInYears"))
+                               + "Skills: " + (", ".join(skills) if isinstance(skills, list)
+                                               else str(skills)),
                 "posted": "",
                 "_detail": ("tcs", jid),
             })
-        if read >= int(data.get("totalJobs") or 0):
+        if not jobs or data.get("last", True):
             break
         page += 1
     return out
@@ -1341,6 +1457,25 @@ def fetch_zwayam(token, tenant=None):
     return out
 
 
+def _ripplehire_session(base, tok):
+    """A session that holds a JSESSIONID. RippleHire's load balancer sometimes
+    answers the landing GET without one, and every call on that session then
+    returns 200 with an empty body - the JSONDecodeErrors that cost LTIMindtree,
+    Mphasis, Altimetrik, Tata Technologies and UST on about a third of runs
+    from 2026-10-04. A fresh session usually gets one."""
+    for attempt in range(4):
+        s = requests.Session()
+        s.headers.update(HEADERS)
+        _call(s.get, f"{base}?token={tok}&lang=en&source=CAREERSITE", timeout=TIMEOUT)
+        try:
+            if s.cookies.get("JSESSIONID"):
+                return s
+        except requests.cookies.CookieConflictError:
+            return s
+        time.sleep(1 + attempt)
+    return s
+
+
 def fetch_ripplehire(token, tenant=None):
     """RippleHire (LTIMindtree, Mphasis, Altimetrik, Tata Technologies).
     Token = subdomain. Tenant = the careers-site token from the company's
@@ -1350,10 +1485,8 @@ def fetch_ripplehire(token, tenant=None):
     parts = [p.strip() for p in (tenant or "").split("|")]
     tok, extra = parts[0], dict(p.split("=", 1) for p in parts[1:] if "=" in p)
     base = f"https://{sub}.ripplehire.com/candidate/"
-    s = requests.Session()
-    s.headers.update(HEADERS)
-    s.get(f"{base}?token={tok}&lang=en&source=CAREERSITE", timeout=TIMEOUT)
-    out, page = [], 0
+    s = _ripplehire_session(base, tok)
+    out, page, renewed = [], 0, 0
     while len(out) < RIPPLEHIRE_MAX:
         params = {"page": page, "search": "*:*", "token": tok, "source": "CAREERSITE",
                   "pagesize": 50, **extra}
@@ -1361,7 +1494,15 @@ def fetch_ripplehire(token, tenant=None):
                   data={"careerSiteUrlParams": json.dumps(params), "lang": "en"},
                   headers={"X-Requested-With": "XMLHttpRequest",
                            "Accept": "application/json"}, timeout=TIMEOUT)
-        d = r.json() or {}
+        try:
+            d = r.json() or {}
+        except ValueError:
+            # an empty 200: the session has no JSESSIONID (see _ripplehire_session)
+            if renewed == 2:
+                raise
+            renewed += 1
+            s = _ripplehire_session(base, tok)
+            continue
         rows = d.get("jobVoList") or []
         if not rows:
             break
@@ -1474,7 +1615,7 @@ def fetch_techmahindra(token="IND", tenant=None):
     return out
 
 
-AVATURE_MAX = 600
+AVATURE_MAX = 1500   # Deloitte India sat at 596 of 600 (2026-10-06)
 # the title link sits in the card's <h3>; class and href come in either order
 AVATURE_CARD = re.compile(
     r'<h3[^>]*>\s*<a [^>]*?href="(https?://[^"]+/JobDetail/[^"]+)"[^>]*>\s*(.*?)\s*</a>\s*</h3>'
@@ -1724,6 +1865,8 @@ ADAPTERS = {
     "oracle": fetch_oracle,
     "custom": fetch_custom,
     "agency": fetch_agency,
+    "freshteam": fetch_freshteam,
+    "pcsx": fetch_pcsx,
     "workday": fetch_workday,
     "firecrawl": fetch_firecrawl,
     "infosys": fetch_infosys,
@@ -1748,7 +1891,7 @@ ADAPTERS = {
 # 1,140 of 1,257 Workday roles - most of them at referral companies - into the
 # Section C head count, never shown. Each board has a public per-job endpoint;
 # call it only for roles that are new, in India, in range and on-title, so a
-# 2-hourly scan costs a few dozen requests and a backlog run a few hundred.
+# An hourly scan costs a few dozen requests and a backlog run a few hundred.
 
 # Below this many characters a "description" is a summary line or nothing:
 # not enough to read years or stack from, so the role is routed as title-only.
@@ -1773,29 +1916,45 @@ def _detail_html(url):
 
 
 def _detail_tcs(jid):
-    # an India job 404s outside a session switched to India, as the list does
-    s = requests.Session()
-    s.headers.update(HEADERS)
-    s.put(TCS_BASE + "api/v1/current/country/IN/EN/1", headers=TCS_HDRS, timeout=TIMEOUT)
-    path = "api/v1/job/desc/walkin" if jid.upper().endswith("W") else "api/v1/job/desc"
-    r = s.post(TCS_BASE + path, json={"jobId": jid[:-1]}, headers=TCS_HDRS, timeout=TIMEOUT)
-    r.raise_for_status()
-    d = (r.json() or {}).get("data") or {}
+    # ids end in J (regular) or W (walk-in); the detail path takes the number
+    kind = "walkin/" if jid.upper().endswith("W") else ""
+    r = _call(requests.get, f"{TCS_API}en-IN/job/desc/{kind}{jid[:-1]}",
+              headers={**HEADERS, **TCS_HDRS}, timeout=TIMEOUT)
+    d = (r.json() or {}).get("payload") or {}
     return strip_html("\n".join(str(d.get(k) or "") for k in (
-        "description", "qualifications", "skilldetail", "additionalInfo")))
+        "description", "qualifications", "skilldetail", "experience")))
+
+
+_RH_SESSIONS, _RH_LOCK = {}, threading.Lock()
+
+
+def _ripplehire_shared(base, tok, fresh=False):
+    """One session per board for the detail calls. A new one per job cost two
+    requests and, when the JSESSIONID was missing, seconds of backoff each -
+    across UST's and LTIMindtree's hundreds of roles."""
+    with _RH_LOCK:
+        s = None if fresh else _RH_SESSIONS.get((base, tok))
+    if s is None:
+        s = _ripplehire_session(base, tok)
+        with _RH_LOCK:
+            _RH_SESSIONS[(base, tok)] = s
+    return s
 
 
 def _detail_ripplehire(ref):
     base, tok, seq = ref.split("|")
-    s = requests.Session()
-    s.headers.update(HEADERS)
-    s.get(f"{base}?token={tok}&lang=en&source=CAREERSITE", timeout=TIMEOUT)
-    r = s.get(base + "candidatejobdetail",
-              params={"token": tok, "jobSeq": seq, "source": "CAREERSITE", "lang": "en"},
-              headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
-              timeout=TIMEOUT)
-    r.raise_for_status()
-    vo = (r.json() or {}).get("jobVO") or {}
+    for attempt in range(3):
+        s = _ripplehire_shared(base, tok, fresh=attempt > 0)
+        r = _call(s.get, base + "candidatejobdetail",
+                  params={"token": tok, "jobSeq": seq, "source": "CAREERSITE", "lang": "en"},
+                  headers={"X-Requested-With": "XMLHttpRequest", "Accept": "application/json"},
+                  timeout=TIMEOUT)
+        try:
+            vo = (r.json() or {}).get("jobVO") or {}
+            break
+        except ValueError:
+            if attempt == 2:
+                raise
     return strip_html("\n".join(str(vo.get(k) or "") for k in ("jobDesc", "jobSkills", "otherDetails")))
 
 
@@ -1813,8 +1972,15 @@ def _detail_phenom(url):
     return strip_html(json.loads('"' + max(found, key=len) + '"'))
 
 
+def _detail_pcsx(url):
+    r = _call(requests.get, url, headers={**HEADERS, "Accept": "application/json"},
+              timeout=TIMEOUT)
+    return strip_html(((r.json() or {}).get("data") or {}).get("jobDescription") or "")
+
+
 DETAIL_TEXT = {"html": _detail_html, "tcs": _detail_tcs,
-               "ripplehire": _detail_ripplehire, "phenom": _detail_phenom}
+               "ripplehire": _detail_ripplehire, "phenom": _detail_phenom,
+               "pcsx": _detail_pcsx}
 
 
 def enrich(job):
@@ -2360,15 +2526,87 @@ def followups_due(applied):
     return sorted(due, key=lambda x: -x[0])
 
 
-def _followups_hour():
-    """Follow-ups ride on one scan a day (the 02:00 UTC / 07:30 IST cron)
-    rather than all twelve, and on every manual run. Hour 3 is included
-    because scheduled runs often start late; runs are two hours apart, so
-    only one of them lands in the window."""
+def _daily_due():
+    """Follow-ups and the boards-down notice ride on one email a day: the
+    first scheduled scan at or after 07:30 IST that sends one. GitHub starts
+    scheduled runs late and drops some, so the hour alone cannot say "first";
+    daily_sent.txt holds the IST date of the last one. Manual runs always
+    include them."""
     if os.environ.get("MODE", "scan") != "scan":
         return True
-    hours = os.environ.get("FOLLOWUP_HOURS_UTC", "2,3")
-    return str(datetime.now(timezone.utc).hour) in [h.strip() for h in hours.split(",")]
+    now = datetime.now(IST)
+    if (now.hour, now.minute) < (7, 30):
+        return False
+    try:
+        last = DAILY_SENT.read_text(encoding="utf-8").strip()
+    except OSError:
+        last = ""
+    return last != now.strftime("%Y-%m-%d")
+
+
+# A board is reported down once it has failed, or come back empty after having
+# roles, for this long. Shorter than that is usually one bad call.
+DOWN_AFTER_HOURS = 6
+# "Came back empty" only counts for a board that last had at least this many
+# roles; a small board emptying out is usually just a quiet month.
+DOWN_IF_EMPTIED_FROM = 5
+
+
+def load_health():
+    try:
+        return json.loads(BOARD_HEALTH_JSON.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def save_health(health):
+    BOARD_HEALTH_JSON.write_text(json.dumps(health, indent=1, sort_keys=True) + "\n",
+                                 encoding="utf-8")
+
+
+def update_health(health, outcomes, now):
+    """fetch_errors.log says a board failed; this says for how long, and also
+    catches the failure that raises nothing - an API that starts answering
+    with an empty list. TCS was down for five days and RippleHire for two
+    (2026-10) with only a count in the digest footer to show for it."""
+    stamp = now.isoformat(timespec="minutes")
+    names = set()
+    for c, jobs, err in outcomes:
+        name = c.get("Company") or c.get("Token")
+        names.add(name)
+        h = health.setdefault(name, {})
+        if err:
+            h.setdefault("down_since", stamp)
+            h["why"] = err[:160]
+        elif not jobs and h.get("n", 0) >= DOWN_IF_EMPTIED_FROM:
+            h.setdefault("down_since", stamp)
+            h["why"] = f"returned 0 roles (had {h['n']} on {h.get('ok', '?')[:10]})"
+        else:
+            h.update(ok=stamp, n=len(jobs or []))
+            h.pop("down_since", None)
+            h.pop("why", None)
+    for gone in set(health) - names:      # row removed from companies.csv
+        del health[gone]
+    return health
+
+
+def boards_down(health, companies, now):
+    """[(company, since, why, referral)] down for DOWN_AFTER_HOURS or more,
+    referral companies first."""
+    refs = {(c.get("Company") or c.get("Token")) for c in companies
+            if (c.get("Referral") or "").strip().lower() in ("y", "yes", "1", "true")}
+    out = []
+    for name, h in health.items():
+        since = h.get("down_since")
+        if not since:
+            continue
+        try:
+            hours = (now - datetime.fromisoformat(since)).total_seconds() / 3600
+        except ValueError:
+            continue
+        if hours >= DOWN_AFTER_HOURS:
+            out.append((name, since, h.get("why", ""), name in refs))
+    return sorted(out, key=lambda x: (not x[3], x[1], x[0]))
 
 
 # --------------------------------------------------------------------------
@@ -2390,7 +2628,9 @@ def _trim_errors_log():
         ERRORS_LOG.write_text("".join(lines[-ERRORS_LOG_KEEP:]), encoding="utf-8")
 
 
-def poll_boards(companies):
+def poll_boards(companies, outcomes=None):
+    """outcomes, if given, collects (company row, jobs or None, error or None)
+    for every board, for update_health()."""
     raw, errors = [], 0
 
     def poll(c):
@@ -2410,6 +2650,8 @@ def poll_boards(companies):
 
     with ThreadPoolExecutor(max_workers=WORKERS) as pool:
         for c, jobs, err in pool.map(poll, companies):
+            if outcomes is not None:
+                outcomes.append((c, jobs, err))
             if err:
                 log_error(c.get("Company", "?"), err)
                 errors += 1
@@ -2433,7 +2675,10 @@ def select(raw, seen, max_age):
         if not title_ok(j["title"]):
             continue
         loc = (j.get("location") or "").strip()
-        multi = bool(MULTI_LOC.match(loc)) and j.get("_detail")
+        # "51 Locations", or a Workday card with only a req id (Fractal): the
+        # detail call names the cities, so judge location after enrichment
+        multi = bool(j.get("_detail")) and (
+            bool(MULTI_LOC.match(loc)) or (not loc and j["_detail"][0] == "workday"))
         if not multi and (is_non_india_only(loc) or not is_india(loc)):
             continue
         age = age_days(j.get("posted"))
@@ -2493,7 +2738,11 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
     today = datetime.now(IST).strftime("%Y-%m-%d")
 
     print(f"Polling {len(companies)} boards with {WORKERS} workers...")
-    raw, errors = poll_boards(companies)
+    outcomes = []
+    raw, errors = poll_boards(companies, outcomes)
+    now = datetime.now(timezone.utc)
+    health = update_health(load_health(), outcomes, now)
+    down = boards_down(health, companies, now)
     kept, drops, stats = select(raw, seen, max_age)
 
     recent = recent_by_company(applied)
@@ -2502,9 +2751,11 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
         if hist:
             d, title = min(hist)
             j["applied_recently"] = f"you applied for '{title}' here {d}d ago"
-    followups = followups_due(applied) if _followups_hour() else []
+    daily = _daily_due()
+    followups = followups_due(applied) if daily else []
 
-    digest, sections = build_digest(kept, stats, len(raw), errors, today, max_age, followups)
+    digest, sections = build_digest(kept, stats, len(raw), errors, today, max_age,
+                                    followups, down)
     print(f"\n{len(kept)} new roles ({len(raw)} raw, {stats['too_old']} older than "
           f"{max_age}d, {stats['over_yoe']} over your years, "
           f"{stats['senior_unproven']} senior without a band you fit).")
@@ -2529,9 +2780,11 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
     upsert_pipeline(rows, drops)
     seen.update(j["url"] for j in kept)
     save_seen(seen)
-    if not kept and not followups:
+    save_health(health)
+    if not kept and not followups and not (daily and down):
         # On a short polling interval most runs find nothing. Saving seen.json
-        # still matters; mailing an empty digest every couple of hours does not.
+        # still matters; mailing an empty digest every hour does not. Boards
+        # that are down still get one email a day.
         print("No new roles; skipping email.")
         return
     first, refs = len(sections["first"]), sum(1 for j in kept if j.get("referral"))
@@ -2539,8 +2792,14 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
     if refs:
         subject += f", {refs} at referral companies"
     if not kept:
-        subject = f"Jobs {today}: {len(followups)} follow-ups due"
+        subject = f"Jobs {today}: " + ", ".join(x for x in (
+            f"{len(followups)} follow-ups due" if followups else "",
+            f"{len(down)} boards down" if down else "") if x)
+    elif down:
+        subject += f" ({len(down)} boards down)"
     send_email(subject, digest)
+    if daily:
+        DAILY_SENT.write_text(today + "\n", encoding="utf-8")
 
 
 # --------------------------------------------------------------------------
@@ -2623,7 +2882,7 @@ def _action(j):
     return "Apply directly - today if you can; the first 48h get the most recruiter attention."
 
 
-def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
+def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=(), down=()):
     agency = [j for j in jobs if j.get("agency")]
     direct = [j for j in jobs if not j.get("agency")]
     titleonly = [j for j in direct if not has_jd(j)]
@@ -2667,6 +2926,14 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=()):
     if refs:
         lines.append(f"{refs} at companies where you have a referral (marked *REFERRAL*)")
     lines += ["=" * 60, ""]
+
+    if down:
+        lines.append(f"BOARDS DOWN ({len(down)}) - roles from these are NOT reaching you")
+        lines.append("-" * 60)
+        for name, since, why, ref in down:
+            mark = " *REFERRAL*" if ref else ""
+            lines.append(f"  {name}{mark}: since {since[:16].replace('T', ' ')} UTC - {why}")
+        lines += ["  Check the careers page by hand until it is fixed.", ""]
 
     lines.append(f"APPLY FIRST ({len(first)}) - best odds in this batch, "
                  f"max {PER_COMPANY_CAP} per company")
