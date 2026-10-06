@@ -1827,3 +1827,6 @@
 2026-10-06T03:59:53.796127+05:30	Altimetrik	JD fetch failed (JSONDecodeError: Expecting value: line 1 column 1 (char 0)); shown as title-only
 2026-10-06T11:17:46.708809+05:30	Atomicwork	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/atomicwork/jobs?content=true
 2026-10-06T11:21:02.053813+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-06T18:36:42.617677+05:30	Atomicwork	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/atomicwork/jobs?content=true
+2026-10-06T18:36:44.435524+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
+2026-10-06T18:40:24.595935+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
