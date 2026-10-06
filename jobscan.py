@@ -190,6 +190,9 @@ NON_INDIA_HINTS = [
     "santa clara", "san diego", "los angeles", "seattle", "portland",
     "denver", "austin", "boston", "chicago", "atlanta", "phoenix", "dallas",
     "houston", "miami", "toronto", "vancouver", "montreal",
+    # Workday's "India" text search matches it; "Indianapolis, IN" then passed
+    # is_india() on the bare "in" (Lowe's store jobs, 2026-10-06)
+    "indianapolis",
 ]
 
 # Patterns that word-boundary hints cannot catch: "U.S. Remote", "Remote, WA",
@@ -218,7 +221,7 @@ TITLE_KEEP = [
     "engineer 3", "engineer iii", "associate engineer",
     "programmer", "sdet", "software eng", "engineer -", "engineer,",
     # AI and cloud titles the list above missed entirely
-    "llm", "genai", "gen ai", "generative ai", "mlops", "ml ops", "ai/ml",
+    "genai", "gen ai", "generative ai", "mlops", "ml ops", "ai/ml",
     "forward deployed", "product engineer", "founding engineer",
     # IT-services grade titles, measured on 2026-10-01 against ~10,500 India
     # roles: Infosys hires 2-3 year engineers as "Senior System Engineer",
@@ -935,6 +938,19 @@ def fetch_eightfold(token, tenant=None):
 
 
 PCSX_MAX = 1000
+_PCSX_SESSIONS, _PCSX_LOCK = {}, threading.Lock()
+
+
+def _pcsx_session(host):
+    """One cookie-carrying session per host. Microsoft's PCSX can answer a
+    cookieless call with 429 plus Set-Cookie and serve the retry that sends
+    them back; a bare requests.get retried cookieless and failed all three."""
+    with _PCSX_LOCK:
+        s = _PCSX_SESSIONS.get(host)
+        if s is None:
+            s = _PCSX_SESSIONS[host] = requests.Session()
+            s.headers.update({**HEADERS, "Accept": "application/json"})
+    return s
 
 
 def fetch_pcsx(token, tenant=None):
@@ -945,10 +961,10 @@ def fetch_pcsx(token, tenant=None):
     host = token.strip().replace("https://", "").replace("http://", "").strip("/")
     dom = (tenant or "").strip()
     base = f"https://{host}/api/pcsx/"
-    hdrs = {**HEADERS, "Accept": "application/json"}
+    s = _pcsx_session(host)
     out, start = [], 0
     while start < PCSX_MAX:
-        r = _call(requests.get, base + "search", headers=hdrs, timeout=TIMEOUT,
+        r = _call(s.get, base + "search", timeout=TIMEOUT,
                   params={"domain": dom, "query": "", "location": "India",
                           "start": start, "sort_by": "timestamp"})
         data = (r.json() or {}).get("data") or {}
@@ -1973,8 +1989,8 @@ def _detail_phenom(url):
 
 
 def _detail_pcsx(url):
-    r = _call(requests.get, url, headers={**HEADERS, "Accept": "application/json"},
-              timeout=TIMEOUT)
+    host = url.split("/")[2]
+    r = _call(_pcsx_session(host).get, url, timeout=TIMEOUT)
     return strip_html(((r.json() or {}).get("data") or {}).get("jobDescription") or "")
 
 
@@ -2004,6 +2020,17 @@ def enrich(job):
             desc = strip_html(info.get("jobDescription") or "")
             locs = [info.get("location")] + list(info.get("additionalLocations") or [])
             locs = [str(x) for x in locs if x]
+            if not locs:
+                # Fractal leaves location empty; the city is in the requisition
+                rl = info.get("jobRequisitionLocation") or {}
+                rloc = ", ".join(x for x in (rl.get("descriptor"),
+                                             (rl.get("country") or {}).get("descriptor")) if x)
+                locs = [rloc] if rloc else []
+            if not locs and not job.get("location"):
+                # or nowhere at all but the JD - and the board was searched for India
+                low = desc.lower()
+                city = next((c for c in INDIA_CITIES if _word(c, low)), None)
+                locs = [f"{city.title()}, India (from the JD)"] if city else []
             if locs:
                 job["location"] = "; ".join(dict.fromkeys(locs))
             if info.get("startDate"):
@@ -2113,13 +2140,18 @@ def is_non_india_only(location):
     return any(_word(hint, loc) for hint in NON_INDIA_HINTS)
 
 
+# "llm" as a word start ("LLM Engineer", "LLMOps", "GenAI/LLM"), never inside
+# one: as a plain substring it kept Lowe's "Fulfillment Associate".
+LLM_TITLE = re.compile(r"(?<![a-z])llm")
+
+
 def title_ok(title):
     t = (title or "").lower()
     if CAMPUS_DRIVE.search(title or ""):
         return False
     if any(_word(bad.strip(), t) for bad in TITLE_DROP):
         return False
-    return any(good in t for good in TITLE_KEEP)
+    return any(good in t for good in TITLE_KEEP) or bool(LLM_TITLE.search(t))
 
 
 def is_senior_title(title):

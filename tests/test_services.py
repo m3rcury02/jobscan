@@ -412,11 +412,63 @@ def test_pcsx_pages_newest_first_and_points_detail_at_position_details():
     page = lambda n, count: resp({"data": {"count": count, "positions": [
         {"id": 100 + i, "name": "Software Engineer II", "locations": ["India, Karnataka, Bangalore"],
          "postedTs": 1791222098, "positionUrl": f"/careers/job/{100 + i}"} for i in range(n)]}})
-    with patch.object(J.requests, "get", side_effect=[page(10, 11), page(1, 11)]) as get:
+    sess = MagicMock()
+    sess.get.side_effect = [page(10, 11), page(1, 11)]
+    J._PCSX_SESSIONS.clear()
+    with patch.object(J.requests, "Session", return_value=sess):
         jobs = J.fetch_pcsx("apply.careers.microsoft.com", "microsoft.com")
+    J._PCSX_SESSIONS.clear()
+    get = sess.get
     starts = [c.kwargs["params"]["start"] for c in get.call_args_list]
     assert starts == [0, 10] and get.call_args.kwargs["params"]["sort_by"] == "timestamp"
     assert len(jobs) == 11 and jobs[0]["posted"] == "2026-10-05"
     assert jobs[0]["url"] == "https://apply.careers.microsoft.com/careers/job/100"
     kind, url = jobs[0]["_detail"]
     assert kind == "pcsx" and "position_details?position_id=100&domain=microsoft.com" in url
+
+
+def test_pcsx_retries_a_429_on_the_session_that_got_its_cookies():
+    # Microsoft, 2026-10-06: 429 + Set-Cookie on a cookieless call, 200 once
+    # the retry sends them. The retry must reuse the same session.
+    limited = MagicMock(status_code=429, headers={})
+    first = resp()
+    first.raise_for_status.side_effect = J.requests.HTTPError("429", response=limited)
+    ok = resp({"data": {"count": 0, "positions": []}})
+    sess = MagicMock()
+    sess.get.side_effect = [first, ok]
+    J._PCSX_SESSIONS.clear()
+    with patch.object(J.requests, "Session", return_value=sess) as mk, \
+            patch.object(J.time, "sleep"):
+        assert J.fetch_pcsx("apply.careers.microsoft.com", "microsoft.com") == []
+    J._PCSX_SESSIONS.clear()
+    assert mk.call_count == 1 and sess.get.call_count == 2
+
+
+@pytest.mark.parametrize("title, ok", [
+    ("Fulfillment Associate", False),            # Lowe's store job: "llm" inside a word
+    ("LLM Engineer", True), ("LLMOps Engineer", True), ("GenAI/LLM Developer", True),
+    ("Senior Engineer - LLM", True),
+])
+def test_llm_matches_only_at_a_word_start(title, ok):
+    assert J.title_ok(title) is ok
+
+
+def test_indianapolis_is_not_india():
+    loc = "Indianapolis, IN (C Indianapolis) 0635"
+    assert J.is_non_india_only(loc) and not J.is_india(loc)
+    assert J.is_india("Bengaluru")
+
+
+def test_workday_detail_falls_back_to_requisition_location_then_the_jd():
+    def detail(info):
+        return {"jobPostingInfo": {"location": "", "jobDescription": "<p>x</p>", **info}}
+    req = {"jobRequisitionLocation": {"descriptor": "Bengaluru",
+                                      "country": {"descriptor": "India"}}}
+    jd = {"jobDescription": "<p>Role based out of our Pune office. 2-4 years.</p>"}
+    for info, want in ((req, "Bengaluru, India"), (jd, "Pune, India (from the JD)"),
+                       ({}, "")):
+        job = {"title": "Data Engineer", "location": "", "description": "",
+               "_detail": ("workday", "https://x.wd1/api/job/1")}
+        with patch.object(J, "get_json", return_value=detail(info)):
+            assert J.enrich(job)
+        assert job["location"] == want
