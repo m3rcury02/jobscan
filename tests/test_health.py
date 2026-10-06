@@ -80,3 +80,12 @@ def test_daily_slot_is_once_per_ist_day_after_0730(tmp_path, monkeypatch):
     monkeypatch.setenv("MODE", "backlog")
     Clock.now_ist = datetime(2026, 10, 7, 1, 0, tzinfo=J.IST)
     assert J._daily_due()
+
+
+def test_a_firecrawl_row_skipped_to_save_credits_is_not_empty(monkeypatch):
+    fc = {"Company": "Example", "ATS": "firecrawl"}
+    h = run({}, [(fc, [{}] * 20, None)], T0)
+    monkeypatch.setattr(J, "_firecrawl_due", lambda: False)
+    h = run(h, [(fc, [], None)], T0 + timedelta(hours=1))
+    assert J.boards_down(h, [fc], T0 + timedelta(hours=9)) == []
+    assert h["Example"]["n"] == 20

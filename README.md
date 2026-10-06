@@ -5,7 +5,7 @@ cloud roles whose stated experience band includes yours (`MY_YOE`, default 2), f
 full job description, scores it against your stack, and emails a digest that opens with
 the handful of roles to apply to first.
 
-About 340 boards across 22 adapters, including 22 IT services firms (TCS, Infosys, Wipro,
+About 350 boards across 24 adapters, including 22 IT services firms (TCS, Infosys, Wipro,
 HCLTech, LTIMindtree, Persistent, Coforge ...). Roles at companies where you have a referral
 are tagged *REFERRAL* and ranked up.
 
@@ -208,6 +208,8 @@ you have), what else the JD wants, and the next step.
 | `techmahindra` | ASP.NET form postbacks. Title, band and skills only; the link names the Job Reference ID to search. |
 | `jibe` | iCIMS Jibe sites. Token = host, Tenant = location. Unit (e.g. Epsilon) appended to the title. |
 | `rss` | A site's own job feed: RSS `<item>` or Indeed-style `<job>`. Token = feed URL, Tenant = country to keep. |
+| `freshteam` | Token = subdomain. Reads the public widget feed (`/hire/widgets/jobs.json`): every published job with JD, branch and date. The `/jobs` page `custom` used to scrape showed a fraction of them. `agency` rows on Freshteam use it too. |
+| `pcsx` | Eightfold's newer career-site API. Token = host (`apply.careers.microsoft.com`), Tenant = the `domain=` param. Use it where `eightfold`'s `/api/apply/v2` returns 403 (Microsoft, Qualcomm, Infineon, Morgan Stanley). |
 
 `successfactors` reads the real result count ("of 2,242") and sorts newest first. Before
 2026-10-01 it read the page range as the total and stopped after 25 roles on every board.
@@ -243,8 +245,9 @@ no row needs Firecrawl any more. Postman moved to Workday and Amplitude to Ashby
 Still not covered: EPAM India (Cloudflare WAF block even for a real browser, from any
 datacenter IP), GlobalLogic (its job search call returns 403 to datacenter IPs, browser
 included), Happiest Minds (Darwinbox behind a Cloudflare Turnstile check), and KPIT (needs
-a real browser to pass a JavaScript check; adding Playwright to every 2-hourly run would
-cost roughly 9 hours of Actions minutes a month on a private repo).
+a real browser to pass a JavaScript check; Playwright on every hourly run adds a browser
+install and a minute or more per run for one board). `remaining_companies.md` has the
+full list of what is still uncovered and why.
 
 ## Companies with no ATS (custom careers pages)
 

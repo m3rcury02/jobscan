@@ -2574,6 +2574,9 @@ def update_health(health, outcomes, now):
     for c, jobs, err in outcomes:
         name = c.get("Company") or c.get("Token")
         names.add(name)
+        if (c.get("ATS") or "").lower() == "firecrawl" and not err and not jobs \
+                and not _firecrawl_due():
+            continue            # skipped this run to save credits, not empty
         h = health.setdefault(name, {})
         if err:
             h.setdefault("down_since", stamp)
