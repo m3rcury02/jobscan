@@ -1831,3 +1831,4 @@
 2026-10-06T18:36:44.435524+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
 2026-10-06T18:40:24.595935+05:30	TCS	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 2026-10-06T20:54:48.599852+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
+2026-10-07T01:54:00.161931+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
