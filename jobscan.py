@@ -25,10 +25,13 @@ import threading
 import time
 from datetime import datetime, timedelta, timezone
 from concurrent.futures import ThreadPoolExecutor
+from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from pathlib import Path
 
 import requests
+
+import resumes
 
 ROOT = Path(__file__).parent
 COMPANIES_CSV = ROOT / "companies.csv"
@@ -2822,6 +2825,13 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
         # that are down still get one email a day.
         print("No new roles; skipping email.")
         return
+    attachments = []
+    # no SMTP means the attachments would be dropped: don't pay to generate them
+    if resumes.enabled() and sections["first"] and smtp_configured():
+        attachments, notes = tailored_resumes(sections["first"])
+        if notes:
+            digest, sections = build_digest(kept, stats, len(raw), errors, today, max_age,
+                                            followups, down, resume_notes=notes)
     first, refs = len(sections["first"]), sum(1 for j in kept if j.get("referral"))
     subject = f"Jobs {today}: {first} to apply first, {len(kept)} new"
     if refs:
@@ -2832,7 +2842,7 @@ def run(dry_run=False, reset=False, max_age=MAX_AGE_DAYS):
             f"{len(down)} boards down" if down else "") if x)
     elif down:
         subject += f" ({len(down)} boards down)"
-    send_email(subject, digest)
+    send_email(subject, digest, attachments)
     if daily:
         DAILY_SENT.write_text(today + "\n", encoding="utf-8")
 
@@ -2876,6 +2886,10 @@ def _dedupe_postings(jobs):
     list the other cities, so you apply once rather than five times."""
     out, by_key = [], {}
     for j in jobs:
+        # rebuilt from scratch every call: run() builds the digest a second
+        # time to add resume notes, and appending again doubled "+N identical"
+        j.pop("also", None)
+    for j in jobs:
         if not has_jd(j):
             out.append(j)
             continue
@@ -2917,7 +2931,8 @@ def _action(j):
     return "Apply directly - today if you can; the first 48h get the most recruiter attention."
 
 
-def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=(), down=()):
+def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=(), down=(),
+                 resume_notes=None):
     agency = [j for j in jobs if j.get("agency")]
     direct = [j for j in jobs if not j.get("agency")]
     titleonly = [j for j in direct if not has_jd(j)]
@@ -2987,6 +3002,8 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=(), d
             lines.append(f"   JD also wants: {', '.join(j['Gaps'])}")
         if j.get("applied_recently"):
             lines.append(f"   Note: {j['applied_recently']}")
+        if resume_notes and j["url"] in resume_notes:
+            lines.append(f"   {resume_notes[j['url']]}")
         lines += [f"   -> {_action(j)}", f"   {j['url']}", ""]
 
     lines.append(f"MORE MATCHES ({len(more)})")
@@ -3065,15 +3082,55 @@ def build_digest(jobs, stats, raw_count, errors, today, max_age, followups=(), d
                               "low": low, "titleonly": titleonly, "agency": agency}
 
 
-def send_email(subject, body):
+def tailored_resumes(first):
+    """Resumes (or eligibility audits) for the APPLY FIRST roles, as email
+    attachments [(filename, text)] and digest notes {url: line}. See
+    resumes.py. Only counts reach the log: Actions logs on a public repo
+    are public, and every resume carries your contact details."""
+    results = resumes.generate_all(first, has_jd)
+    attachments, notes, used = [], {}, set()
+    for j in first:
+        r = results.get(j["url"])
+        if not r:
+            continue
+        name = resumes.filename(j)
+        n = 2
+        while name in used:
+            name = f"{resumes.filename(j)[:-3]} ({n}).md"
+            n += 1
+        used.add(name)
+        if r["kind"] != "error":
+            attachments.append((name, r["text"]))
+        notes[j["url"]] = resumes.status_line(r, name)
+    kinds = [r["kind"] for r in results.values()]
+    print(f"Resumes: {kinds.count('resume')} generated, {kinds.count('audit')} audits, "
+          f"{kinds.count('error')} failed (via {resumes.backend()}).")
+    return attachments, notes
+
+
+def smtp_configured():
+    return bool(os.environ.get("SMTP_USER") and os.environ.get("SMTP_PASS"))
+
+
+def send_email(subject, body, attachments=()):
     user = os.environ.get("SMTP_USER")
     pw = os.environ.get("SMTP_PASS")
     to = os.environ.get("SMTP_TO", user)
-    if not user or not pw:
+    if not smtp_configured():
+        # the digest only - attachments carry your contact details, and this
+        # path writes to the Actions log
         print("SMTP_USER/SMTP_PASS not set; printing digest instead.\n")
         print(body)
         return
-    msg = MIMEText(body, "plain", "utf-8")
+    if attachments:
+        msg = MIMEMultipart()
+        msg.attach(MIMEText(body, "plain", "utf-8"))
+        for name, text in attachments:
+            part = MIMEText(text, "markdown", "utf-8")   # text/markdown, RFC 7763
+            part.add_header("Content-Disposition", "attachment", filename=name)
+            msg.attach(part)
+    else:
+        msg = MIMEText(body, "plain", "utf-8")
     msg["Subject"] = subject
     msg["From"] = user
     msg["To"] = to

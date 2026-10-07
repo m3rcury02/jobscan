@@ -67,7 +67,19 @@ jobs:
           python-version: "3.12"
 
       - name: Install deps
-        run: pip install requests
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          RESUME_PACKET: ${{ secrets.RESUME_PACKET }}
+        run: |
+          pip install requests anthropic
+          # Resumes through your Claude subscription need the Claude Code CLI;
+          # an API key does not (see resumes.py). A failed install costs this
+          # run its resumes, never the scan.
+          if [ -n "$RESUME_PACKET" ] && [ -n "$CLAUDE_CODE_OAUTH_TOKEN" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            npm install -g @anthropic-ai/claude-code \
+              || echo "::warning::Claude Code CLI install failed; no resumes this run"
+          fi
 
       - name: Run
         env:
@@ -75,6 +87,15 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           SMTP_TO: ${{ secrets.SMTP_TO }}
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          # Tailored resumes for APPLY FIRST roles (resumes.py). Off until
+          # RESUME_PACKET, RESUME_INSTRUCTIONS and one of the two auth secrets exist.
+          RESUME_PACKET: ${{ secrets.RESUME_PACKET }}
+          RESUME_INSTRUCTIONS: ${{ secrets.RESUME_INSTRUCTIONS }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          RESUME_MODEL: ${{ vars.RESUME_MODEL }}
+          RESUME_EFFORT: ${{ vars.RESUME_EFFORT }}
+          RESUME_MAX: ${{ vars.RESUME_MAX }}
           MODE: ${{ github.event.inputs.mode || 'scan' }}
           MAX_AGE: ${{ github.event.inputs.max_age || '2' }}
           URL: ${{ github.event.inputs.url }}

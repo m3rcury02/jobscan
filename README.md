@@ -91,6 +91,7 @@ Actions > jobscan > Run workflow > mode:
 - `daily_sent.txt` - IST date of the last once-a-day email (follow-ups, boards down).
 - `dead_rows.txt` - written by `diagnose`, consumed by `prune`.
 - `discover.py` - board discovery. Separate from the scanner; only runs in `discover` mode.
+- `resumes.py` - tailored resumes for APPLY FIRST roles. Off until its secrets exist.
 
 ## The Referral column
 
@@ -165,6 +166,45 @@ Edit the constants at the top of `jobscan.py`:
 5. Score: 50% weighted skill overlap, 30% years fit (in-band 30, unstated 18, below 15,
    stretch 12), 20% role type. Deterministic and cheap. If it disagrees with your
    judgement, the keyword bank is wrong, not the formula.
+
+## Tailored resumes for APPLY FIRST roles
+
+Each APPLY FIRST role that has a job description gets your resume generator run on it, and
+the result is attached to the digest as a markdown file: a one-page resume when your
+eligibility gate scores 90 or above, otherwise the gate's audit (score, failed checks, and
+the minimum points that would clear 90). The digest line under the role says which. It is
+the same as pasting the JD into your claude.ai Project, which cannot be called from a script.
+
+**Setup.** Repo Settings > Secrets and variables > Actions:
+
+1. `RESUME_PACKET` - the full resume source packet (markdown).
+2. `RESUME_INSTRUCTIONS` - the Project instructions, eligibility gate included.
+3. One way to reach Claude:
+   - `CLAUDE_CODE_OAUTH_TOKEN` - your Claude subscription. Run `claude setup-token` on your
+     own machine (Claude Code installed, signed in) and paste the token it prints. No extra
+     cost; it draws on the same usage limits as your interactive Claude use. The run installs
+     the Claude Code CLI only when this route is in use.
+   - or `ANTHROPIC_API_KEY` - the Anthropic API, paid per use (console.anthropic.com).
+     About $0.10-0.20 a resume on Claude Opus 5.5 at the default effort. Wins if both are set.
+
+Optional repository variables (not secrets): `RESUME_MODEL` (API default `claude-opus-5-5`;
+the CLI uses your plan's default), `RESUME_EFFORT` (default `high`), `RESUME_MAX` (per run,
+default 8). Resumes are only generated when the SMTP secrets are set, since they travel by
+email.
+
+**What it costs in time.** Measured: 33 s for an audit, about 2.5 min for a full resume.
+Up to 8 per run (`RESUME_MAX`), 3 at a time, within a 15-minute budget; anything still
+running then is marked "not generated" and the digest goes out without it.
+
+**Privacy.** The packet, the instructions and every resume carry your phone number and email,
+and this repo and its Actions logs are public. Keep them in secrets, never in a file here.
+The scanner writes nothing to the repo and prints only counts to the log; resumes travel by
+email only. Dry runs never generate (they would print to the public log).
+
+**Read before you send.** These are drafts. A real run on a Java role produced a 518-word
+resume that followed the format and left unsupported JD keywords out, but also merged two
+unrelated facts into one bullet. Roles outside Bangalore lose 5 gate points unless the
+packet says whether you will relocate.
 
 ## Workflow
 
