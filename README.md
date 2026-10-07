@@ -46,13 +46,34 @@ No API keys for the job boards. All endpoints are public.
    ```
    Check `fetch_errors.log` for any board returning 404 (wrong token) or 403.
 
-6. Push. The workflow runs hourly at :17. Trigger a manual run from the Actions tab
-   to confirm the email lands.
+6. Push, then trigger a manual run from the Actions tab to confirm the email lands.
 
-   Not at :00: GitHub delays and drops scheduled runs at the top of the hour. The old
-   `0 */2 * * *` schedule ran 3-5 times a day instead of 12 (2026-09-27 to 10-05).
-   Hourly needs a public repo (unlimited minutes); on a private one, ~4.5 minute runs
-   every hour would need ~3,300 of the 2,000 free minutes - use `17 */2 * * *` there.
+7. **Set up an external hourly trigger** (see "Hourly runs" below). The workflow's own
+   cron is only a backup: GitHub drops most of its runs.
+
+## Hourly runs
+
+GitHub's scheduler drops most scheduled runs for this repo. `0 */2 * * *` ran 3-5 times
+a day instead of 12 (2026-09-27 to 10-05); moving to `17 * * * *` did not help: 2 runs in
+the 14 hours after the change (2026-10-06/07). Every manual run starts at once, so an
+outside scheduler that triggers the workflow is what makes it hourly. 5 minutes, free:
+
+1. **Token.** GitHub > Settings > Developer settings > Personal access tokens >
+   Fine-grained tokens > Generate new token. Repository access: only `jobscan`.
+   Permissions: Actions = Read and write. Nothing else. Expiry: up to a year (diarise it).
+2. **Scheduler.** At cron-job.org (free), create a cron job:
+   - URL: `https://api.github.com/repos/m3rcury02/jobscan/actions/workflows/jobscan.yml/dispatches`
+   - Schedule: every hour, at minute 17
+   - Advanced > Request method: `POST`
+   - Headers: `Authorization: Bearer <the token>`, `Accept: application/vnd.github+json`,
+     `X-GitHub-Api-Version: 2022-11-28`
+   - Request body: `{"ref":"main","inputs":{"mode":"scan","max_age":"2"}}`
+   - It should report HTTP 204. A run then appears in the Actions tab within seconds.
+3. Leave the cron in the workflow as a backup. When both fire in the same hour, the
+   `concurrency` group queues the second run, which finds nothing new and sends nothing.
+
+Hourly needs a public repo (unlimited minutes); on a private one, ~9 minute runs every
+hour would need far more than the 2,000 free minutes.
 
 ## After updating to the JD-enrichment version: run `backlog` once
 

@@ -2,9 +2,10 @@ name: jobscan
 
 on:
   schedule:
-    # Hourly, at :17. "0 */2 * * *" ran only 3-5 times a day (2026-09-27 to
-    # 10-05): GitHub delays and drops scheduled runs at the top of the hour,
-    # its busiest minute. The repo is public, so Actions minutes are free.
+    # Hourly, at :17. A backup only: GitHub drops most scheduled runs for this
+    # repo whatever the minute ("0 */2" ran 3-5 times a day; "17 *" ran twice
+    # in 14 hours, 2026-10-06/07). An external hourly trigger of
+    # workflow_dispatch is the real schedule - see README "Hourly runs".
     - cron: "17 * * * *"
   workflow_dispatch:
     inputs:
