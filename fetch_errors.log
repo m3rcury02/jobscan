@@ -1838,3 +1838,4 @@
 2026-10-07T21:06:32.890682+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
 2026-10-07T21:06:40.195347+05:30	Intel	HTTPError: 502 Server Error: Bad Gateway for url: https://intel.wd1.myworkdayjobs.com/wday/cxs/intel/External/jobs
 2026-10-07T21:13:28.874973+05:30	TCS	HTTPError: 404 Client Error: Not Found for url: https://ibegin.tcsapps.com/candidate/next/api/candidate
+2026-10-08T02:51:13.593204+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
