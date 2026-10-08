@@ -17,8 +17,8 @@ and one way to reach Claude:
                            cost; it draws on your plan's usage limits.
   ANTHROPIC_API_KEY        the Anthropic API, paid per use. Wins when both
                            are set.
-Optional repository variables: RESUME_MODEL (API default claude-opus-5-5;
-CLI default is your plan's default model), RESUME_EFFORT (default high),
+Optional repository variables: RESUME_MODEL (default claude-opus-5-5 on both
+routes), RESUME_EFFORT (default high; see DEFAULT_EFFORT for why not xhigh),
 RESUME_MAX (default 8 per run).
 """
 import os
@@ -27,15 +27,20 @@ import subprocess
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, wait
 
-API_MODEL = "claude-opus-5-5"
-# Opus 5.5 defaults to medium effort. Fitting a JD under word, metric and
-# one-system rules is reasoning-heavy, so ask for high.
+# On both routes, unless RESUME_MODEL says otherwise. On the CLI route a plan
+# without this model falls back to the plan's default, and the digest says so.
+MODEL = "claude-opus-5-5"
+# Opus 5.5 defaults to medium effort; fitting a JD under word, metric and
+# one-system rules is reasoning-heavy. xhigh was measured against high on the
+# same JD (2026-10-08): 443 s and 38.7k output tokens against 179 s and 14.9k,
+# no gain on the packet's rules, and it attached more metric-bank figures to
+# workflows the packet does not tie them to. So high.
 DEFAULT_EFFORT = "high"
 WORKERS = 3
-# Per call and in total. A full resume measured 149 s; the budget keeps a
-# stalled call from pushing the run past the workflow timeout, which would
-# skip "Commit state" and pay for the same resumes again next hour.
-CALL_TIMEOUT = 300
+# Per call, scaled to effort, and in total. The budget keeps slow calls from
+# pushing the run past the workflow timeout, which would skip "Commit state"
+# and pay for the same resumes again next hour.
+EFFORT_TIMEOUT = {"low": 180, "medium": 240, "high": 420, "xhigh": 900, "max": 1200}
 BUDGET_SECONDS = 15 * 60
 # The marker line, possibly wrapped in markdown (`...` or **...**); the score
 # is read from the rest of the line separately.
@@ -104,16 +109,25 @@ def parse_result(text):
             "text": body}
 
 
+def effort():
+    return _env("RESUME_EFFORT") or DEFAULT_EFFORT
+
+
+def call_timeout():
+    return EFFORT_TIMEOUT.get(effort(), EFFORT_TIMEOUT["high"])
+
+
 def _generate_api(job):
     import anthropic
-    client = anthropic.Anthropic(max_retries=1, timeout=CALL_TIMEOUT)
+    client = anthropic.Anthropic(max_retries=1, timeout=call_timeout())
     resp = client.beta.messages.create(
-        model=_env("RESUME_MODEL") or API_MODEL,
-        max_tokens=16000,
+        model=_env("RESUME_MODEL") or MODEL,
+        # xhigh measured 38.7k output tokens on one resume; leave room above it
+        max_tokens=64000 if effort() in ("xhigh", "max") else 32000,
         system=[{"type": "text", "text": system_text(),
                  "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": user_prompt(job)}],
-        output_config={"effort": _env("RESUME_EFFORT") or DEFAULT_EFFORT},
+        output_config={"effort": effort()},
         # A safety-classifier decline is re-run server-side on the model
         # Anthropic recommends for that category instead of coming back empty.
         betas=["server-side-fallback-2026-07-01"],
@@ -124,36 +138,47 @@ def _generate_api(job):
     text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
     if resp.stop_reason == "max_tokens":
         text += "\n\n[cut off at the output limit - regenerate this one by hand]"
-    return text
+    return text, None
 
 
-def _generate_cli(job):
-    """Claude Code headless, signed in with the subscription token. Not --bare:
-    bare mode only reads ANTHROPIC_API_KEY and ignores the OAuth token."""
+def _run_cli(job, model):
     with tempfile.TemporaryDirectory() as tmp:
         sys_file = os.path.join(tmp, "system.md")
         with open(sys_file, "w", encoding="utf-8") as f:
             f.write(system_text())
         cmd = ["claude", "-p", "--system-prompt-file", sys_file, "--tools", "",
-               "--output-format", "text", "--no-session-persistence",
-               "--effort", _env("RESUME_EFFORT") or DEFAULT_EFFORT]
-        if _env("RESUME_MODEL"):
-            cmd += ["--model", _env("RESUME_MODEL")]
+               "--output-format", "text", "--no-session-persistence", "--effort", effort()]
+        if model:
+            cmd += ["--model", model]
         # cwd outside the repo, so no CLAUDE.md or project settings load
-        r = subprocess.run(cmd, input=user_prompt(job), capture_output=True, text=True,
-                           cwd=tmp, timeout=CALL_TIMEOUT)
+        return subprocess.run(cmd, input=user_prompt(job), capture_output=True, text=True,
+                              cwd=tmp, timeout=call_timeout())
+
+
+def _generate_cli(job):
+    """Claude Code headless, signed in with the subscription token. Not --bare:
+    bare mode only reads ANTHROPIC_API_KEY and ignores the OAuth token."""
+    chosen = _env("RESUME_MODEL")
+    r, note = _run_cli(job, chosen or MODEL), None
+    if r.returncode != 0 and not chosen:
+        # the plan may not offer MODEL; one retry on the plan's default
+        r, note = _run_cli(job, None), f"{MODEL} failed; written by your plan's default model"
     if r.returncode != 0:
         tail = (r.stderr or r.stdout or "").strip().splitlines()[-1:] or ["no output"]
         raise RuntimeError(f"claude exited {r.returncode}: {tail[0][:200]}")
-    return r.stdout
+    return r.stdout, note
 
 
 def generate(job):
-    """One job -> {'kind', 'score', 'text'} or {'kind': 'error', 'error'}.
+    """One job -> {'kind', 'score', 'text', 'note'} or {'kind': 'error', 'error'}.
     Never raises: a failed resume must not cost you the digest."""
     try:
         fn = _generate_api if backend() == "api" else _generate_cli
-        return parse_result(fn(job))
+        text, note = fn(job)
+        r = parse_result(text)
+        if note:
+            r["note"] = note
+        return r
     except Exception as e:  # noqa: BLE001 - reported in the digest instead
         return {"kind": "error", "score": None, "text": "",
                 "error": f"{type(e).__name__}: {e}"[:240]}
@@ -184,11 +209,12 @@ def filename(job):
 
 def status_line(result, fname):
     """The line under each APPLY FIRST role in the digest."""
+    note = f" ({result['note']})" if result.get("note") else ""
     if result["kind"] == "resume":
-        return f"Resume attached: {fname}"
+        return f"Resume attached: {fname}{note}"
     if result["kind"] == "audit":
         score = f" {result['score']}/100," if result.get("score") is not None else ""
-        return f"Below the 90 gate:{score} audit attached: {fname}"
+        return f"Below the 90 gate:{score} audit attached: {fname}{note}"
     if result["kind"] == "error":
         return f"Resume not generated ({result['error']}) - paste the JD into your Project"
-    return f"Generator output attached: {fname}"
+    return f"Generator output attached: {fname}{note}"

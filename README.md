@@ -208,9 +208,13 @@ the same as pasting the JD into your claude.ai Project, which cannot be called f
    - or `ANTHROPIC_API_KEY` - the Anthropic API, paid per use (console.anthropic.com).
      About $0.10-0.20 a resume on Claude Opus 5.5 at the default effort. Wins if both are set.
 
-Optional repository variables (not secrets): `RESUME_MODEL` (API default `claude-opus-5-5`;
-the CLI uses your plan's default), `RESUME_EFFORT` (default `high`), `RESUME_MAX` (per run,
-default 8). Resumes are only generated when the SMTP secrets are set, since they travel by
+**Model.** Claude Opus 5.5 at `high` effort on both routes. If your plan does not offer
+Opus 5.5, the CLI route retries on your plan's default model and the digest line says so.
+`xhigh` was measured against `high` on the same JD: 443 s and 2.6x the tokens for no gain
+on your rules, and it stretched metric attribution further, so it is not the default.
+
+Optional repository variables (not secrets): `RESUME_MODEL`, `RESUME_EFFORT` (`xhigh` fits
+about 6 resumes into the 15-minute budget, not 8), `RESUME_MAX` (per run, default 8). Resumes are only generated when the SMTP secrets are set, since they travel by
 email.
 
 **What it costs in time.** Measured: 33 s for an audit, about 2.5 min for a full resume.

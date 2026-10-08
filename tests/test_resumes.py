@@ -232,3 +232,35 @@ def test_no_smtp_means_no_paid_generation(env, monkeypatch, smtp, called):
             patch.object(J, "tailored_resumes", return_value=([], {})) as gen:
         J.run(dry_run=False, max_age=2)
     assert gen.called is called
+
+
+def test_cli_pins_opus_and_falls_back_to_the_plan_default_once(env):
+    env.setenv("CLAUDE_CODE_OAUTH_TOKEN", "oat")
+    calls = []
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd)
+        if "--model" in cmd:          # plan without Opus 5.5
+            return MagicMock(returncode=1, stdout="", stderr="model not available")
+        return MagicMock(returncode=0, stdout="RESULT: RESUME\nbody", stderr="")
+    with patch.object(R.subprocess, "run", side_effect=fake_run):
+        r = R.generate(JOB)
+    assert calls[0][calls[0].index("--model") + 1] == "claude-opus-5-5"
+    assert "--model" not in calls[1] and len(calls) == 2
+    assert r["kind"] == "resume" and "plan's default" in r["note"]
+    assert "plan's default" in R.status_line(r, "a.md")
+
+
+def test_an_explicit_model_is_never_swapped(env):
+    env.setenv("CLAUDE_CODE_OAUTH_TOKEN", "oat")
+    env.setenv("RESUME_MODEL", "claude-sonnet-5-5")
+    with patch.object(R.subprocess, "run",
+                      return_value=MagicMock(returncode=1, stdout="", stderr="nope")) as run:
+        r = R.generate(JOB)
+    assert run.call_count == 1 and r["kind"] == "error"
+
+
+@pytest.mark.parametrize("effort, timeout", [("high", 420), ("xhigh", 900), ("bogus", 420)])
+def test_call_timeout_scales_with_effort(env, effort, timeout):
+    env.setenv("RESUME_EFFORT", effort)
+    assert R.call_timeout() == timeout
