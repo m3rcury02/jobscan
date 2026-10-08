@@ -56,10 +56,11 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    # 45 not 25: the first run after a big board change (TCS, UST, 2026-10-06)
-    # fetches ~1,400 JDs, and a run killed before "Commit state" repeats the
-    # same work next hour. Minutes are free on a public repo.
-    timeout-minutes: 45
+    # A run killed before "Commit state" repeats the same work next hour, so
+    # leave room: ~9 min scan (~1,400 JDs after a big board change), up to 25
+    # min of xhigh resumes, and one straggling 15 min call. Minutes are free
+    # on a public repo.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 

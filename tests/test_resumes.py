@@ -75,7 +75,8 @@ def test_api_call_caches_the_packet_and_opts_into_fallbacks(env):
     assert "Test Person" in kw["system"][-1]["text"]
     assert kw["extra_body"] == {"fallbacks": "default"}
     assert kw["betas"] == ["server-side-fallback-2026-07-01"]
-    assert kw["output_config"] == {"effort": "high"}
+    assert kw["output_config"] == {"effort": "xhigh"}
+    assert kw["max_tokens"] == 64000
 
 
 def test_api_refusal_becomes_an_error_not_a_crash(env):
@@ -181,7 +182,7 @@ def test_apply_first_line_shows_the_resume_status():
 def test_generation_has_a_total_budget(env, monkeypatch):
     import time
     env.setenv("ANTHROPIC_API_KEY", "sk")
-    monkeypatch.setattr(R, "BUDGET_SECONDS", 0.3)
+    monkeypatch.setattr(R, "budget_seconds", lambda: 0.3)
 
     def slow(job):
         time.sleep(0.05 if job["url"] == "fast" else 2)
@@ -264,3 +265,10 @@ def test_an_explicit_model_is_never_swapped(env):
 def test_call_timeout_scales_with_effort(env, effort, timeout):
     env.setenv("RESUME_EFFORT", effort)
     assert R.call_timeout() == timeout
+
+
+@pytest.mark.parametrize("effort, minutes", [(None, 25), ("xhigh", 25), ("high", 15)])
+def test_budget_follows_effort(env, effort, minutes):
+    if effort:
+        env.setenv("RESUME_EFFORT", effort)
+    assert R.budget_seconds() == minutes * 60

@@ -18,7 +18,7 @@ and one way to reach Claude:
   ANTHROPIC_API_KEY        the Anthropic API, paid per use. Wins when both
                            are set.
 Optional repository variables: RESUME_MODEL (default claude-opus-5-5 on both
-routes), RESUME_EFFORT (default high; see DEFAULT_EFFORT for why not xhigh),
+routes), RESUME_EFFORT (default xhigh; high is about 2.5x faster),
 RESUME_MAX (default 8 per run).
 """
 import os
@@ -30,18 +30,20 @@ from concurrent.futures import ThreadPoolExecutor, wait
 # On both routes, unless RESUME_MODEL says otherwise. On the CLI route a plan
 # without this model falls back to the plan's default, and the digest says so.
 MODEL = "claude-opus-5-5"
-# Opus 5.5 defaults to medium effort; fitting a JD under word, metric and
-# one-system rules is reasoning-heavy. xhigh was measured against high on the
-# same JD (2026-10-08): 443 s and 38.7k output tokens against 179 s and 14.9k,
-# no gain on the packet's rules, and it attached more metric-bank figures to
-# workflows the packet does not tie them to. So high.
-DEFAULT_EFFORT = "high"
+# xhigh, the user's choice (2026-10-08). Measured against high on the same JD
+# that day: 443 s and 38.7k output tokens against 179 s and 14.9k, both passing
+# every mechanical rule in the instructions; xhigh attached more metric-bank
+# figures to workflows the packet does not tie them to, so read those closely.
+DEFAULT_EFFORT = "xhigh"
 WORKERS = 3
 # Per call, scaled to effort, and in total. The budget keeps slow calls from
 # pushing the run past the workflow timeout, which would skip "Commit state"
 # and pay for the same resumes again next hour.
 EFFORT_TIMEOUT = {"low": 180, "medium": 240, "high": 420, "xhigh": 900, "max": 1200}
 BUDGET_SECONDS = 15 * 60
+# xhigh: 8 resumes are 3 waves of ~443 s on 3 workers. The workflow's 60-minute
+# timeout covers the scan (~9 min), this budget and one straggling 900 s call.
+XHIGH_BUDGET_SECONDS = 25 * 60
 # The marker line, possibly wrapped in markdown (`...` or **...**); the score
 # is read from the rest of the line separately.
 RESULT_LINE = re.compile(r"^[ \t]*[`*_]*[ \t]*RESULT:[ \t]*(RESUME|AUDIT)\b([^\n]*)$", re.I | re.M)
@@ -111,6 +113,10 @@ def parse_result(text):
 
 def effort():
     return _env("RESUME_EFFORT") or DEFAULT_EFFORT
+
+
+def budget_seconds():
+    return XHIGH_BUDGET_SECONDS if effort() in ("xhigh", "max") else BUDGET_SECONDS
 
 
 def call_timeout():
@@ -193,11 +199,12 @@ def generate_all(jobs, has_jd):
         return {}
     pool = ThreadPoolExecutor(max_workers=WORKERS)
     futures = {pool.submit(generate, j): j for j in todo}
-    done, _ = wait(futures, timeout=BUDGET_SECONDS)
+    budget = budget_seconds()
+    done, _ = wait(futures, timeout=budget)
     # don't wait for stragglers: the digest goes out without them
     pool.shutdown(wait=False, cancel_futures=True)
     late = {"kind": "error", "score": None, "text": "",
-            "error": f"not finished within the {BUDGET_SECONDS // 60}-minute budget"}
+            "error": f"not finished within the {int(budget // 60)}-minute budget"}
     return {j["url"]: (f.result() if f in done else late) for f, j in futures.items()}
 
 
