@@ -1845,3 +1845,5 @@
 2026-10-08T22:05:40.327473+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
 2026-10-09T03:40:01.700019+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
 2026-10-09T07:45:47.211835+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
+2026-10-09T14:47:03.485071+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
+2026-10-09T14:56:16.954841+05:30	HPE	JD fetch failed (HTTPError: 403 Client Error: Forbidden for url: https://hpe.wd5.myworkdayjobs.com/wday/cxs/hpe/Jobsathpe/job/Bengaluru-Karntaka-India/Data-Engineer---Full-Stack); shown as title-only
