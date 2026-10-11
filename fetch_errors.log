@@ -1858,3 +1858,4 @@
 2026-10-11T05:14:42.876981+05:30	Birlasoft	ReadTimeout: HTTPSConnectionPool(host='jobs.birlasoft.com', port=443): Read timed out. (read timeout=25)
 2026-10-11T11:27:12.866962+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
 2026-10-11T18:31:46.943063+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
+2026-10-11T23:39:00.352027+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
