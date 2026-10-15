@@ -1876,3 +1876,9 @@
 2026-10-15T07:03:10.965534+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
 2026-10-15T13:02:39.437611+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
 2026-10-15T13:04:14.325477+05:30	Genpact	HTTPError: 502 Server Error: Bad Gateway for url: https://genpact.wd108.myworkdayjobs.com/wday/cxs/genpact/External_Careers/jobs
+2026-10-15T19:00:42.418360+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
+2026-10-15T19:08:43.981850+05:30	LTIMindtree	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-15T19:08:43.982090+05:30	Mphasis	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-15T19:08:43.982134+05:30	Altimetrik	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-15T19:08:43.982165+05:30	Tata Technologies	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-15T19:08:43.982246+05:30	UST	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
