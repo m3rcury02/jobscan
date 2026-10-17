@@ -1913,3 +1913,4 @@
 2026-10-17T22:49:23.255718+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
 2026-10-17T22:57:58.431973+05:30	Salesforce	JD fetch failed (HTTPError: 403 Client Error: Forbidden for url: https://salesforce.wd12.myworkdayjobs.com/wday/cxs/salesforce/External_Career_Site/job/India---Hyderabad/Softwar); shown as title-only
 2026-10-18T02:12:15.978238+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
+2026-10-18T04:41:27.923786+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
