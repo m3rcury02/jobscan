@@ -1902,3 +1902,7 @@
 2026-10-17T11:10:48.713985+05:30	Genpact	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 2026-10-17T11:10:48.714073+05:30	NTT Global Data Centers	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 2026-10-17T11:10:48.714321+05:30	Omnissa	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-17T16:23:13.780477+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
+2026-10-17T16:23:40.856318+05:30	Walmart Global Tech	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-17T16:24:26.770359+05:30	NTT Global Data Centers	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-10-17T16:24:26.770545+05:30	Omnissa	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
