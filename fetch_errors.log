@@ -1936,3 +1936,8 @@
 2026-10-20T13:12:01.545781+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
 2026-10-20T13:12:47.615658+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
 2026-10-20T13:37:25.276508+05:30	TCS	JD fetch failed (ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))); shown as title-only
+2026-10-20T19:08:24.678316+05:30	HubSpot	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hubspotjobs/jobs?content=true
+2026-10-20T19:09:21.255109+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
+2026-10-20T19:32:02.429654+05:30	LinkedIn	JD fetch failed (HTTPError: 500 Server Error: Internal Server Error for url: https://api.smartrecruiters.com/v1/companies/LinkedIn3/postings/744000156284424); shown as title-only
+2026-10-20T19:32:02.429789+05:30	ServiceNow	JD fetch failed (HTTPError: 500 Server Error: Internal Server Error for url: https://api.smartrecruiters.com/v1/companies/servicenow/postings/744000156267489); shown as title-only
+2026-10-20T19:32:02.429827+05:30	TCS	JD fetch failed (ChunkedEncodingError: Response ended prematurely); shown as title-only
