@@ -1941,3 +1941,7 @@
 2026-10-20T19:32:02.429654+05:30	LinkedIn	JD fetch failed (HTTPError: 500 Server Error: Internal Server Error for url: https://api.smartrecruiters.com/v1/companies/LinkedIn3/postings/744000156284424); shown as title-only
 2026-10-20T19:32:02.429789+05:30	ServiceNow	JD fetch failed (HTTPError: 500 Server Error: Internal Server Error for url: https://api.smartrecruiters.com/v1/companies/servicenow/postings/744000156267489); shown as title-only
 2026-10-20T19:32:02.429827+05:30	TCS	JD fetch failed (ChunkedEncodingError: Response ended prematurely); shown as title-only
+2026-10-21T00:02:28.141809+05:30	Walmart Global Tech	ReadTimeout: HTTPSConnectionPool(host='walmart.wd504.myworkdayjobs.com', port=443): Read timed out. (read timeout=25)
+2026-10-21T00:02:28.142610+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
+2026-10-21T00:08:13.504627+05:30	TCS	ReadTimeout: HTTPSConnectionPool(host='ibegin.tcsapps.com', port=443): Read timed out. (read timeout=25)
+2026-10-21T00:09:11.341973+05:30	Microsoft	JD fetch failed (HTTPError: 404 Client Error: Not Found for url: https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556919024&domain=microsoft.com&); shown as title-only
