@@ -1950,3 +1950,5 @@
 2026-10-21T13:17:06.971391+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
 2026-10-21T19:24:23.349063+05:30	R1 RCM	HTTPError: 502 Server Error: Bad Gateway for url: https://r1rcm.wd1.myworkdayjobs.com/wday/cxs/r1rcm/R1RCM/jobs
 2026-10-21T19:24:54.002569+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
+2026-10-22T00:14:01.603988+05:30	Walmart Global Tech	HTTPError: 503 Server Error: Service Unavailable for url: https://walmart.wd504.myworkdayjobs.com/wday/cxs/walmart/WalmartExternal/jobs
+2026-10-22T00:14:02.702769+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
