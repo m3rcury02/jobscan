@@ -1946,3 +1946,4 @@
 2026-10-21T00:08:13.504627+05:30	TCS	ReadTimeout: HTTPSConnectionPool(host='ibegin.tcsapps.com', port=443): Read timed out. (read timeout=25)
 2026-10-21T00:09:11.341973+05:30	Microsoft	JD fetch failed (HTTPError: 404 Client Error: Not Found for url: https://apply.careers.microsoft.com/api/pcsx/position_details?position_id=1970393556919024&domain=microsoft.com&); shown as title-only
 2026-10-21T03:53:36.061172+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
+2026-10-21T07:11:26.665250+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
