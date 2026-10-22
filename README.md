@@ -158,6 +158,11 @@ Edit the constants at the top of `jobscan.py`:
   whole words. Add a skill as you gain it (and remove it from `GAP_SKILLS`). Weights 1-3.
 - `TITLE_KEEP` / `TITLE_DROP` - if you see junk, add the offending word to `TITLE_DROP`
   rather than raising the score threshold.
+- `DE_HANDOFF` - data engineering titles ("Data Engineer", "PySpark Developer", "ETL
+  Developer") are left to [jobscan-de](https://github.com/m3rcury02/jobscan-de), which scores
+  them against your DE stack. A title that also names AI/ML or backend work ("AI/ML Data
+  Engineer") stays in both digests (`KEEP_IN_BOTH`). In October 2026 this moved 159 roles,
+  15 of them APPLY FIRST, out of this digest.
 - `COMPANY_DROP` - staffing agencies.
 - `MORE_PER_COMPANY` - roles listed per company in the longer digest sections before a
   "+N more at X" line. Service firms post in bulk; this keeps one of them from burying the

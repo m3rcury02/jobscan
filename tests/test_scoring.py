@@ -137,6 +137,26 @@ def test_title_ok(title, ok):
     assert J.title_ok(title) is ok
 
 
+@pytest.mark.parametrize("title, ok", [
+    # data engineering titles are jobscan-de's
+    ("Data Engineer", False), ("AWS Data Engineer", False), ("Data Engineer II", False),
+    ("Azure Data Engineer", False), ("PySpark Developer", False), ("ETL Developer", False),
+    ("Big Data Engineer", False), ("Databricks Developer", False),
+    ("Snowflake Developer", False), ("Software Engineer - Data Warehouse", False),
+    # hybrids that name AI/ML or backend work stay in both digests
+    ("AI/ML Data Engineer", True), ("AI Engineer (Gen AI, Databricks)", True),
+    ("Backend Engineer - Data Pipelines", True),
+    # EY's practice name is not an AI role
+    ("EY - GDS Consulting - AI and DATA - Azure Data Engineer", False),
+    ("EY - GDS Consulting - AI and DATA - Python Developer - Staff", True),
+    # not data engineering at all
+    ("Settlement Systems Developer", True), ("Data Scientist", True),
+    ("Software Engineer - Data Platform", True),
+])
+def test_data_engineering_titles_are_handed_to_jobscan_de(title, ok):
+    assert J.title_ok(title) is ok
+
+
 def test_batch_gate():
     y = J._THIS_YEAR
     assert J.BATCH_GATE_RE.search(f"Open to {y} batch graduates only")

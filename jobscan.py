@@ -218,7 +218,7 @@ TITLE_KEEP = [
     "applied ai", "api engineer", "sde", "member of technical staff",
     "application engineer", "server engineer", "infrastructure engineer",
     # widened for recall: these were rejecting ~280 live India roles a run
-    "developer", "data engineer", "devops", "site reliability", "sre",
+    "developer", "devops", "site reliability", "sre",
     "cloud engineer", "solutions engineer", "integration engineer",
     "systems engineer", "engineer ii", "engineer i", "engineer 2",
     "engineer 3", "engineer iii", "associate engineer",
@@ -2148,12 +2148,31 @@ def is_non_india_only(location):
 LLM_TITLE = re.compile(r"(?<![a-z])llm")
 
 
+# Data engineering titles belong to jobscan-de (m3rcury02/jobscan-de), which
+# scores them against your data engineering stack; keeping them here as well
+# sent the same role to both inboxes, scored twice. Dropping "data engineer"
+# from TITLE_KEEP alone was not enough: "aws", "azure", "engineer ii" and
+# "developer" still caught "AWS Data Engineer" and "PySpark Developer". A
+# title that also names AI/ML or backend work stays in both digests, since
+# this profile is the better judge of "AI/ML Data Engineer".
+DE_HANDOFF = re.compile(
+    r"data[\s-]*engineer|(?<![a-z])(?:etl|elt|dwh)(?![a-z])|pyspark|\bspark\b|big ?data|"
+    r"data[\s-]*warehous|databricks|snowflake|analytics engineer|data pipeline")
+KEEP_IN_BOTH = re.compile(
+    r"(?<![a-z])(?:ai|ml|llm|genai|gen ai|machine learning|backend|back-end|back end|"
+    r"full[\s-]?stack)(?![a-z])")
+
+
 def title_ok(title):
     t = (title or "").lower()
     if CAMPUS_DRIVE.search(title or ""):
         return False
     if any(_word(bad.strip(), t) for bad in TITLE_DROP):
         return False
+    # "AI and DATA" is EY's practice name, not the role:
+    # "EY - GDS Consulting - AI and DATA - Azure Data Engineer"
+    if DE_HANDOFF.search(t) and not KEEP_IN_BOTH.search(t.replace("ai and data", "")):
+        return False                    # jobscan-de's
     return any(good in t for good in TITLE_KEEP) or bool(LLM_TITLE.search(t))
 
 

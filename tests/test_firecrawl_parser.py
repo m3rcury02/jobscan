@@ -27,7 +27,8 @@ def test_lilly_phenom_cards_title_first():
     # cards - this is the shape most Phenom sites use.
     got = {j["title"]: j["location"] for j in jobs("lilly")}
     assert got["Sr. Principal Machine Learning Engineer"] == "Bangalore"
-    assert got["Associate Director, Data Engineering"] == "Bangalore"
+    # data engineering titles are jobscan-de's, so this scanner skips them
+    assert "Associate Director, Data Engineering" not in got
     # Manufacturing/Sales roles on the same page are titles, but off-target
     # for this scanner's engineering filter - excluded here is correct.
     assert "Territory Manager - Immunology & Neurology" not in got
