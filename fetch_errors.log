@@ -1963,3 +1963,7 @@
 2026-10-23T13:10:06.237403+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
 2026-10-23T13:43:07.913024+05:30	LTIMindtree	JD fetch failed (HTTPError: 500 Server Error: Internal Server Error for url: https://ltimindtree.ripplehire.com/candidate/?token=xviyQvbnyYZdGtozXoNm&lang=en&source=CAREERSITE); shown as title-only
 2026-10-23T19:03:58.524774+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
+2026-10-23T23:57:57.657748+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
+2026-10-24T00:05:38.874389+05:30	Baker Hughes	JD fetch failed (HTTPError: 403 Client Error: Forbidden for url: https://bakerhughes.wd5.myworkdayjobs.com/wday/cxs/bakerhughes/Bakerhughes/job/IN-TG-HYDERABAD-SKYVIEW-BUILDING/); shown as title-only
+2026-10-24T00:05:38.874534+05:30	Amadeus Labs	JD fetch failed (HTTPError: 403 Client Error: Forbidden for url: https://amadeus.wd502.myworkdayjobs.com/wday/cxs/amadeus/jobs/job/Bangalore/Specialist--DevOps-Engineer_R36161-2); shown as title-only
+2026-10-24T00:05:38.874580+05:30	Salesforce	JD fetch failed (HTTPError: 403 Client Error: Forbidden for url: https://salesforce.wd12.myworkdayjobs.com/wday/cxs/salesforce/External_Career_Site/job/India---Bangalore/Softwar); shown as title-only
