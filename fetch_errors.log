@@ -2015,3 +2015,4 @@
 2026-10-24T12:59:34.071865+05:30	DXC Technology	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 2026-10-24T12:59:34.071976+05:30	Unisys	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
 2026-10-24T22:17:53.381405+05:30	TCS	HTTPError: 404 Client Error: Not Found for url: https://ibegin.tcsapps.com/candidate/next/api/candidate
+2026-10-25T01:08:59.448136+05:30	TCS	HTTPError: 404 Client Error: Not Found for url: https://ibegin.tcsapps.com/candidate/next/api/candidate
