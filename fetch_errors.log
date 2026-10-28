@@ -2017,3 +2017,5 @@
 2026-10-24T22:17:53.381405+05:30	TCS	HTTPError: 404 Client Error: Not Found for url: https://ibegin.tcsapps.com/candidate/next/api/candidate
 2026-10-25T01:08:59.448136+05:30	TCS	HTTPError: 404 Client Error: Not Found for url: https://ibegin.tcsapps.com/candidate/next/api/candidate
 2026-10-25T04:09:42.944805+05:30	TCS	HTTPError: 404 Client Error: Not Found for url: https://ibegin.tcsapps.com/candidate/next/api/candidate
+2026-10-28T18:39:59.650388+05:30	Avolta	ReadTimeout: HTTPSConnectionPool(host='careers.avoltaworld.com', port=443): Read timed out. (read timeout=25)
+2026-10-28T18:47:03.984770+05:30	Tech Mahindra	ReadTimeout: HTTPSConnectionPool(host='careers.techmahindra.com', port=443): Read timed out. (read timeout=60)
