@@ -2040,3 +2040,4 @@
 2026-11-03T20:55:43.907133+05:30	Walmart Global Tech	JD fetch failed (HTTPError: 403 Client Error: Forbidden for url: https://walmart.wd504.myworkdayjobs.com/wday/cxs/walmart/WalmartExternal/job/IN-KA-BANGALORE-Home-Office-PTPP1/X); shown as title-only
 2026-11-04T02:37:45.154624+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
 2026-11-04T02:38:48.051395+05:30	Marelli	HTTPError: 503 Server Error: Service Unavailable for url: https://jobs.marelli.com/search/?q=&locationsearch=India&sortColumn=referencedate&sortDirection=desc&startrow=0
+2026-11-04T06:57:59.511381+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
