@@ -2059,3 +2059,5 @@
 2026-11-07T15:59:52.766498+05:30	Birlasoft	ReadTimeout: HTTPSConnectionPool(host='jobs.birlasoft.com', port=443): Read timed out. (read timeout=25)
 2026-11-07T22:23:49.969914+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
 2026-11-07T22:30:07.073011+05:30	TCS	HTTPError: 500 Server Error: Internal Server Error for url: https://ibegin.tcsapps.com/candidate/next/api/en-IN/search/jobs
+2026-11-08T02:27:33.097836+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
+2026-11-08T02:28:01.606596+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
