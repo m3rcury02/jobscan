@@ -2057,3 +2057,5 @@
 2026-11-07T08:25:41.172275+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
 2026-11-07T15:54:07.238830+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
 2026-11-07T15:59:52.766498+05:30	Birlasoft	ReadTimeout: HTTPSConnectionPool(host='jobs.birlasoft.com', port=443): Read timed out. (read timeout=25)
+2026-11-07T22:23:49.969914+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
+2026-11-07T22:30:07.073011+05:30	TCS	HTTPError: 500 Server Error: Internal Server Error for url: https://ibegin.tcsapps.com/candidate/next/api/en-IN/search/jobs
