@@ -2073,3 +2073,5 @@
 2026-11-09T02:09:25.144073+05:30	TCS	ReadTimeout: HTTPSConnectionPool(host='ibegin.tcsapps.com', port=443): Read timed out. (read timeout=25)
 2026-11-09T06:29:08.846903+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
 2026-11-09T06:29:37.834894+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
+2026-11-09T13:34:50.231603+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
+2026-11-09T13:35:16.062654+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
