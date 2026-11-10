@@ -2084,3 +2084,5 @@
 2026-11-10T07:55:50.632421+05:30	TCS	JD fetch failed (HTTPError: 502 Server Error: Proxy Error for url: https://ibegin.tcsapps.com/candidate/next/api/en-IN/job/desc/438740); shown as title-only
 2026-11-10T15:30:52.446332+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
 2026-11-10T15:31:14.004304+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
+2026-11-10T23:26:21.234608+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
+2026-11-10T23:26:50.159227+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
