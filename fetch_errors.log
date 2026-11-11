@@ -2093,3 +2093,6 @@
 2026-11-11T20:52:11.585312+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
 2026-11-11T20:52:37.256553+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
 2026-11-11T20:59:50.387539+05:30	Infosys	HTTPError: 503 Server Error: Service Unavailable for url: https://intapgateway.infosysapps.com/careersci/search/intapjbsrch/getCareerSearchJobs?sourceId=1,21&searchText=ALL
+2026-11-12T04:16:06.390467+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
+2026-11-12T04:16:30.888939+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
+2026-11-12T04:22:41.904810+05:30	Virtusa	HTTPError: 503 Server Error: Service Unavailable for url: https://virtusapolaris.referrals.selectminds.com/jobs/search
