@@ -2106,3 +2106,7 @@
 2026-11-13T02:24:54.357275+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
 2026-11-13T02:30:43.192363+05:30	EY	ReadTimeout: HTTPSConnectionPool(host='careers.ey.com', port=443): Read timed out. (read timeout=25)
 2026-11-13T02:30:43.192771+05:30	Virtusa	HTTPError: 503 Server Error: Service Unavailable for url: https://virtusapolaris.referrals.selectminds.com/jobs/search
+2026-11-13T07:25:02.340712+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
+2026-11-13T07:25:30.076856+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
+2026-11-13T07:30:46.238360+05:30	Virtusa	HTTPError: 503 Server Error: Service Unavailable for url: https://virtusapolaris.referrals.selectminds.com/jobs/search
+2026-11-13T07:32:20.756519+05:30	Oracle	JD fetch failed (ReadTimeout: HTTPSConnectionPool(host='eeho.fa.us2.oraclecloud.com', port=443): Read timed out. (read timeout=25)); shown as title-only
