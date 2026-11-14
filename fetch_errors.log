@@ -2150,3 +2150,48 @@
 2026-11-14T05:15:30.815531+05:30	Atos	HTTPError: 404 Client Error: Not Found for url: https://jobs.atos.net/search/?q=&locationsearch=India&sortColumn=referencedate&sortDirection=desc&startrow=0
 2026-11-14T05:15:30.815628+05:30	Virtusa	HTTPError: 503 Server Error: Service Unavailable for url: https://virtusapolaris.referrals.selectminds.com/jobs/search
 2026-11-14T05:15:30.815655+05:30	Unisys	HTTPError: 521 Server Error: <none> for url: https://unisys.wd5.myworkdayjobs.com/wday/cxs/unisys/External/jobs
+2026-11-14T12:09:18.052868+05:30	Cisco	HTTPError: 521 Server Error: <none> for url: https://cisco.wd5.myworkdayjobs.com/wday/cxs/cisco/Cisco_Careers/jobs
+2026-11-14T12:09:18.052966+05:30	Intel	HTTPError: 521 Server Error: <none> for url: https://intel.wd1.myworkdayjobs.com/wday/cxs/intel/External/jobs
+2026-11-14T12:09:18.052989+05:30	NVIDIA	HTTPError: 521 Server Error: <none> for url: https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs
+2026-11-14T12:09:18.053011+05:30	Thomson Reuters	HTTPError: 521 Server Error: <none> for url: https://thomsonreuters.wd5.myworkdayjobs.com/wday/cxs/thomsonreuters/External_Career_Site/jobs
+2026-11-14T12:09:18.053028+05:30	F5	HTTPError: 521 Server Error: <none> for url: https://ffive.wd5.myworkdayjobs.com/wday/cxs/ffive/f5jobs/jobs
+2026-11-14T12:09:18.053045+05:30	PTC	HTTPError: 521 Server Error: <none> for url: https://ptc.wd1.myworkdayjobs.com/wday/cxs/ptc/PTC/jobs
+2026-11-14T12:09:18.053113+05:30	Agilent	HTTPError: 521 Server Error: <none> for url: https://agilent.wd5.myworkdayjobs.com/wday/cxs/agilent/Agilent_Careers/jobs
+2026-11-14T12:09:18.053133+05:30	Silicon Labs	HTTPError: 521 Server Error: <none> for url: https://silabs.wd1.myworkdayjobs.com/wday/cxs/silabs/SiliconLabsCareers/jobs
+2026-11-14T12:09:18.053155+05:30	Kyndryl	HTTPError: 521 Server Error: <none> for url: https://kyndryl.wd5.myworkdayjobs.com/wday/cxs/kyndryl/KyndrylProfessionalCareers/jobs
+2026-11-14T12:09:18.053176+05:30	Carelon Global Solutions	HTTPError: 521 Server Error: <none> for url: https://elevancehealth.wd1.myworkdayjobs.com/wday/cxs/elevancehealth/carelonglobal_in/jobs
+2026-11-14T12:09:18.053192+05:30	Assurant	HTTPError: 521 Server Error: <none> for url: https://assurant.wd1.myworkdayjobs.com/wday/cxs/assurant/Assurant_Careers/jobs
+2026-11-14T12:09:18.053207+05:30	R1 RCM	HTTPError: 521 Server Error: <none> for url: https://r1rcm.wd1.myworkdayjobs.com/wday/cxs/r1rcm/R1RCM/jobs
+2026-11-14T12:09:18.053222+05:30	Astreya	HTTPError: 521 Server Error: <none> for url: https://astreya.wd5.myworkdayjobs.com/wday/cxs/astreya/life-at-astreya-opportunities/jobs
+2026-11-14T12:09:18.053236+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
+2026-11-14T12:09:23.070120+05:30	GlobalFoundries	HTTPError: 521 Server Error: <none> for url: https://globalfoundries.wd1.myworkdayjobs.com/wday/cxs/globalfoundries/External/jobs
+2026-11-14T12:09:23.070613+05:30	ReliaQuest	HTTPError: 521 Server Error: <none> for url: https://reliaquest.wd5.myworkdayjobs.com/wday/cxs/reliaquest/ReliaQuest_Careers/jobs
+2026-11-14T12:09:32.131665+05:30	Synchrony Financial	HTTPError: 521 Server Error: <none> for url: https://synchronyfinancial.wd5.myworkdayjobs.com/wday/cxs/synchronyfinancial/careers/jobs
+2026-11-14T12:09:43.179995+05:30	SS&C Technologies	HTTPError: 521 Server Error: <none> for url: https://ssctech.wd1.myworkdayjobs.com/wday/cxs/ssctech/SSCTechnologies/jobs
+2026-11-14T12:09:43.180148+05:30	Broadcom	HTTPError: 521 Server Error: <none> for url: https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/jobs
+2026-11-14T12:09:43.180179+05:30	Synechron	HTTPError: 521 Server Error: <none> for url: https://synechron.wd1.myworkdayjobs.com/wday/cxs/synechron/SynechronCareers/jobs
+2026-11-14T12:09:43.180197+05:30	Fractal Analytics	HTTPError: 521 Server Error: <none> for url: https://fractal.wd1.myworkdayjobs.com/wday/cxs/fractal/Careers/jobs
+2026-11-14T12:09:43.180210+05:30	Visa	HTTPError: 521 Server Error: <none> for url: https://visa.wd5.myworkdayjobs.com/wday/cxs/visa/Visa/jobs
+2026-11-14T12:09:43.180225+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
+2026-11-14T12:09:43.180240+05:30	Autodesk	HTTPError: 521 Server Error: <none> for url: https://autodesk.wd1.myworkdayjobs.com/wday/cxs/autodesk/Ext/jobs
+2026-11-14T12:10:19.390524+05:30	Baker Hughes	HTTPError: 521 Server Error: <none> for url: https://bakerhughes.wd5.myworkdayjobs.com/wday/cxs/bakerhughes/Bakerhughes/jobs
+2026-11-14T12:10:19.390686+05:30	Chevron	HTTPError: 521 Server Error: <none> for url: https://chevron.wd5.myworkdayjobs.com/wday/cxs/chevron/jobs/jobs
+2026-11-14T12:10:19.390712+05:30	GoTo	HTTPError: 521 Server Error: <none> for url: https://goto.wd5.myworkdayjobs.com/wday/cxs/goto/GotoCareers/jobs
+2026-11-14T12:10:19.390730+05:30	Lytx	HTTPError: 521 Server Error: <none> for url: https://lytx.wd1.myworkdayjobs.com/wday/cxs/lytx/Lytx/jobs
+2026-11-14T12:10:19.390744+05:30	PayPal	HTTPError: 521 Server Error: <none> for url: https://paypal.wd1.myworkdayjobs.com/wday/cxs/paypal/jobs/jobs
+2026-11-14T12:10:19.390775+05:30	Caterpillar	HTTPError: 521 Server Error: <none> for url: https://cat.wd5.myworkdayjobs.com/wday/cxs/cat/CaterpillarCareers/jobs
+2026-11-14T12:10:19.390789+05:30	Citi	HTTPError: 521 Server Error: <none> for url: https://citi.wd5.myworkdayjobs.com/wday/cxs/citi/2/jobs
+2026-11-14T12:10:19.390808+05:30	HPE	HTTPError: 521 Server Error: <none> for url: https://hpe.wd5.myworkdayjobs.com/wday/cxs/hpe/Jobsathpe/jobs
+2026-11-14T12:10:19.390822+05:30	Cardinal Health	HTTPError: 521 Server Error: <none> for url: https://cardinalhealth.wd1.myworkdayjobs.com/wday/cxs/cardinalhealth/Ext/jobs
+2026-11-14T12:10:19.390844+05:30	Alcon	HTTPError: 521 Server Error: <none> for url: https://alcon.wd5.myworkdayjobs.com/wday/cxs/alcon/careers_alcon/jobs
+2026-11-14T12:10:19.390938+05:30	GE Vernova	HTTPError: 521 Server Error: <none> for url: https://gevernova.wd5.myworkdayjobs.com/wday/cxs/gevernova/Vernova_ExternalSite/jobs
+2026-11-14T12:10:19.390971+05:30	Q2 Software	HTTPError: 521 Server Error: <none> for url: https://q2ebanking.wd5.myworkdayjobs.com/wday/cxs/q2ebanking/Q2/jobs
+2026-11-14T12:10:19.390988+05:30	State Street	HTTPError: 521 Server Error: <none> for url: https://statestreet.wd1.myworkdayjobs.com/wday/cxs/statestreet/Global/jobs
+2026-11-14T12:10:19.391027+05:30	Lowe's	HTTPError: 521 Server Error: <none> for url: https://lowes.wd5.myworkdayjobs.com/wday/cxs/lowes/LWS_External_CS/jobs
+2026-11-14T12:10:19.391049+05:30	CommScope	HTTPError: 404 Client Error: Not Found for url: https://jobs.commscope.com/search/?q=&locationsearch=India&sortColumn=referencedate&sortDirection=desc&startrow=0
+2026-11-14T12:10:19.391070+05:30	JioStar	HTTPError: 521 Server Error: <none> for url: https://disney.wd5.myworkdayjobs.com/wday/cxs/disney/disneycareer/jobs
+2026-11-14T12:10:19.391083+05:30	AMETEK	HTTPError: 404 Client Error: Not Found for url: https://jobs.ametek.com/search/?q=&locationsearch=India&sortColumn=referencedate&sortDirection=desc&startrow=0
+2026-11-14T12:10:19.391104+05:30	o9 Solutions	HTTPError: 521 Server Error: <none> for url: https://o9solutions.wd5.myworkdayjobs.com/wday/cxs/o9solutions/o9SolutionsExternal/jobs
+2026-11-14T12:15:23.122260+05:30	DXC Technology	HTTPError: 521 Server Error: <none> for url: https://dxctechnology.wd1.myworkdayjobs.com/wday/cxs/dxctechnology/DXCJobs/jobs
+2026-11-14T12:15:23.122487+05:30	Virtusa	HTTPError: 503 Server Error: Service Unavailable for url: https://virtusapolaris.referrals.selectminds.com/jobs/search
+2026-11-14T12:15:23.122519+05:30	Unisys	HTTPError: 521 Server Error: <none> for url: https://unisys.wd5.myworkdayjobs.com/wday/cxs/unisys/External/jobs
