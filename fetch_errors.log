@@ -2195,3 +2195,40 @@
 2026-11-14T12:15:23.122260+05:30	DXC Technology	HTTPError: 521 Server Error: <none> for url: https://dxctechnology.wd1.myworkdayjobs.com/wday/cxs/dxctechnology/DXCJobs/jobs
 2026-11-14T12:15:23.122487+05:30	Virtusa	HTTPError: 503 Server Error: Service Unavailable for url: https://virtusapolaris.referrals.selectminds.com/jobs/search
 2026-11-14T12:15:23.122519+05:30	Unisys	HTTPError: 521 Server Error: <none> for url: https://unisys.wd5.myworkdayjobs.com/wday/cxs/unisys/External/jobs
+2026-11-14T19:45:18.234564+05:30	Cisco	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:18.235141+05:30	Intel	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:18.235198+05:30	NVIDIA	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:20.553477+05:30	Thomson Reuters	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:20.554171+05:30	F5	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:20.554560+05:30	PTC	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:20.554799+05:30	Silicon Labs	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:20.554992+05:30	Kyndryl	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:20.555147+05:30	Carelon Global Solutions	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:20.555200+05:30	Assurant	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:20.555228+05:30	R1 RCM	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:22.666129+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
+2026-11-14T19:45:34.586470+05:30	GlobalFoundries	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:41.864831+05:30	Synchrony Financial	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:55.470068+05:30	SS&C Technologies	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:55.470371+05:30	Broadcom	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:55.470432+05:30	Synechron	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:55.470469+05:30	Fractal Analytics	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:55.470503+05:30	Visa	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:45:55.470544+05:30	NXP Semiconductors	HTTPError: 422 Client Error: Unprocessable Entity for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
+2026-11-14T19:45:55.470595+05:30	Autodesk	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.832248+05:30	Baker Hughes	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.832398+05:30	Chevron	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.832457+05:30	Lytx	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.832507+05:30	PayPal	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.832571+05:30	Caterpillar	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.832617+05:30	Citi	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.832672+05:30	HPE	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.832700+05:30	Cardinal Health	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.832867+05:30	GE Vernova	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.832977+05:30	State Street	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.833091+05:30	Lowe's	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:46:27.833197+05:30	JioStar	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:51:51.176347+05:30	TCS	HTTPError: 404 Client Error: Not Found for url: https://ibegin.tcsapps.com/candidate/next/api/candidate
+2026-11-14T19:51:51.176673+05:30	DXC Technology	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
+2026-11-14T19:51:51.176820+05:30	Virtusa	HTTPError: 503 Server Error: Service Unavailable for url: https://virtusapolaris.referrals.selectminds.com/jobs/search
+2026-11-14T19:51:51.176864+05:30	Unisys	JSONDecodeError: Expecting value: line 1 column 1 (char 0)
