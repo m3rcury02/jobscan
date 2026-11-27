@@ -4018,3 +4018,62 @@
 2026-11-27T08:33:32.553799+05:30	PTC	JD fetch failed (HTTPError: 429 Client Error: Too Many Requests for url: https://ptc.wd1.myworkdayjobs.com/wday/cxs/ptc/PTC/job/Pune-India/Senior-Software-Specialist---DevOps_JR); shown as title-only
 2026-11-27T08:33:32.553918+05:30	Carelon Global Solutions	JD fetch failed (HTTPError: 429 Client Error: Too Many Requests for url: https://elevancehealth.wd1.myworkdayjobs.com/wday/cxs/elevancehealth/carelonglobal_in/job/IND-KA-Bengalu); shown as title-only
 2026-11-27T08:33:32.553953+05:30	Assurant	JD fetch failed (HTTPError: 429 Client Error: Too Many Requests for url: https://assurant.wd1.myworkdayjobs.com/wday/cxs/assurant/Assurant_Careers/job/Bengaluru/Senior-Technolog); shown as title-only
+2026-11-27T18:11:03.515891+05:30	Headout	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/headoutcareers/jobs?content=true
+2026-11-27T18:11:06.802254+05:30	Getinz	ValueError: no Freshteam account 'getinz-people' any more - find the new board
+2026-11-27T18:11:06.802484+05:30	Cisco	HTTPError: 429 Client Error: Too Many Requests for url: https://cisco.wd5.myworkdayjobs.com/wday/cxs/cisco/Cisco_Careers/jobs
+2026-11-27T18:11:06.802515+05:30	Intel	HTTPError: 429 Client Error: Too Many Requests for url: https://intel.wd1.myworkdayjobs.com/wday/cxs/intel/External/jobs
+2026-11-27T18:11:06.802548+05:30	NVIDIA	HTTPError: 429 Client Error: Too Many Requests for url: https://nvidia.wd5.myworkdayjobs.com/wday/cxs/nvidia/NVIDIAExternalCareerSite/jobs
+2026-11-27T18:11:06.802565+05:30	Salesforce	HTTPError: 429 Client Error: Too Many Requests for url: https://salesforce.wd12.myworkdayjobs.com/wday/cxs/salesforce/External_Career_Site/jobs
+2026-11-27T18:11:06.802582+05:30	Thomson Reuters	HTTPError: 429 Client Error: Too Many Requests for url: https://thomsonreuters.wd5.myworkdayjobs.com/wday/cxs/thomsonreuters/External_Career_Site/jobs
+2026-11-27T18:11:06.802598+05:30	F5	HTTPError: 429 Client Error: Too Many Requests for url: https://ffive.wd5.myworkdayjobs.com/wday/cxs/ffive/f5jobs/jobs
+2026-11-27T18:11:06.802614+05:30	PTC	HTTPError: 429 Client Error: Too Many Requests for url: https://ptc.wd1.myworkdayjobs.com/wday/cxs/ptc/PTC/jobs
+2026-11-27T18:11:06.802630+05:30	Agilent	HTTPError: 429 Client Error: Too Many Requests for url: https://agilent.wd5.myworkdayjobs.com/wday/cxs/agilent/Agilent_Careers/jobs
+2026-11-27T18:11:06.802647+05:30	AVEVA	HTTPError: 429 Client Error: Too Many Requests for url: https://aveva.wd3.myworkdayjobs.com/wday/cxs/aveva/AVEVA_careers/jobs
+2026-11-27T18:11:06.802661+05:30	Silicon Labs	HTTPError: 429 Client Error: Too Many Requests for url: https://silabs.wd1.myworkdayjobs.com/wday/cxs/silabs/SiliconLabsCareers/jobs
+2026-11-27T18:11:06.802678+05:30	Kyndryl	HTTPError: 429 Client Error: Too Many Requests for url: https://kyndryl.wd5.myworkdayjobs.com/wday/cxs/kyndryl/KyndrylProfessionalCareers/jobs
+2026-11-27T18:11:06.802694+05:30	Lloyds Technology Centre	HTTPError: 429 Client Error: Too Many Requests for url: https://lbg.wd3.myworkdayjobs.com/wday/cxs/lbg/Lloyds_Technology_Centre/jobs
+2026-11-27T18:11:06.802711+05:30	Carelon Global Solutions	HTTPError: 429 Client Error: Too Many Requests for url: https://elevancehealth.wd1.myworkdayjobs.com/wday/cxs/elevancehealth/carelonglobal_in/jobs
+2026-11-27T18:11:06.802727+05:30	Assurant	HTTPError: 429 Client Error: Too Many Requests for url: https://assurant.wd1.myworkdayjobs.com/wday/cxs/assurant/Assurant_Careers/jobs
+2026-11-27T18:11:06.802743+05:30	R1 RCM	HTTPError: 429 Client Error: Too Many Requests for url: https://r1rcm.wd1.myworkdayjobs.com/wday/cxs/r1rcm/R1RCM/jobs
+2026-11-27T18:11:06.802759+05:30	Astreya	HTTPError: 429 Client Error: Too Many Requests for url: https://astreya.wd5.myworkdayjobs.com/wday/cxs/astreya/life-at-astreya-opportunities/jobs
+2026-11-27T18:11:07.734439+05:30	Hyreo	HTTPError: 404 Client Error: Not Found for url: https://boards-api.greenhouse.io/v1/boards/hyreo/jobs?content=true
+2026-11-27T18:11:07.735421+05:30	GlobalFoundries	HTTPError: 429 Client Error: Too Many Requests for url: https://globalfoundries.wd1.myworkdayjobs.com/wday/cxs/globalfoundries/External/jobs
+2026-11-27T18:11:07.737438+05:30	ReliaQuest	HTTPError: 429 Client Error: Too Many Requests for url: https://reliaquest.wd5.myworkdayjobs.com/wday/cxs/reliaquest/ReliaQuest_Careers/jobs
+2026-11-27T18:11:07.742468+05:30	Airbus	HTTPError: 429 Client Error: Too Many Requests for url: https://ag.wd3.myworkdayjobs.com/wday/cxs/ag/Airbus/jobs
+2026-11-27T18:11:07.742531+05:30	Synchrony Financial	HTTPError: 429 Client Error: Too Many Requests for url: https://synchronyfinancial.wd5.myworkdayjobs.com/wday/cxs/synchronyfinancial/careers/jobs
+2026-11-27T18:11:16.546663+05:30	Walmart Global Tech	HTTPError: 429 Client Error: Too Many Requests for url: https://walmart.wd504.myworkdayjobs.com/wday/cxs/walmart/WalmartExternal/jobs
+2026-11-27T18:11:16.546863+05:30	SS&C Technologies	HTTPError: 429 Client Error: Too Many Requests for url: https://ssctech.wd1.myworkdayjobs.com/wday/cxs/ssctech/SSCTechnologies/jobs
+2026-11-27T18:11:16.546927+05:30	Broadcom	HTTPError: 429 Client Error: Too Many Requests for url: https://broadcom.wd1.myworkdayjobs.com/wday/cxs/broadcom/External_Career/jobs
+2026-11-27T18:11:16.546962+05:30	Synechron	HTTPError: 429 Client Error: Too Many Requests for url: https://synechron.wd1.myworkdayjobs.com/wday/cxs/synechron/SynechronCareers/jobs
+2026-11-27T18:11:16.547035+05:30	Fractal Analytics	HTTPError: 429 Client Error: Too Many Requests for url: https://fractal.wd1.myworkdayjobs.com/wday/cxs/fractal/Careers/jobs
+2026-11-27T18:11:16.547057+05:30	Visa	HTTPError: 429 Client Error: Too Many Requests for url: https://visa.wd5.myworkdayjobs.com/wday/cxs/visa/Visa/jobs
+2026-11-27T18:11:16.547074+05:30	Veradigm	HTTPError: 429 Client Error: Too Many Requests for url: https://veradigm.wd12.myworkdayjobs.com/wday/cxs/veradigm/VR/jobs
+2026-11-27T18:11:16.547091+05:30	NXP Semiconductors	HTTPError: 429 Client Error: Too Many Requests for url: https://nxp.wd3.myworkdayjobs.com/wday/cxs/nxp/careers/jobs
+2026-11-27T18:11:16.547108+05:30	Autodesk	HTTPError: 429 Client Error: Too Many Requests for url: https://autodesk.wd1.myworkdayjobs.com/wday/cxs/autodesk/Ext/jobs
+2026-11-27T18:11:16.547459+05:30	Accenture	HTTPError: 429 Client Error: Too Many Requests for url: https://accenture.wd103.myworkdayjobs.com/wday/cxs/accenture/AccentureCareers/jobs
+2026-11-27T18:11:16.547625+05:30	Baker Hughes	HTTPError: 429 Client Error: Too Many Requests for url: https://bakerhughes.wd5.myworkdayjobs.com/wday/cxs/bakerhughes/Bakerhughes/jobs
+2026-11-27T18:11:16.547651+05:30	Chevron	HTTPError: 429 Client Error: Too Many Requests for url: https://chevron.wd5.myworkdayjobs.com/wday/cxs/chevron/jobs/jobs
+2026-11-27T18:11:16.547669+05:30	GoTo	HTTPError: 429 Client Error: Too Many Requests for url: https://goto.wd5.myworkdayjobs.com/wday/cxs/goto/GotoCareers/jobs
+2026-11-27T18:11:16.547684+05:30	Lytx	HTTPError: 429 Client Error: Too Many Requests for url: https://lytx.wd1.myworkdayjobs.com/wday/cxs/lytx/Lytx/jobs
+2026-11-27T18:11:16.547700+05:30	PayPal	HTTPError: 429 Client Error: Too Many Requests for url: https://paypal.wd1.myworkdayjobs.com/wday/cxs/paypal/jobs/jobs
+2026-11-27T18:11:16.547716+05:30	Shell	HTTPError: 429 Client Error: Too Many Requests for url: https://shell.wd3.myworkdayjobs.com/wday/cxs/shell/ShellCareers/jobs
+2026-11-27T18:11:16.547741+05:30	Caterpillar	HTTPError: 429 Client Error: Too Many Requests for url: https://cat.wd5.myworkdayjobs.com/wday/cxs/cat/CaterpillarCareers/jobs
+2026-11-27T18:11:16.547759+05:30	Citi	HTTPError: 429 Client Error: Too Many Requests for url: https://citi.wd5.myworkdayjobs.com/wday/cxs/citi/2/jobs
+2026-11-27T18:11:16.547776+05:30	HPE	HTTPError: 429 Client Error: Too Many Requests for url: https://hpe.wd5.myworkdayjobs.com/wday/cxs/hpe/Jobsathpe/jobs
+2026-11-27T18:11:16.547793+05:30	Cardinal Health	HTTPError: 429 Client Error: Too Many Requests for url: https://cardinalhealth.wd1.myworkdayjobs.com/wday/cxs/cardinalhealth/Ext/jobs
+2026-11-27T18:11:16.547808+05:30	Alcon	HTTPError: 429 Client Error: Too Many Requests for url: https://alcon.wd5.myworkdayjobs.com/wday/cxs/alcon/careers_alcon/jobs
+2026-11-27T18:11:24.308899+05:30	Expedia Group	HTTPError: 429 Client Error: Too Many Requests for url: https://expedia.wd108.myworkdayjobs.com/wday/cxs/expedia/search/jobs
+2026-11-27T18:11:24.309027+05:30	GE Vernova	HTTPError: 429 Client Error: Too Many Requests for url: https://gevernova.wd5.myworkdayjobs.com/wday/cxs/gevernova/Vernova_ExternalSite/jobs
+2026-11-27T18:11:24.309048+05:30	Genpact	HTTPError: 429 Client Error: Too Many Requests for url: https://genpact.wd108.myworkdayjobs.com/wday/cxs/genpact/External_Careers/jobs
+2026-11-27T18:11:24.309066+05:30	NTT Global Data Centers	HTTPError: 429 Client Error: Too Many Requests for url: https://nttglobaldatacenters.wd501.myworkdayjobs.com/wday/cxs/nttglobaldatacenters/External/jobs
+2026-11-27T18:11:24.309084+05:30	Q2 Software	HTTPError: 429 Client Error: Too Many Requests for url: https://q2ebanking.wd5.myworkdayjobs.com/wday/cxs/q2ebanking/Q2/jobs
+2026-11-27T18:11:24.309105+05:30	State Street	HTTPError: 429 Client Error: Too Many Requests for url: https://statestreet.wd1.myworkdayjobs.com/wday/cxs/statestreet/Global/jobs
+2026-11-27T18:11:27.246674+05:30	PwC	HTTPError: 429 Client Error: Too Many Requests for url: https://pwc.wd3.myworkdayjobs.com/wday/cxs/pwc/Global_Experienced_Careers/jobs
+2026-11-27T18:11:27.247381+05:30	Lowe's	HTTPError: 429 Client Error: Too Many Requests for url: https://lowes.wd5.myworkdayjobs.com/wday/cxs/lowes/LWS_External_CS/jobs
+2026-11-27T18:11:27.247452+05:30	JioStar	HTTPError: 429 Client Error: Too Many Requests for url: https://disney.wd5.myworkdayjobs.com/wday/cxs/disney/disneycareer/jobs
+2026-11-27T18:11:27.247487+05:30	Omnissa	HTTPError: 429 Client Error: Too Many Requests for url: https://omnissa.wd501.myworkdayjobs.com/wday/cxs/omnissa/omnissa_External_Career_Site/jobs
+2026-11-27T18:11:27.247503+05:30	o9 Solutions	HTTPError: 429 Client Error: Too Many Requests for url: https://o9solutions.wd5.myworkdayjobs.com/wday/cxs/o9solutions/o9SolutionsExternal/jobs
+2026-11-27T18:17:33.230332+05:30	NTT DATA	HTTPError: 429 Client Error: Too Many Requests for url: https://nttlimited.wd3.myworkdayjobs.com/wday/cxs/nttlimited/NTT_Careers/jobs
+2026-11-27T18:17:33.230584+05:30	DXC Technology	HTTPError: 429 Client Error: Too Many Requests for url: https://dxctechnology.wd1.myworkdayjobs.com/wday/cxs/dxctechnology/DXCJobs/jobs
+2026-11-27T18:17:33.230835+05:30	Virtusa	HTTPError: 503 Server Error: Service Unavailable for url: https://virtusapolaris.referrals.selectminds.com/jobs/search
+2026-11-27T18:17:33.230860+05:30	Unisys	HTTPError: 429 Client Error: Too Many Requests for url: https://unisys.wd5.myworkdayjobs.com/wday/cxs/unisys/External/jobs
